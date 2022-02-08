@@ -17,14 +17,6 @@ pub struct BufferSlice<'bs, C: bytemuck::Pod>{
     len: wgpu::BufferAddress,
 }
 
-/// ```rust
-/// let array = [0, 1, 2, 3, 4];
-/// let mapped_buffer = MappedBuffer::new_storage(device, None, array);
-///
-/// mapped_buffer.slice_blocking(..)[0] = 1;
-///
-/// let i = mapped_buffer.slice(..)[0];
-/// ```
 impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     ///
     /// Map the slice whilst polling the device.
@@ -60,10 +52,15 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     ///
     /// Map the slice and block this thread untill maping is complete.
     ///
-    /// ```rust
-    /// println!("{}", slice.map_blocking(device)[0]);
-    /// ```
+    /// Example:
+    /// 
+    /// let array = [0, 1, 2, 3, 4];
+    /// let mapped_buffer = MappedBuffer::new_storage(device, None, array);
     ///
+    /// mapped_buffer.slice_blocking(..)[0] = 1;
+    ///
+    /// let i = mapped_buffer.slice(..)[0];
+    /// 
     pub fn map_blocking(self, device: &wgpu::Device) -> BufferView<'bs, C>{
         pollster::block_on(self.map_async_poll(device))
     }
@@ -103,9 +100,7 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     ///
     /// Map the slice mutably and block this thread untill maping is complete.
     ///
-    /// ```rust
     /// slice.map_blocking_mut(device)[0] = 1;
-    /// ```
     ///
     pub fn map_blocking_mut(self, device: &wgpu::Device) -> BufferViewMut<'bs, C>{
         pollster::block_on(self.map_async_poll_mut(device))
@@ -173,7 +168,7 @@ impl<C: bytemuck::Pod> Buffer<C>{
     pub fn new_storage(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new(device, wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::MAP_WRITE, label, data)
     }
-    
+
     pub fn new_index(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new(device, wgpu::BufferUsages::INDEX, label, data)
     }
