@@ -46,17 +46,16 @@ I have noticed that nearly all projects using wgpu that are listed on their webs
  - [x] Texture with load and new functions.
  - [x] Uniforms with generic types.
  - [x] Vert2 default vertex struct.
- - [] Vert3 default vertex struct.
+ - [ ] Vert3 default vertex struct.
 
 ## Goals:
 Hide all operations in wgpu that could result in panics and/or undefined
 behaviour behind rust's safety infrastructure if possible.
 
 ### Immediate Goals:
- - [] Implement some way to use the Rust type system to prevent Buffers that are initialized without the COPY_DST usage to be target of a copy_to_buffer
-   operation. 
- - [] Implement some way to prevent Buffers/Slices of buffers that are initialized without the COPY_SRC usage to be source of a copy_to_buffer operation.
- - [] Write unit tests for all testable modules.
- - [] Rename all generic default names from C to T.
- - [] Add functions to Framework that allow configuration.
- - [] Make ModelTransforms a generic in Model struct.
+ - [ ] Implement some way to use the Rust type system to prevent Buffers that are initialized without the COPY_DST usage to be target of a copy_to_buffer operation. 
+ - [ ] Implement some way to prevent Buffers/Slices of buffers that are initialized without the COPY_SRC usage to be source of a copy_to_buffer operation.
+ - [ ] Write unit tests for all testable modules.
+ - [ ] Rename all generic default names from C to T.
+ - [ ] Add functions to Framework that allow configuration.
+ - [ ] Make ModelTransforms a generic in Model struct.
