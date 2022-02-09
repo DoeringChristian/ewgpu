@@ -295,3 +295,17 @@ impl BindGroupTexture{
         )?, device))
     }
 }
+
+impl ColorAttachment for Texture{
+    fn color_attachment_clear(&self) -> wgpu::RenderPassColorAttachment {
+        self.view.color_attachment_clear()
+    }
+
+    fn color_attachment_clear_with(&self, color: wgpu::Color) -> wgpu::RenderPassColorAttachment {
+        self.view.color_attachment_clear_with(color)
+    }
+
+    fn color_attachment_load(&self) -> wgpu::RenderPassColorAttachment {
+        self.view.color_attachment_load()
+    }
+}
