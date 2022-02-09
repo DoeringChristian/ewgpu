@@ -73,7 +73,7 @@ impl<C: bytemuck::Pod> UniformVec<C>{
         &type_name[(pos + 1)..]
     }
 
-    pub fn new(device: &wgpu::Device, src: &[C]) -> Self{
+    pub fn new(src: &[C], device: &wgpu::Device) -> Self{
         let buffer = Buffer::new_dst_uniform(
             device, 
             Some(&format!("UniformBuffer: {}", Self::name())),
@@ -113,9 +113,9 @@ pub struct Uniform<C: bytemuck::Pod>{
 }
 
 impl<C: bytemuck::Pod> Uniform<C>{
-    pub fn new(device: &wgpu::Device, src: C) -> Self{
+    pub fn new(src: C, device: &wgpu::Device) -> Self{
         Self{
-            uniform_vec: UniformVec::new(device, &[src])
+            uniform_vec: UniformVec::new(&[src], device)
         }
     }
 
@@ -144,7 +144,7 @@ pub struct UniformBindGroup<C: bytemuck::Pod>{
 impl <C: bytemuck::Pod> UniformBindGroup<C>{
     pub fn new(device: &wgpu::Device, src: C) -> Self{
         Self{
-            bind_group: binding::BindGroup::new(Uniform::new(device, src), device)
+            bind_group: binding::BindGroup::new(Uniform::new(src, device), device)
         }
     }
 }
