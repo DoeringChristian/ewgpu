@@ -19,7 +19,8 @@ use std::marker::PhantomData;
 ///
 pub trait Drawable{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
-    fn vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static>;
+    fn get_vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static>;
+    fn create_vert_buffer_layout() -> wgpu::VertexBufferLayout<'static>;
 }
 
 pub trait UpdatedDrawable<D>: Drawable{
@@ -70,7 +71,10 @@ impl<V: Vert> Drawable for Mesh<V>{
         render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
         render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
     }
-    fn vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static>{
+    fn get_vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static>{
+        V::buffer_layout()
+    }
+    fn create_vert_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
         V::buffer_layout()
     }
 }
@@ -117,7 +121,10 @@ impl<V: Vert> Drawable for Model<V>{
         self.mesh.draw(render_pass);
     }
 
-    fn vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static> {
+    fn get_vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static> {
+        V::buffer_layout()
+    }
+    fn create_vert_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
         V::buffer_layout()
     }
 }
