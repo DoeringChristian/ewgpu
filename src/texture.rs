@@ -19,8 +19,7 @@ pub struct Texture{
     pub view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
     pub format: wgpu::TextureFormat,
-    pub size: [u32; 2],
-
+    pub size: [u32; 3],
 }
 
 pub struct TextureSlice<'ts>{
@@ -99,7 +98,7 @@ impl Texture{
             view,
             sampler,
             format,
-            size,
+            size: [size[0], size[1], 1],
         })
     }
 
@@ -181,7 +180,7 @@ impl Texture{
             view,
             sampler,
             format,
-            size,
+            size: [size[0], size[1], 1],
         })
     }
 
@@ -218,7 +217,7 @@ impl Texture{
         );
     }
 
-    pub fn slice<'ts, S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice<'ts>{
+    pub fn slice<'ts, S: RangeBounds<u32>>(&'ts self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice<'ts>{
         let range_x = {
             let start_bound = match bound_x.start_bound(){
                 Bound::Unbounded => 0,
@@ -227,19 +226,55 @@ impl Texture{
             };
             let end_bound = match bound_x.end_bound(){
                 Bound::Unbounded => self.size[0] as u32,
-                Bound::Included(x) => {x + 1},
-                Bound::Excluded(x) => {x + 0},
+                Bound::Included(x) => {(x + 1).max(self.size[0])},
+                Bound::Excluded(x) => {(x + 0).max(self.size[0])},
+            };
+            start_bound..end_bound
+        };
+        let range_y = {
+            let start_bound = match bound_y.start_bound(){
+                Bound::Unbounded => 0,
+                Bound::Included(x) => {x + 0},
+                Bound::Excluded(x) => {x + 1},
+            };
+            let end_bound = match bound_y.end_bound(){
+                Bound::Unbounded => self.size[0] as u32,
+                Bound::Included(x) => {(x + 1).max(self.size[1])},
+                Bound::Excluded(x) => {(x + 0).max(self.size[1])},
+            };
+            start_bound..end_bound
+        };
+        let range_z = {
+            let start_bound = match bound_z.start_bound(){
+                Bound::Unbounded => 0,
+                Bound::Included(x) => {x + 0},
+                Bound::Excluded(x) => {x + 1},
+            };
+            let end_bound = match bound_z.end_bound(){
+                Bound::Unbounded => self.size[0] as u32,
+                Bound::Included(x) => {(x + 1).max(self.size[2])},
+                Bound::Excluded(x) => {(x + 0).max(self.size[2])},
             };
             start_bound..end_bound
         };
 
+        let origin = wgpu::Origin3d{
+            x: range_x.start,
+            y: range_y.start,
+            z: range_z.start,
+        };
 
-        /*
+        let extent = wgpu::Extent3d{
+            width: range_x.end - range_x.start,
+            height: range_y.end - range_y.start,
+            depth_or_array_layers: range_z.end - range_z.start,
+        };
+
         TextureSlice{
             texture: self,
+            origin,
+            extent,
         }
-        */
-        todo!()
     }
 }
 
