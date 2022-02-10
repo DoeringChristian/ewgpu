@@ -6,6 +6,9 @@ use super::binding::*;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
+use std::ops::Bound;
+use std::ops::Range;
+use std::ops::RangeBounds;
 
 
 ///
@@ -18,6 +21,12 @@ pub struct Texture{
     pub format: wgpu::TextureFormat,
     pub size: [u32; 2],
 
+}
+
+pub struct TextureSlice<'ts>{
+    texture: &'ts Texture,
+    origin: wgpu::Origin3d,
+    extent: wgpu::Extent3d,
 }
 
 impl Texture{
@@ -207,6 +216,30 @@ impl Texture{
                 depth_or_array_layers: 1,
             }
         );
+    }
+
+    pub fn slice<'ts, S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice<'ts>{
+        let range_x = {
+            let start_bound = match bound_x.start_bound(){
+                Bound::Unbounded => 0,
+                Bound::Included(x) => {x + 0},
+                Bound::Excluded(x) => {x + 1},
+            };
+            let end_bound = match bound_x.end_bound(){
+                Bound::Unbounded => self.size[0] as u32,
+                Bound::Included(x) => {x + 1},
+                Bound::Excluded(x) => {x + 0},
+            };
+            start_bound..end_bound
+        };
+
+
+        /*
+        TextureSlice{
+            texture: self,
+        }
+        */
+        todo!()
     }
 }
 

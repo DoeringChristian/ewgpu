@@ -14,6 +14,8 @@ pub mod texture;
 pub mod uniform;
 pub mod vert;
 
+mod utils;
+
 
 pub use self::binding::*;
 pub use self::buffer::*;

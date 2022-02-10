@@ -199,14 +199,14 @@ impl<C: bytemuck::Pod> Buffer<C>{
 
         let start_bound = match start_bound{
             Bound::Unbounded => 0 as wgpu::BufferAddress,
-            Bound::Included(offset) => {offset + 0},
-            Bound::Excluded(offset) => {offset + 1},
+            Bound::Included(offset) => {(offset + 0).max(0)},
+            Bound::Excluded(offset) => {(offset + 1).max(0)},
         };
 
         let end_bound = match end_bound{
-            Bound::Unbounded => {(self.len() -1) as wgpu::BufferAddress},
-            Bound::Included(offset) => {offset - 0},
-            Bound::Excluded(offset) => {offset - 1},
+            Bound::Unbounded => {(self.len()) as wgpu::BufferAddress},
+            Bound::Included(offset) => {(offset + 1).min(self.len() as u64)},
+            Bound::Excluded(offset) => {(offset + 0).min(self.len() as u64)},
         };
 
         let start_bound = start_bound;
