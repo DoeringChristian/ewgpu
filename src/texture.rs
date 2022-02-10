@@ -28,6 +28,12 @@ pub struct TextureSlice<'ts>{
     extent: wgpu::Extent3d,
 }
 
+impl<'ts> TextureSlice<'ts>{
+    pub fn copy_to_texture(&self){
+
+    }
+}
+
 impl Texture{
     pub fn load_from_path(
         device: &wgpu::Device, 
