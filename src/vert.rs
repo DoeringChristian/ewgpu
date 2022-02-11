@@ -1,6 +1,5 @@
 use super::buffer::*;
 use bytemuck::*;
-use memoffset;
 use wgpu::util::DeviceExt;
 use wgpu_utils_macros::Vert;
 
@@ -42,7 +41,6 @@ impl Vert2 {
 }
 
 /*
-
 impl Vert for Vert2{
     fn buffer_layout() -> wgpu::VertexBufferLayout<'static> {
         let o = memoffset::offset_of!(Vert2, pos);
@@ -56,6 +54,7 @@ impl Vert for Vert2{
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &ATTRIBS,
         }
+        wgpu::VertexAttribute
     }
 }
 */

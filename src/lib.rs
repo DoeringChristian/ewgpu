@@ -3,9 +3,7 @@
 extern crate more_asserts;
 
 #[macro_use]
-extern crate wgpu_utils_macros;
-
-extern crate memoffset;
+pub extern crate wgpu_utils_macros;
 
 extern crate nalgebra_glm as glm;
 
@@ -34,4 +32,8 @@ pub use self::vert::*;
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn test_inst_buffer_layout(){
+    }
 }

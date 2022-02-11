@@ -21,4 +21,3 @@ nalgebra = "*"
 naga = "*"
 shaderc = "*"
 wgpu_utils_macros = {path = "macros"}
-memoffset = "*"
