@@ -12,7 +12,7 @@ use winit::{
 };
 
 pub trait State{
-    fn new(fstate: &mut AppState) -> Self;
+    fn new(app: &mut AppState) -> Self;
     fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn pre_render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn input(&mut self, event: &WindowEvent) -> bool{false}
