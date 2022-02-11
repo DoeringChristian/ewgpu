@@ -40,14 +40,14 @@ pub trait DataDrawable<'pd, D>{
     fn draw_data(&'pd self, render_pass: &'_ mut pipeline::RenderPass<'pd>, data: D);
 }
 
-pub struct Mesh<V: Vert>{
+pub struct Mesh<V: VertLayout>{
     vert_buffer: Buffer<V>,
     idx_buffer: Buffer<u32>,
     num_indices: u32,
     _phantom_data: PhantomData<V>,
 }
 
-impl<V: Vert> Mesh<V>{
+impl<V: VertLayout> Mesh<V>{
     pub fn new(device: &wgpu::Device, verts: &[V], idxs: &[u32]) -> Result<Self>{
         let vertex_buffer = Buffer::new_vert(device, None, verts);
 
@@ -64,7 +64,7 @@ impl<V: Vert> Mesh<V>{
     }
 }
 
-impl<V: Vert> Drawable for Mesh<V>{
+impl<V: VertLayout> Drawable for Mesh<V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
 
         render_pass.set_vertex_buffer(0, self.vert_buffer.buffer.slice(..));
@@ -87,12 +87,12 @@ pub struct ModelTransforms{
     pub proj: [[f32; 4]; 4],
 }
 
-pub struct Model<V: Vert>{
+pub struct Model<V: VertLayout>{
     mesh: Mesh<V>,
     uniform_buffer: UniformBindGroup<ModelTransforms>,
 }
 
-impl<V: Vert> Model<V>{
+impl<V: VertLayout> Model<V>{
     pub fn new(device: &wgpu::Device, verts: &[V], idxs: &[u32]) -> Result<Self>{
 
         let mesh = Mesh::<V>::new(device, verts, idxs)?;
@@ -114,7 +114,7 @@ impl<V: Vert> Model<V>{
     }
 }
 
-impl<V: Vert> Drawable for Model<V>{
+impl<V: VertLayout> Drawable for Model<V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
         render_pass.set_bind_group(0, &self.uniform_buffer.get_bind_group(), &[]);
 
@@ -129,7 +129,7 @@ impl<V: Vert> Drawable for Model<V>{
     }
 }
 
-impl<V: Vert> UpdatedDrawable<ModelTransforms> for Model<V>{
+impl<V: VertLayout> UpdatedDrawable<ModelTransforms> for Model<V>{
     fn update(&mut self, queue: &mut wgpu::Queue, data: &ModelTransforms) {
         *self.uniform_buffer.borrow_ref(queue) = *data;
     }

@@ -30,10 +30,3 @@ pub use self::texture::*;
 pub use self::uniform::*;
 pub use self::vert::*;
 
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_inst_buffer_layout(){
-    }
-}

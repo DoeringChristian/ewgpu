@@ -24,7 +24,7 @@ use quote::quote;
 /// let layout = Inst::buffer_layout();
 /// ```
 ///
-#[proc_macro_derive(Instance, attributes(location, norm))]
+#[proc_macro_derive(Inst, attributes(location, norm))]
 pub fn derive_instance(tokens: TokenStream) -> TokenStream{
     let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
     let ident = ast.ident;
@@ -40,7 +40,7 @@ pub fn derive_instance(tokens: TokenStream) -> TokenStream{
         let len = attributes.len();
 
         let output = quote!{
-            impl Vert for #ident{
+            impl InstLayout for #ident{
                 fn buffer_layout() -> wgpu::VertexBufferLayout<'static>{
                     const ATTRIBS: [wgpu::VertexAttribute; #len] = wgpu::vertex_attr_array!(
                         #(#attributes)*
@@ -74,7 +74,7 @@ pub fn derive_vert(tokens: TokenStream) -> TokenStream{
         let len = attributes.len();
 
         let output = quote!{
-            impl Vert for #ident{
+            impl VertLayout for #ident{
                 fn buffer_layout() -> wgpu::VertexBufferLayout<'static>{
                     const ATTRIBS: [wgpu::VertexAttribute; #len] = wgpu::vertex_attr_array!(
                         #(#attributes)*
@@ -139,16 +139,16 @@ fn format(field: &syn::Field, norm: bool) -> proc_macro2::TokenStream{
     match &field.ty{
         syn::Type::Path(type_path) => {
             if type_path.path.is_ident("u32"){
-                return quote!{wgpu::VertexFormat::Uint32};
+                return quote!{Uint32};
             }
             if type_path.path.is_ident("i32"){
-                return quote!{wgpu::VertexFormat::Sint32};
+                return quote!{Sint32};
             }
             if type_path.path.is_ident("f32"){
-                return quote!{wgpu::VertexFormat::Float32};
+                return quote!{Float32};
             }
             if type_path.path.is_ident("u64"){
-                return quote!{wgpu::VertexFormat::Float64};
+                return quote!{Float64};
             }
         }
         syn::Type::Array(type_array) => {
