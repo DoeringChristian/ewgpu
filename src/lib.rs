@@ -2,6 +2,11 @@
 #[macro_use]
 extern crate more_asserts;
 
+#[macro_use]
+extern crate wgpu_utils_macros;
+
+extern crate memoffset;
+
 extern crate nalgebra_glm as glm;
 
 pub mod binding;
