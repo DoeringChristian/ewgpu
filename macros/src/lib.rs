@@ -120,10 +120,8 @@ fn generate_vertex_attributes(ident: &syn::Ident, field: &syn::Field) -> proc_ma
 
     let format = format(field, norm_attr);
 
-    let arrow: proc_macro2::TokenStream = "=>".parse().unwrap();
-
     let output = quote!{
-        #location_value #arrow #format,
+        #location_value => #format,
     };
 
     output
