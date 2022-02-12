@@ -74,8 +74,11 @@ impl<V: VertLayout> Drawable for Mesh<V>{
 }
 
 pub struct IMesh<I: InstLayout, V: VertLayout>{
+    //#[slot = 0]
     vertex_buffer: Buffer<V>,
+    //#[slot = 1]
     instance_buffer: Buffer<I>,
+    //#[index]
     idx_buffer: Buffer<u32>,
 }
 

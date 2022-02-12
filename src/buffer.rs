@@ -189,6 +189,14 @@ impl<C: bytemuck::Pod> Buffer<C>{
         Self::new_mapped(device, wgpu::BufferUsages::STORAGE, label, data)
     }
 
+    pub fn new_mapped_index(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
+        Self::new_mapped(device, wgpu::BufferUsages::INDEX, label, data)
+    }
+
+    pub fn new_mapped_vert(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
+        Self::new_mapped(device, wgpu::BufferUsages::VERTEX, label, data)
+    }
+
     pub fn len(&self) -> usize{
         self.len
     }
