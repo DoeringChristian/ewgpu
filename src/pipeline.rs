@@ -115,8 +115,8 @@ impl<'vsb> VertexStateBuilder<'vsb>{
         self
     }
 
-    pub fn push_vert_layout(mut self, vertex_buffer_layout: wgpu::VertexBufferLayout<'vsb>) -> Self{
-        self.vertex_buffer_layouts.push(vertex_buffer_layout);
+    pub fn push_vert_layouts(mut self, mut vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vsb>>) -> Self{
+        self.vertex_buffer_layouts.append(&mut vertex_buffer_layouts);
         self
     }
 

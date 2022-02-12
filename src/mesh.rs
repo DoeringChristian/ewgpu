@@ -19,8 +19,8 @@ use std::marker::PhantomData;
 ///
 pub trait Drawable{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
-    fn get_vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static>;
-    fn create_vert_buffer_layout() -> wgpu::VertexBufferLayout<'static>;
+    fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>>;
+    fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
 }
 
 pub trait UpdatedDrawable<D>: Drawable{
@@ -65,11 +65,11 @@ impl<V: VertLayout> Drawable for Mesh<V>{
         render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
         render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, 0..1);
     }
-    fn get_vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static>{
-        V::buffer_layout()
+    fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
+        Self::create_vert_buffer_layouts()
     }
-    fn create_vert_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
-        V::buffer_layout()
+    fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>> {
+        vec!(V::buffer_layout())
     }
 }
 
@@ -79,7 +79,7 @@ pub struct IMesh<I: InstLayout, V: VertLayout>{
     idx_buffer: Buffer<u32>,
 }
 
-impl<I: InstLayout, V: VertLayout> IMesh<I, V>{
+impl<V: VertLayout, I: InstLayout> IMesh<I, V>{
     pub fn new(device: &wgpu::Device, verts: &[V], idxs: &[u32], insts: &[I]) -> Result<Self>{
         let vertex_buffer = Buffer::new_vert(device, None, verts);
         let idx_buffer = Buffer::new_index(device, None, idxs);
@@ -94,7 +94,7 @@ impl<I: InstLayout, V: VertLayout> IMesh<I, V>{
 }
 
 // TODO: Change get_vert_buffer_layout to be able to set all layouts.
-impl<I: InstLayout, V: VertLayout> Drawable for IMesh<I, V>{
+impl<V: VertLayout, I: InstLayout> Drawable for IMesh<I, V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
         render_pass.set_vertex_buffer(0, self.vertex_buffer.buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.instance_buffer.buffer.slice(..));
@@ -103,12 +103,11 @@ impl<I: InstLayout, V: VertLayout> Drawable for IMesh<I, V>{
         render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, 0..self.instance_buffer.len() as u32);
     }
 
-    fn get_vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static> {
-        V::buffer_layout()
+    fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
+        Self::create_vert_buffer_layouts()
     }
-
-    fn create_vert_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
-        V::buffer_layout()
+    fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>> {
+        vec!(V::buffer_layout(), I::buffer_layout())
     }
 }
 
@@ -154,11 +153,12 @@ impl<V: VertLayout> Drawable for Model<V>{
         self.mesh.draw(render_pass);
     }
 
-    fn get_vert_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static> {
-        V::buffer_layout()
+    fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
+        Self::create_vert_buffer_layouts()
     }
-    fn create_vert_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
-        V::buffer_layout()
+
+    fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>> {
+        vec!(V::buffer_layout())
     }
 }
 
