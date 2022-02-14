@@ -216,6 +216,7 @@ macro_rules! bind_group_content_for_tuple{
     }
 }
 
+// TODO: add derive macro for structs
 bind_group_content_for_tuple!{ A }
 bind_group_content_for_tuple!{ A B }
 bind_group_content_for_tuple!{ A B C }

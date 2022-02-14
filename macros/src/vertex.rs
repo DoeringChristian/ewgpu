@@ -18,7 +18,7 @@ pub fn generate_instance(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
         let(impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
         let output = quote!{
-            impl #impl_generics InstLayout for #ident #ty_generics #where_clause{
+            impl #impl_generics VertLayout for #ident #ty_generics #where_clause{
                 fn buffer_layout() -> wgpu::VertexBufferLayout<'static>{
                     const ATTRIBS: [wgpu::VertexAttribute; #len] = wgpu::vertex_attr_array!(
                         #(#attributes)*

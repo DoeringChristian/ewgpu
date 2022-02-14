@@ -2,12 +2,56 @@ use super::buffer::*;
 use bytemuck::*;
 use wgpu::util::DeviceExt;
 use wgpu_utils_macros::Vert;
+use super::pipeline;
+use super::buffer::*;
 
-pub trait VertLayout: bytemuck::Pod + bytemuck::Zeroable + Copy + Clone {
-    fn buffer_layout() -> wgpu::VertexBufferLayout<'static>;
+pub trait VertBuffers<D>{
+
+    fn new(device: &wgpu::Device, data: D) -> Self;
+
+    fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
+    fn set_vertex_buffers<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
 }
 
-pub trait InstLayout: bytemuck::Pod + bytemuck::Zeroable + Copy + Clone {
+macro_rules! vert_buffer_for_tuple{
+    ($($name:ident)+) => {
+        #[allow(non_snake_case)]
+        impl<$($name: VertLayout),+> VertBuffers<($(&[$name], )+)> for ($(Buffer<$name>, )+){
+
+            fn new(device: &wgpu::Device, data: ($(&[$name], )+)) -> Self{
+                let ($($name, )+) = data;
+                let ($($name, )+) = ($(Buffer::new_vert(device, None, $name), )+);
+                ($($name,)+)
+            }
+
+            fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>{
+                vec!($($name::buffer_layout(),)+)
+            }
+
+            fn set_vertex_buffers<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>){
+                let ($($name, )+) = self;
+                ($(render_pass.push_vertex_buffer($name.buffer.slice(..)),)+);
+            }
+        }
+    }
+}
+
+// TODO: Add a derive macro for stucts.
+vert_buffer_for_tuple!{ A }
+vert_buffer_for_tuple!{ A B }
+vert_buffer_for_tuple!{ A B C }
+vert_buffer_for_tuple!{ A B C D }
+vert_buffer_for_tuple!{ A B C D E }
+vert_buffer_for_tuple!{ A B C D E F }
+vert_buffer_for_tuple!{ A B C D E F G }
+vert_buffer_for_tuple!{ A B C D E F G H }
+vert_buffer_for_tuple!{ A B C D E F G H I }
+vert_buffer_for_tuple!{ A B C D E F G H I J }
+vert_buffer_for_tuple!{ A B C D E F G H I J K }
+vert_buffer_for_tuple!{ A B C D E F G H I J K L }
+
+
+pub trait VertLayout: bytemuck::Pod + bytemuck::Zeroable + Copy + Clone {
     fn buffer_layout() -> wgpu::VertexBufferLayout<'static>;
 }
 

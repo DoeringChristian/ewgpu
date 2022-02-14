@@ -183,6 +183,7 @@ impl<'l> PipelineLayoutBuilder<'l>{
 pub struct RenderPassPipeline<'rp, 'rpr>{
     pub render_pass: &'rpr mut RenderPass<'rp>,
     pub pipeline: &'rp RenderPipeline,
+    vert_buffer_index: u32,
 }
 
 impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
@@ -209,6 +210,15 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
             index,
             buffer_slice
         );
+        self.vert_buffer_index = index + 1;
+    }
+
+    pub fn push_vertex_buffer(&mut self, buffer_slice: wgpu::BufferSlice<'rp>){
+        self.render_pass.render_pass.set_vertex_buffer(
+            self.vert_buffer_index,
+            buffer_slice
+        );
+        self.vert_buffer_index += 1;
     }
 
     pub fn set_index_buffer(&mut self, buffer_slice: wgpu::BufferSlice<'rp>, format: wgpu::IndexFormat){
@@ -229,6 +239,7 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         Self{
             render_pass: self.render_pass,
             pipeline,
+            vert_buffer_index: 0,
         }
     }
 }
@@ -303,6 +314,7 @@ impl<'rp> RenderPass<'rp>{
         RenderPassPipeline{
             render_pass: self,
             pipeline,
+            vert_buffer_index: 0,
         }
     }
 
