@@ -7,43 +7,51 @@ use super::buffer::*;
 use std::ops::Range;
 
 // Possibly remove generic D
-pub trait VertBuffers<D>{
+pub trait VertBuffers{
 
-    fn new(device: &wgpu::Device, data: D) -> Self;
+    //fn new(device: &wgpu::Device, data: D) -> Self;
 
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
-    fn set_vertex_buffers<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
-    //fn get_min_range(&self) -> Range<u32>;
+    fn push_vertex_buffers_to<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
+    fn get_min_range(&self) -> Range<u32>;
 }
 
 macro_rules! vert_buffer_for_tuple{
     ($($name:ident)+) => {
         #[allow(non_snake_case)]
-        impl<$($name: VertLayout),+> VertBuffers<($(&[$name], )+)> for ($(Buffer<$name>, )+){
+        impl<$($name: VertLayout),+> VertBuffers for ($(Buffer<$name>, )+){
 
+            /*
             fn new(device: &wgpu::Device, data: ($(&[$name], )+)) -> Self{
                 let ($($name, )+) = data;
                 let ($($name, )+) = ($(Buffer::new_vert(device, None, $name), )+);
                 ($($name,)+)
             }
+            */
 
             fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>{
                 vec!($($name::buffer_layout(),)+)
             }
 
-            fn set_vertex_buffers<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>){
+            fn push_vertex_buffers_to<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>){
                 let ($($name, )+) = self;
                 ($(render_pass.push_vertex_buffer($name.buffer.slice(..)),)+);
             }
 
-            /*
+            
             fn get_min_range(&self) -> Range<u32>{
                 let start_idx = 0;
-                let end_idx = 0;
+                let mut end_idx = std::u32::MAX;
                 let ($($name, )+) = self;
 
+                $(
+                    if ($name.len() as u32) < end_idx{
+                        end_idx = $name.len() as u32;
+                    }
+                )+;
+                start_idx..end_idx
             }
-            */
+           
         }
     }
 }

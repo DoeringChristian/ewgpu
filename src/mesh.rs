@@ -74,28 +74,26 @@ impl<V: VertLayout> Drawable for Mesh<V>{
     }
 }
 
-pub struct NMesh<D, V: VertBuffers<D>>{
+pub struct NMesh<V: VertBuffers>{
     pub buffers: V,
     idx_buffer: Buffer<u32>,
-    _ty: PhantomData<D>,
 }
 
-impl<D, V: VertBuffers<D>> NMesh<D, V>{
-    pub fn new(device: &wgpu::Device, verts: D, idxs: &[u32]) -> Result<Self>{
+impl<V: VertBuffers> NMesh<V>{
+    pub fn new(device: &wgpu::Device, buffers: V, idxs: &[u32]) -> Result<Self>{
         let idx_buffer = Buffer::new_index(device, None, idxs);
-        let buffers = VertBuffers::<D>::new(device, verts);
+        //let buffers = VertBuffers::<D>::new(device, verts);
 
         Ok(Self{
             buffers,
             idx_buffer,
-            _ty: PhantomData,
         })
     }
 }
 
-impl<D, V: VertBuffers<D>> Drawable for NMesh<D, V>{
+impl<V: VertBuffers> Drawable for NMesh<V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
-        self.buffers.set_vertex_buffers(render_pass);
+        self.buffers.push_vertex_buffers_to(render_pass);
         render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
 
         render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, 0..1);
@@ -110,21 +108,24 @@ impl<D, V: VertBuffers<D>> Drawable for NMesh<D, V>{
     }
 }
 
-pub struct NIMesh<V, I, VB: VertBuffers<V>, IB: VertBuffers<I>>{
+pub struct NIMesh<VB: VertBuffers, IB: VertBuffers>{
     pub vert_buffers: VB,
     pub inst_buffers: IB,
-
-    _ty_v: PhantomData<V>,
-    _ty_i: PhantomData<I>,
+    idx_buffer: Buffer<u32>,
 }
 
-impl<V, I, VB: VertBuffers<V>, IB: VertBuffers<I>> NIMesh<V, I, VB, IB>{
+impl<VB: VertBuffers, IB: VertBuffers> NIMesh<VB, IB>{
     
 }
 
-impl<V, I, VB: VertBuffers<V>, IB: VertBuffers<I>> Drawable for NIMesh<V, I, VB, IB>{
+impl<VB: VertBuffers, IB: VertBuffers> Drawable for NIMesh<VB, IB>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
-        
+        self.vert_buffers.push_vertex_buffers_to(render_pass);
+        self.inst_buffers.push_vertex_buffers_to(render_pass);
+
+        render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
+
+        render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, self.inst_buffers.get_min_range());
     }
 
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
