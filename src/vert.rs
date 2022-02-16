@@ -4,13 +4,16 @@ use wgpu::util::DeviceExt;
 use wgpu_utils_macros::Vert;
 use super::pipeline;
 use super::buffer::*;
+use std::ops::Range;
 
+// Possibly remove generic D
 pub trait VertBuffers<D>{
 
     fn new(device: &wgpu::Device, data: D) -> Self;
 
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
     fn set_vertex_buffers<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
+    //fn get_min_range(&self) -> Range<u32>;
 }
 
 macro_rules! vert_buffer_for_tuple{
@@ -32,6 +35,15 @@ macro_rules! vert_buffer_for_tuple{
                 let ($($name, )+) = self;
                 ($(render_pass.push_vertex_buffer($name.buffer.slice(..)),)+);
             }
+
+            /*
+            fn get_min_range(&self) -> Range<u32>{
+                let start_idx = 0;
+                let end_idx = 0;
+                let ($($name, )+) = self;
+
+            }
+            */
         }
     }
 }
