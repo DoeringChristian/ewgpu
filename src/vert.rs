@@ -9,8 +9,6 @@ use std::ops::Range;
 // Possibly remove generic D
 pub trait VertBuffers{
 
-    //fn new(device: &wgpu::Device, data: D) -> Self;
-
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
     fn push_vertex_buffers_to<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
     fn get_min_range(&self) -> Range<u32>;
@@ -20,13 +18,12 @@ macro_rules! vert_buffer_for_tuple{
     ($($name:ident)+) => {
         #[allow(non_snake_case)]
         impl<$($name: VertLayout),+> VertBuffers for ($(Buffer<$name>, )+){
-
             /*
-            fn new(device: &wgpu::Device, data: ($(&[$name], )+)) -> Self{
-                let ($($name, )+) = data;
-                let ($($name, )+) = ($(Buffer::new_vert(device, None, $name), )+);
-                ($($name,)+)
-            }
+               fn new<($(&[$name], )+)>(device: &wgpu::Device, data: ($(&[$name], )+)) -> Self{
+               let ($($name, )+) = data;
+               let ($($name, )+) = ($(Buffer::new_vert(device, None, $name), )+);
+               ($($name,)+)
+               }
             */
 
             fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>{
@@ -38,7 +35,7 @@ macro_rules! vert_buffer_for_tuple{
                 ($(render_pass.push_vertex_buffer($name.buffer.slice(..)),)+);
             }
 
-            
+
             fn get_min_range(&self) -> Range<u32>{
                 let start_idx = 0;
                 let mut end_idx = std::u32::MAX;
@@ -51,7 +48,7 @@ macro_rules! vert_buffer_for_tuple{
                 )+;
                 start_idx..end_idx
             }
-           
+
         }
     }
 }
@@ -109,23 +106,23 @@ impl Vert2 {
 }
 
 /*
-impl Vert for Vert2{
-    fn buffer_layout() -> wgpu::VertexBufferLayout<'static> {
-        let o = memoffset::offset_of!(Vert2, pos);
-        const ATTRIBS: [wgpu::VertexAttribute; 2] = wgpu::vertex_attr_array![
-            0 => Float32x2,
-            1 => Float32x2
-        ];
-        let offset = 0;
-        wgpu::VertexBufferLayout{
-            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &ATTRIBS,
-        }
-        wgpu::VertexAttribute
-    }
-}
-*/
+   impl Vert for Vert2{
+   fn buffer_layout() -> wgpu::VertexBufferLayout<'static> {
+   let o = memoffset::offset_of!(Vert2, pos);
+   const ATTRIBS: [wgpu::VertexAttribute; 2] = wgpu::vertex_attr_array![
+   0 => Float32x2,
+   1 => Float32x2
+   ];
+   let offset = 0;
+   wgpu::VertexBufferLayout{
+   array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
+   step_mode: wgpu::VertexStepMode::Vertex,
+   attributes: &ATTRIBS,
+   }
+   wgpu::VertexAttribute
+   }
+   }
+   */
 
 
 #[cfg(test)]
@@ -157,7 +154,7 @@ mod tests {
         #[location = 7]
         #[norm]
         snorm8x4: [i8; 4],
-    }
+   }
 
     #[repr(C)]
     #[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
@@ -183,7 +180,7 @@ mod tests {
         #[location = 15]
         #[norm]
         snorm16x4: [i16; 4],
-    }
+   }
 
     #[repr(C)]
     #[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
@@ -219,7 +216,7 @@ mod tests {
         float64x3: [f64; 3],
         #[location = 30]
         float64x4: [f64; 4],
-    }
+   }
 
     // TODO: write the tests.
     #[test]

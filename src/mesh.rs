@@ -115,7 +115,15 @@ pub struct NIMesh<VB: VertBuffers, IB: VertBuffers>{
 }
 
 impl<VB: VertBuffers, IB: VertBuffers> NIMesh<VB, IB>{
-    
+    pub fn new(device: &wgpu::Device, vert_buffers: VB, inst_buffers: IB, idxs: &[u32]) -> Result<Self>{
+        let idx_buffer = Buffer::<u32>::new_index(device, None, idxs);
+
+        Ok(Self{
+            idx_buffer,
+            vert_buffers,
+            inst_buffers,
+        })
+    }
 }
 
 impl<VB: VertBuffers, IB: VertBuffers> Drawable for NIMesh<VB, IB>{
