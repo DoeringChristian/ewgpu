@@ -42,35 +42,32 @@ pub trait DataDrawable<'pd, D>{
     fn draw_data(&'pd self, render_pass: &'_ mut pipeline::RenderPass<'pd>, data: D);
 }
 
+// TODO: Rename to VMesh.
 pub struct Mesh<V: VertLayout>{
-    vert_buffer: Buffer<V>,
-    idx_buffer: Buffer<u32>,
+    nmesh: NMesh<(Buffer<V>,)>,
 }
 
 impl<V: VertLayout> Mesh<V>{
     pub fn new(device: &wgpu::Device, verts: &[V], idxs: &[u32]) -> Result<Self>{
-        let vertex_buffer = Buffer::new_vert(device, None, verts);
+        let vert_buffer = Buffer::new_vert(device, None, verts);
 
-        let idx_buffer = Buffer::new_index(device, None, idxs);
+        let nmesh = NMesh::new(device, (vert_buffer, ), idxs)?;
 
         Ok(Self{
-            idx_buffer,
-            vert_buffer: vertex_buffer,
+            nmesh,
         })
     }
 }
 
 impl<V: VertLayout> Drawable for Mesh<V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
-        render_pass.set_vertex_buffer(0, self.vert_buffer.buffer.slice(..));
-        render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
-        render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, 0..1);
+        self.nmesh.draw(render_pass);
     }
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
         Self::create_vert_buffer_layouts()
     }
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>> {
-        vec!(V::buffer_layout())
+        NMesh::<(Buffer<V>, )>::create_vert_buffer_layouts()
     }
 }
 
@@ -149,24 +146,18 @@ impl<VB: VertBuffers, IB: VertBuffers> Drawable for NIMesh<VB, IB>{
 }
 
 pub struct IMesh<V: VertLayout, I: VertLayout>{
-    //#[slot = 0]
-    vertex_buffer: Buffer<V>,
-    //#[slot = 1]
-    instance_buffer: Buffer<I>,
-    //#[index]
-    idx_buffer: Buffer<u32>,
+    nimesh: NIMesh<(Buffer<V>, ), (Buffer<I>, )>,
 }
 
 impl<V: VertLayout, I: VertLayout> IMesh<V, I>{
     pub fn new(device: &wgpu::Device, verts: &[V], idxs: &[u32], insts: &[I]) -> Result<Self>{
-        let vertex_buffer = Buffer::new_vert(device, None, verts);
-        let instance_buffer = Buffer::new_vert(device, None, insts);
-        let idx_buffer = Buffer::new_index(device, None, idxs);
+        let vert_buffer = Buffer::new_vert(device, None, verts);
+        let inst_buffer = Buffer::new_vert(device, None, insts);
+
+        let nimesh = NIMesh::new(device, (vert_buffer, ), (inst_buffer, ), idxs)?;
 
         Ok(Self{
-            vertex_buffer,
-            idx_buffer,
-            instance_buffer,
+            nimesh,
         })
     }
 }
@@ -174,18 +165,14 @@ impl<V: VertLayout, I: VertLayout> IMesh<V, I>{
 // TODO: Change get_vert_buffer_layout to be able to set all layouts.
 impl<V: VertLayout, I: VertLayout> Drawable for IMesh<V, I>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.buffer.slice(..));
-        render_pass.set_vertex_buffer(1, self.instance_buffer.buffer.slice(..));
-        render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
-
-        render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, 0..self.instance_buffer.len() as u32);
+        self.nimesh.draw(render_pass);
     }
 
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
         Self::create_vert_buffer_layouts()
     }
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>> {
-        vec!(V::buffer_layout(), I::buffer_layout())
+        NIMesh::<(Buffer<V>, ), (Buffer<I>, )>::create_vert_buffer_layouts()
     }
 }
 
