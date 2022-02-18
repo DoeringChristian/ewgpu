@@ -176,8 +176,6 @@ impl<S: 'static +  State> Framework<S>{
                     if let Some(imgui_state) = &mut self.imgui{
                         // In case Imgui has been enabled call render_imgui.
 
-                        imgui_state.platform.handle_event(imgui_state.context.io_mut(), &self.app.window, &event);
-
                         imgui_state.platform
                             .prepare_frame(imgui_state.context.io_mut(), &self.app.window)
                             .expect("Failed to prepare frame.");
@@ -217,7 +215,7 @@ impl<S: 'static +  State> Framework<S>{
                     self.app.frame_count += 1;
                     self.app.time = time;
                 },
-                Event::DeviceEvent{device_id, event} => {
+                Event::DeviceEvent{device_id, ref event} => {
                     self.state.device_event(&mut self.app, &device_id, &event);
                 }
 
@@ -225,6 +223,9 @@ impl<S: 'static +  State> Framework<S>{
                     self.app.window.request_redraw();
                 },
                 _ => {}
+            }
+            if let Some(imgui_state) = &mut self.imgui{
+                imgui_state.platform.handle_event(imgui_state.context.io_mut(), &self.app.window, &event);
             }
         });
     }
