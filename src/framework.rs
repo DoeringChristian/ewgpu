@@ -1,3 +1,4 @@
+use imgui_winit_support::WinitPlatform;
 #[allow(unused)]
 use winit::{
     event::*,
@@ -11,9 +12,12 @@ use winit::{
     },
 };
 
+use super::*;
+
 pub trait State{
     fn new(app: &mut AppState) -> Self;
     fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, dst: wgpu::TextureView) -> Result<(), wgpu::SurfaceError>{Ok(())}
+    fn render_imgui(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, ui: &imgui::Ui){}
     fn pre_render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn input(&mut self, event: &WindowEvent) -> bool{false}
     fn cursor_moved(&mut self, fstate: &mut AppState, device_id: &winit::event::DeviceId, position: &winit::dpi::PhysicalPosition<f64>){}
@@ -29,6 +33,12 @@ pub struct AppState{
     pub size: winit::dpi::PhysicalSize<u32>,
     pub window: Window,
     pub frame_count: usize,
+}
+
+pub struct ImguiState{
+    pub context: imgui::Context,
+    pub platform: WinitPlatform,
+    pub renderer: imgui_wgpu::Renderer,
 }
 
 impl AppState{
@@ -88,6 +98,7 @@ impl AppState{
 
 pub struct Framework<S: State>{
     app: AppState,
+    imgui: Option<ImguiState>,
     state: S,
     event_loop: EventLoop<()>,
 }
@@ -110,6 +121,7 @@ impl<S: 'static +  State> Framework<S>{
             app,
             state,
             event_loop,
+            imgui: None,
         }
     }
 
@@ -154,14 +166,42 @@ impl<S: 'static +  State> Framework<S>{
                         Err(e) => {eprintln!("{:?}", e); return},
                     };
                     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-                    match self.state.render(&mut self.app, control_flow, view){
-                        Ok(_) => {}
 
-                        Err(wgpu::SurfaceError::Lost) => self.app.resize(self.app.size),
-                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                    if let Some(imgui_state) = &mut self.imgui{
+                        // In case Imgui has been enabled call render_imgui.
+                        imgui_state.platform
+                            .prepare_frame(imgui_state.context.io_mut(), &self.app.window)
+                            .expect("Failed to prepare frame.");
 
-                        Err(e) => eprintln!("{:?}", e),
+                        let ui = imgui_state.context.frame();
+
+                        self.state.render_imgui(&mut self.app, control_flow, &ui);
+
+                        let mut encoder = self.app.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: Some("imgui_encoder")});
+
+                        let mut rpass = RenderPassBuilder::new()
+                            .push_color_attachment(view.color_attachment_clear())
+                            .begin(&mut encoder, None);
+
+                        imgui_state.renderer
+                            .render(ui.render(), &self.app.queue, &self.app.device, &mut rpass.render_pass)
+                            .expect("Rendering Failed");
+
+                        drop(rpass);
+
+                        self.app.queue.submit(Some(encoder.finish()));
                     }
+                    else{
+                        match self.state.render(&mut self.app, control_flow, view){
+                            Ok(_) => {}
+
+                            Err(wgpu::SurfaceError::Lost) => self.app.resize(self.app.size),
+                            Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+
+                            Err(e) => eprintln!("{:?}", e),
+                        }
+                    }
+
                     output.present();
                     self.app.frame_count += 1;
                 },
@@ -175,5 +215,44 @@ impl<S: 'static +  State> Framework<S>{
                 _ => {}
             }
         });
+    }
+    pub fn imgui(mut self) -> Self{
+        let mut context = imgui::Context::create();
+        let mut platform = imgui_winit_support::WinitPlatform::init(&mut context);
+        platform.attach_window(
+            context.io_mut(),
+            &self.app.window,
+            imgui_winit_support::HiDpiMode::Default,
+        );
+        context.set_ini_filename(None);
+
+        let hidpi_factor = self.app.window.scale_factor();
+        let font_size = (13.0 * hidpi_factor) as f32;
+        context.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
+
+        context.fonts().add_font(&[
+            imgui::FontSource::DefaultFontData{
+                config: Some(imgui::FontConfig{
+                    oversample_h: 1,
+                    pixel_snap_h: true,
+                    size_pixels: font_size,
+                    ..Default::default()
+                }),
+            }
+        ]);
+
+        let renderer_config = imgui_wgpu::RendererConfig{
+            texture_format: self.app.config.format,
+            ..Default::default()
+        };
+
+        let renderer = imgui_wgpu::Renderer::new(&mut context, &self.app.device, &self.app.queue, renderer_config);
+
+        self.imgui = Some(ImguiState{
+            context,
+            renderer,
+            platform,
+        });
+        self
     }
 }
