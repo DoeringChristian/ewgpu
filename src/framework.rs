@@ -12,6 +12,7 @@ use winit::{
     },
 };
 
+use std::time::Instant;
 use super::*;
 
 pub trait State{
@@ -33,6 +34,7 @@ pub struct AppState{
     pub size: winit::dpi::PhysicalSize<u32>,
     pub window: Window,
     pub frame_count: usize,
+    pub time: Instant,
 }
 
 pub struct ImguiState{
@@ -74,6 +76,8 @@ impl AppState{
         };
         surface.configure(&device, &config);
 
+        let time = Instant::now();
+
         Self{
             surface,
             device,
@@ -82,6 +86,7 @@ impl AppState{
             size,
             window,
             frame_count: 0,
+            time,
         }
     }
 
@@ -166,12 +171,18 @@ impl<S: 'static +  State> Framework<S>{
                         Err(e) => {eprintln!("{:?}", e); return},
                     };
                     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let time = Instant::now();
 
                     if let Some(imgui_state) = &mut self.imgui{
                         // In case Imgui has been enabled call render_imgui.
+
+                        imgui_state.platform.handle_event(imgui_state.context.io_mut(), &self.app.window, &event);
+
                         imgui_state.platform
                             .prepare_frame(imgui_state.context.io_mut(), &self.app.window)
                             .expect("Failed to prepare frame.");
+
+                        imgui_state.context.io_mut().update_delta_time(time - self.app.time);
 
                         let ui = imgui_state.context.frame();
 
@@ -204,6 +215,7 @@ impl<S: 'static +  State> Framework<S>{
 
                     output.present();
                     self.app.frame_count += 1;
+                    self.app.time = time;
                 },
                 Event::DeviceEvent{device_id, event} => {
                     self.state.device_event(&mut self.app, &device_id, &event);
