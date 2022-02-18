@@ -17,6 +17,7 @@ use super::*;
 
 pub trait State{
     fn new(app: &mut AppState) -> Self;
+    fn init_imgui(&mut self, app: &mut AppState, imgui: &mut ImguiState){}
     fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, dst: wgpu::TextureView) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn render_imgui(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, ui: &imgui::Ui){}
     fn pre_render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
@@ -173,6 +174,7 @@ impl<S: 'static +  State> Framework<S>{
                     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
                     let time = Instant::now();
 
+                    // Render code:
                     if let Some(imgui_state) = &mut self.imgui{
                         // In case Imgui has been enabled call render_imgui.
 
@@ -261,11 +263,16 @@ impl<S: 'static +  State> Framework<S>{
 
         let renderer = imgui_wgpu::Renderer::new(&mut context, &self.app.device, &self.app.queue, renderer_config);
 
-        self.imgui = Some(ImguiState{
+        let mut imgui_state = ImguiState{
             context,
             renderer,
             platform,
-        });
+        };
+
+        self.state.init_imgui(&mut self.app, &mut imgui_state);
+
+        self.imgui = Some(imgui_state);
+
         self
     }
 }
