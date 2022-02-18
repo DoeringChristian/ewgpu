@@ -13,7 +13,7 @@ use winit::{
 
 pub trait State{
     fn new(app: &mut AppState) -> Self;
-    fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
+    fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, dst: wgpu::TextureView) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn pre_render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn input(&mut self, event: &WindowEvent) -> bool{false}
     fn cursor_moved(&mut self, fstate: &mut AppState, device_id: &winit::event::DeviceId, position: &winit::dpi::PhysicalPosition<f64>){}
@@ -149,7 +149,12 @@ impl<S: 'static +  State> Framework<S>{
                             Err(e) => eprintln!("{:?}", e),
                         }
                     }
-                    match self.state.render(&mut self.app, control_flow){
+                    let output = match self.app.surface.get_current_texture(){
+                        Ok(o) => {o},
+                        Err(e) => {eprintln!("{:?}", e); return},
+                    };
+                    let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    match self.state.render(&mut self.app, control_flow, view){
                         Ok(_) => {}
 
                         Err(wgpu::SurfaceError::Lost) => self.app.resize(self.app.size),
@@ -157,6 +162,7 @@ impl<S: 'static +  State> Framework<S>{
 
                         Err(e) => eprintln!("{:?}", e),
                     }
+                    output.present();
                     self.app.frame_count += 1;
                 },
                 Event::DeviceEvent{device_id, event} => {
