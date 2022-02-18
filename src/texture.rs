@@ -10,6 +10,9 @@ use std::ops::Bound;
 use std::ops::Range;
 use std::ops::RangeBounds;
 
+pub trait ToImguiWgpuTexture{
+    fn to_imgui_wgpu(self) -> imgui_wgpu::Texture;
+}
 
 ///
 /// 
@@ -381,5 +384,19 @@ impl ColorAttachment for Texture{
 
     fn color_attachment_load(&self) -> wgpu::RenderPassColorAttachment {
         self.view.color_attachment_load()
+    }
+}
+
+impl ColorAttachment for imgui_wgpu::Texture{
+    fn color_attachment_clear(&self) -> wgpu::RenderPassColorAttachment {
+        self.view().color_attachment_clear()
+    }
+
+    fn color_attachment_clear_with(&self, color: wgpu::Color) -> wgpu::RenderPassColorAttachment {
+        self.view().color_attachment_clear_with(color)
+    }
+
+    fn color_attachment_load(&self) -> wgpu::RenderPassColorAttachment {
+        self.view().color_attachment_load()
     }
 }

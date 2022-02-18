@@ -306,6 +306,17 @@ impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
     }
 }
 
+impl super::ToImguiWgpuTexture for BindGroup<super::Texture>{
+    fn to_imgui_wgpu(self) -> imgui_wgpu::Texture {
+        imgui_wgpu::Texture::from_raw_parts(
+            self.content.texture,
+            self.content.view,
+            self.bind_group,
+            self.content.size,
+        )
+    }
+}
+
 
 
 mod glsl{
