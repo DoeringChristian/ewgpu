@@ -19,7 +19,7 @@ pub struct Texture{
     pub view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
     pub format: wgpu::TextureFormat,
-    pub size: [u32; 3],
+    pub size: wgpu::Extent3d,
 }
 
 pub struct TextureSlice<'ts>{
@@ -104,7 +104,7 @@ impl Texture{
             view,
             sampler,
             format,
-            size: [size[0], size[1], 1],
+            size: extent,
         })
     }
 
@@ -186,7 +186,7 @@ impl Texture{
             view,
             sampler,
             format,
-            size: [size[0], size[1], 1],
+            size: extent,
         })
     }
 
@@ -216,9 +216,9 @@ impl Texture{
                 aspect: wgpu::TextureAspect::All,
             },
             wgpu::Extent3d{
-                width: self.size[0],
-                height: self.size[1],
-                depth_or_array_layers: 1,
+                width: self.size.width,
+                height: self.size.height,
+                depth_or_array_layers: self.size.depth_or_array_layers,
             }
         );
     }
@@ -231,9 +231,9 @@ impl Texture{
                 Bound::Excluded(x) => {x + 1},
             };
             let end_bound = match bound_x.end_bound(){
-                Bound::Unbounded => self.size[0] as u32,
-                Bound::Included(x) => {(x + 1).max(self.size[0])},
-                Bound::Excluded(x) => {(x + 0).max(self.size[0])},
+                Bound::Unbounded => self.size.width as u32,
+                Bound::Included(x) => {(x + 1).max(self.size.width)},
+                Bound::Excluded(x) => {(x + 0).max(self.size.width)},
             };
             start_bound..end_bound
         };
@@ -244,9 +244,9 @@ impl Texture{
                 Bound::Excluded(x) => {x + 1},
             };
             let end_bound = match bound_y.end_bound(){
-                Bound::Unbounded => self.size[0] as u32,
-                Bound::Included(x) => {(x + 1).max(self.size[1])},
-                Bound::Excluded(x) => {(x + 0).max(self.size[1])},
+                Bound::Unbounded => self.size.height as u32,
+                Bound::Included(x) => {(x + 1).max(self.size.height)},
+                Bound::Excluded(x) => {(x + 0).max(self.size.height)},
             };
             start_bound..end_bound
         };
@@ -257,9 +257,9 @@ impl Texture{
                 Bound::Excluded(x) => {x + 1},
             };
             let end_bound = match bound_z.end_bound(){
-                Bound::Unbounded => self.size[0] as u32,
-                Bound::Included(x) => {(x + 1).max(self.size[2])},
-                Bound::Excluded(x) => {(x + 0).max(self.size[2])},
+                Bound::Unbounded => self.size.depth_or_array_layers as u32,
+                Bound::Included(x) => {(x + 1).max(self.size.depth_or_array_layers)},
+                Bound::Excluded(x) => {(x + 0).max(self.size.depth_or_array_layers)},
             };
             start_bound..end_bound
         };
