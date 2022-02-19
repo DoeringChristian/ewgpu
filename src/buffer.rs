@@ -122,8 +122,76 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     }
 }
 
+pub struct BufferBuilder<'bb, C: bytemuck::Pod>{
+    data: Vec<C>,
+    usages: wgpu::BufferUsages,
+    label: wgpu::Label<'bb>,
+}
+
+impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
+    pub fn new() -> Self{
+        Self{
+            data: Vec::new(),
+            usages: wgpu::BufferUsages::empty(),
+            label: None,
+        }
+    }
+
+    #[inline]
+    pub fn vertex(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::VERTEX;
+        self
+    }
+    #[inline]
+    pub fn storage(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::STORAGE;
+        self
+    }
+    #[inline]
+    pub fn uniform(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::UNIFORM;
+        self
+    }
+    #[inline]
+    pub fn copy_dst(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::COPY_DST;
+        self
+    }
+    #[inline]
+    pub fn copy_src(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::COPY_SRC;
+        self
+    }
+    #[inline]
+    pub fn read(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::MAP_READ;
+        self
+    }
+    #[inline]
+    pub fn write(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::MAP_WRITE;
+        self
+    }
+
+    #[inline]
+    pub fn set_label(mut self, label: wgpu::Label<'bb>) -> Self{
+        self.label = label;
+        self
+    }
+
+    pub fn build(&self, device: &wgpu::Device) -> Buffer<C>{
+        Buffer::<C>::new(device, self.usages, self.label, &self.data)
+    }
+
+    pub fn build_empty(&self, device: &wgpu::Device, len: usize) -> Buffer<C>{
+        Buffer::<C>::new_empty(device, self.usages, self.label, len)
+    }
+}
+
 ///
 /// TODO: Implement some way of differentiating buffer usages at compile time.
+///
+/// A typesafe wrapper for wgpu::Buffer.
 ///
 pub struct Buffer<C: bytemuck::Pod>{
     pub buffer: wgpu::Buffer,
@@ -161,42 +229,46 @@ impl<C: bytemuck::Pod> Buffer<C>{
         }
     }
 
+    #[inline]
     pub fn new_vert(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new(device, wgpu::BufferUsages::VERTEX, label, data)
     }
 
+    #[inline]
     pub fn new_storage(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new(device, wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::MAP_WRITE, label, data)
     }
 
+    #[inline]
     pub fn new_index(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new(device, wgpu::BufferUsages::INDEX, label, data)
     }
 
+    #[inline]
     pub fn new_uniform(device: &wgpu::Device, usage: wgpu::BufferUsages, label: wgpu::Label, data: &[C]) -> Self{
         Self::new(device, usage | wgpu::BufferUsages::UNIFORM, label, data)
     }
-
+    #[inline]
     pub fn new_dst_uniform(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new_uniform(device, wgpu::BufferUsages::COPY_DST, label, data)
     }
-
+    #[inline]
     pub fn new_mapped(device: &wgpu::Device, usage: wgpu::BufferUsages, label: wgpu::Label, data: &[C]) -> Self{
         Self::new(device, usage | wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::MAP_WRITE, label, data)
     }
-
+    #[inline]
     pub fn new_mapped_storage(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new_mapped(device, wgpu::BufferUsages::STORAGE, label, data)
     }
-
+    #[inline]
     pub fn new_mapped_index(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new_mapped(device, wgpu::BufferUsages::INDEX, label, data)
     }
-
+    #[inline]
     pub fn new_mapped_vert(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new_mapped(device, wgpu::BufferUsages::VERTEX, label, data)
     }
-
+    #[inline]
     pub fn len(&self) -> usize{
         self.len
     }

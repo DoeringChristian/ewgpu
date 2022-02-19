@@ -18,7 +18,7 @@ use super::*;
 pub trait State{
     fn new(app: &mut AppState) -> Self;
     fn init_imgui(&mut self, app: &mut AppState, imgui: &mut ImguiState){}
-    fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, dst: wgpu::TextureView) -> Result<(), wgpu::SurfaceError>{Ok(())}
+    fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, dst: &wgpu::TextureView) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn render_imgui(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, ui: &imgui::Ui){}
     fn pre_render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn input(&mut self, event: &WindowEvent) -> bool{false}
@@ -174,7 +174,17 @@ impl<S: 'static +  State> Framework<S>{
                     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
                     let time = Instant::now();
 
-                    // Render code:
+                    // Call render function 
+                    match self.state.render(&mut self.app, control_flow, &view){
+                        Ok(_) => {}
+
+                        Err(wgpu::SurfaceError::Lost) => self.app.resize(self.app.size),
+                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+
+                        Err(e) => eprintln!("{:?}", e),
+                    }
+
+                    // Render imgui on top:
                     if let Some(imgui_state) = &mut self.imgui{
                         // In case Imgui has been enabled call render_imgui.
 
@@ -201,16 +211,6 @@ impl<S: 'static +  State> Framework<S>{
                         drop(rpass);
 
                         self.app.queue.submit(Some(encoder.finish()));
-                    }
-                    else{
-                        match self.state.render(&mut self.app, control_flow, view){
-                            Ok(_) => {}
-
-                            Err(wgpu::SurfaceError::Lost) => self.app.resize(self.app.size),
-                            Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-
-                            Err(e) => eprintln!("{:?}", e),
-                        }
                     }
 
                     output.present();
