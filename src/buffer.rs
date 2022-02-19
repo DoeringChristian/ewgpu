@@ -236,8 +236,8 @@ impl<C: bytemuck::Pod> Buffer<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for Buffer<C>{
-    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder) {
-        bind_group_layout_builder.push_entry_all_ref(binding::wgsl::buffer(false))
+    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder, visibility: wgpu::ShaderStages) {
+        bind_group_layout_builder.push_entry_ref(visibility, binding::wgsl::buffer(false))
     }
 
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {

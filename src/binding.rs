@@ -7,6 +7,7 @@ use std::any::{Any, TypeId};
 
 pub trait CreateBindGroupLayout{
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc;
+    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc;
 }
 
 pub trait CreateBindGroup: CreateBindGroupLayout{
@@ -191,7 +192,7 @@ impl<'l> BindGroupBuilder<'l>{
 
 
 pub trait BindGroupContent{
-    fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder);
+    fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder, visibility: wgpu::ShaderStages);
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>);
 }
 
@@ -205,8 +206,8 @@ macro_rules! bind_group_content_for_tuple{
     ($($name:ident)+) => {
         #[allow(non_snake_case)]
         impl<$($name: BindGroupContent),+> BindGroupContent for ($($name, )+){
-            fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder){
-                ($($name::push_entries_to(bind_group_layout_builder),)+);
+            fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder, visibility: wgpu::ShaderStages){
+                ($($name::push_entries_to(bind_group_layout_builder, visibility),)+);
             }
             fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>){
                 let ($($name, )+) = self;
@@ -232,9 +233,9 @@ bind_group_content_for_tuple!{ A B C D E F G H I J K L }
 
 
 impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
-    fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder) {
+    fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder, visibility: wgpu::ShaderStages) {
         for _i in 0..N{
-            C::push_entries_to(bind_group_layout_builder);
+            C::push_entries_to(bind_group_layout_builder, visibility);
         }
     }
 
@@ -254,10 +255,22 @@ pub struct BindGroup<C: BindGroupContent>{
 
 impl<C: BindGroupContent> BindGroup<C>{
     pub fn new(content: C, device: &wgpu::Device) -> Self{
+        let bind_group_layout = Self::create_bind_group_layout(device, None); 
 
+        let mut bind_group_builder = BindGroupBuilder::new(&bind_group_layout);
+        content.push_resources_to(&mut bind_group_builder);
+        let bind_group = bind_group_builder.create(device, None);
+
+        Self{
+            content,
+            bind_group,
+            bind_group_layout,
+        }
+    }
+
+    pub fn new_vis(content: C, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Self{
         let mut bind_group_layout_builder = BindGroupLayoutBuilder::new();
-        C::push_entries_to(&mut bind_group_layout_builder);
-        //content.push_entries_to(&mut bind_group_layout_builder);
+        C::push_entries_to(&mut bind_group_layout_builder, visibility);
         let bind_group_layout = bind_group_layout_builder.create(device, None);
 
         let mut bind_group_builder = BindGroupBuilder::new(&bind_group_layout);
@@ -274,8 +287,11 @@ impl<C: BindGroupContent> BindGroup<C>{
 
 impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C>{
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc {
+        Self::create_bind_group_layout_vis(device, label, wgpu::ShaderStages::all())
+    }
+    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc {
         let mut bind_group_layout_builder = BindGroupLayoutBuilder::new();
-        C::push_entries_to(&mut bind_group_layout_builder);
+        C::push_entries_to(&mut bind_group_layout_builder, visibility);
         bind_group_layout_builder.create(device, label)
     }
 }

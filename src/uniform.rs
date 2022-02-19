@@ -99,8 +99,8 @@ impl<C: bytemuck::Pod> UniformVec<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for UniformVec<C>{
-    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder) {
-        bind_group_layout_builder.push_entry_all_ref(binding::wgsl::uniform());
+    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder, visibility: wgpu::ShaderStages) {
+        bind_group_layout_builder.push_entry_ref(visibility, binding::wgsl::uniform());
     }
 
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {
@@ -128,8 +128,8 @@ impl<C: bytemuck::Pod> Uniform<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
-    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder) {
-        bind_group_layout_builder.push_entry_all_ref(binding::wgsl::uniform());
+    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder, visibility: wgpu::ShaderStages) {
+        bind_group_layout_builder.push_entry_ref(visibility, binding::wgsl::uniform());
     }
 
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {
@@ -166,5 +166,8 @@ impl<C: bytemuck::Pod> DerefMut for UniformBindGroup<C>{
 impl<C: bytemuck::Pod> CreateBindGroupLayout for UniformBindGroup<C>{
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> binding::BindGroupLayoutWithDesc {
         BindGroup::<Uniform<C>>::create_bind_group_layout(device, label)
+    }
+    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> crate::BindGroupLayoutWithDesc {
+        BindGroup::<Uniform<C>>::create_bind_group_layout_vis(device, label, visibility)
     }
 }
