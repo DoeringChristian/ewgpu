@@ -19,7 +19,7 @@ pub trait State{
     fn new(app: &mut AppState) -> Self;
     fn init_imgui(&mut self, app: &mut AppState, imgui: &mut ImguiState){}
     fn render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, dst: &wgpu::TextureView) -> Result<(), wgpu::SurfaceError>{Ok(())}
-    fn render_imgui(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, ui: &imgui::Ui){}
+    fn render_imgui(&mut self, app: &mut AppState, control_flow: &mut ControlFlow, imgui: ImguiRenderContext<'_, '_>){}
     fn pre_render(&mut self, app: &mut AppState, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn input(&mut self, event: &WindowEvent) -> bool{false}
     fn cursor_moved(&mut self, fstate: &mut AppState, device_id: &winit::event::DeviceId, position: &winit::dpi::PhysicalPosition<f64>){}
@@ -42,6 +42,12 @@ pub struct ImguiState{
     pub context: imgui::Context,
     pub platform: WinitPlatform,
     pub renderer: imgui_wgpu::Renderer,
+}
+
+pub struct ImguiRenderContext<'irc, 'ui>{
+    pub platform: &'irc WinitPlatform,
+    pub renderer: &'irc imgui_wgpu::Renderer,
+    pub ui: &'irc imgui::Ui<'ui>,
 }
 
 impl AppState{
@@ -196,7 +202,13 @@ impl<S: 'static +  State> Framework<S>{
 
                         let ui = imgui_state.context.frame();
 
-                        self.state.render_imgui(&mut self.app, control_flow, &ui);
+                        let imgui_render_context = ImguiRenderContext{
+                            ui: &ui,
+                            platform: &imgui_state.platform,
+                            renderer: &imgui_state.renderer,
+                        };
+
+                        self.state.render_imgui(&mut self.app, control_flow, imgui_render_context);
 
                         let mut encoder = self.app.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: Some("imgui_encoder")});
 
