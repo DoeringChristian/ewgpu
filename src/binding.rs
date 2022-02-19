@@ -322,13 +322,13 @@ impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
     }
 }
 
-impl super::ToImguiWgpuTexture for BindGroup<super::Texture>{
-    fn to_imgui_wgpu(self) -> imgui_wgpu::Texture {
+impl From<BindGroup<super::Texture>> for imgui_wgpu::Texture{
+    fn from(bg_texture: BindGroup<super::Texture>) -> Self {
         imgui_wgpu::Texture::from_raw_parts(
-            self.content.texture,
-            self.content.view,
-            self.bind_group,
-            self.content.size,
+            bg_texture.content.texture,
+            bg_texture.content.view,
+            bg_texture.bind_group,
+            bg_texture.content.size,
         )
     }
 }

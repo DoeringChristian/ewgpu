@@ -10,10 +10,6 @@ use std::ops::Bound;
 use std::ops::Range;
 use std::ops::RangeBounds;
 
-pub trait ToImguiWgpuTexture{
-    fn to_imgui_wgpu(self) -> imgui_wgpu::Texture;
-}
-
 ///
 /// 
 ///
