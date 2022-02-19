@@ -298,8 +298,8 @@ impl RenderTarget for Texture{
 
 impl BindGroupContent for Texture{
     fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder) {
-        bind_group_layout_builder.push_entry_all_ref(binding::wgsl::texture_2d());
-        bind_group_layout_builder.push_entry_all_ref(binding::wgsl::sampler());
+        bind_group_layout_builder.push_entry_fragment_ref(binding::wgsl::texture_2d());
+        bind_group_layout_builder.push_entry_fragment_ref(binding::wgsl::sampler());
     }
 
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>) {
