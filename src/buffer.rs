@@ -137,6 +137,16 @@ impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
         }
     }
 
+    pub fn append_data(mut self, mut data: Vec<C>) -> Self{
+        self.data.append(&mut data);
+        self
+    }
+
+    pub fn append_slice(mut self, data: &[C]) -> Self{
+        self.data.extend_from_slice(data);
+        self
+    }
+
     #[inline]
     pub fn vertex(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::VERTEX;
