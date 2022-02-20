@@ -35,6 +35,10 @@ impl<C: bytemuck::Pod> Drop for UniformRef<'_, C>{
     }
 }
 
+///
+/// A struct mutably referencing a UniformVec to edit its content and update it when UniformVecRef is
+/// droped.
+///
 pub struct UniformVecRef<'ur, C: bytemuck::Pod>{
     queue: &'ur mut wgpu::Queue,
     uniform_vec: &'ur mut UniformVec<C>,
@@ -60,6 +64,10 @@ impl<C: bytemuck::Pod> Drop for UniformVecRef<'_, C>{
     }
 }
 
+///
+/// A Buffer with a vector that can be used as a Unform directly.
+/// It keeps a copy of the content in memory for easier updates.
+///
 pub struct UniformVec<C: bytemuck::Pod>{
     buffer: Buffer<C>,
 
@@ -79,6 +87,14 @@ impl<C: bytemuck::Pod> UniformVec<C>{
             Some(&format!("UniformBuffer: {}", Self::name())),
             src,
         );
+        /* content would be copied twice
+         *
+        let buffer = BufferBuilder::new()
+            .uniform().copy_dst()
+            .set_label(Some(&format!("UniformBuffer: {}", Self::name())))
+            .append_slice(src)
+            .build(device);
+        */
 
         Self{
             buffer,
@@ -105,11 +121,16 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for UniformVec<C>{
         }
     }
 
-    fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {
-        bind_group_builder.resource_ref(self.buffer.as_entire_binding());
+    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+        vec!{
+            self.buffer.as_entire_binding(),
+        }
     }
 }
 
+///
+/// A UniformVec with a single element usefull for cameras etc.
+///
 pub struct Uniform<C: bytemuck::Pod>{
     uniform_vec: UniformVec<C>,
 }
@@ -136,11 +157,16 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
         }
     }
 
-    fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {
-        bind_group_builder.resource_ref(self.uniform_vec.buffer.as_entire_binding());
+    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+        vec!{
+            self.uniform_vec.buffer.as_entire_binding(),
+        }
     }
 }
 
+///
+/// A uniform inside a BindGroup
+///
 pub struct UniformBindGroup<C: bytemuck::Pod>{
     bind_group: binding::BindGroup<Uniform<C>>,
 }

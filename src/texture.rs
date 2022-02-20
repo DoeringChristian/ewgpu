@@ -283,15 +283,7 @@ impl Texture{
     }
 }
 
-impl RenderTarget for Texture{
-    fn render_pass_clear<'a>(&'a self, encoder: &'a mut wgpu::CommandEncoder, label: Option<&'a str>) -> Result<wgpu::RenderPass<'a>> {
-        self.view.render_pass_clear(encoder, label)
-    }
-    fn render_pass_load<'a>(&'a self, encoder: &'a mut wgpu::CommandEncoder, label: Option<&'a str>) -> Result<wgpu::RenderPass<'a>> {
-        self.view.render_pass_load(encoder, label)
-    }
-}
-
+// TODO: decide on weather to use struct initialisation or function initialisation.
 impl BindGroupContent for Texture{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
         vec!{
@@ -308,9 +300,11 @@ impl BindGroupContent for Texture{
         }
     }
 
-    fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>) {
-        bind_group_builder.texture_ref(&self.view);
-        bind_group_builder.sampler_ref(&self.sampler);
+    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+        vec!{
+            wgpu::BindingResource::TextureView(&self.view),
+            wgpu::BindingResource::Sampler(&self.sampler),
+        }
     }
 }
 

@@ -104,6 +104,13 @@ impl<'l> BindGroupBuilder<'l>{
         }
     }
 
+    pub fn push_resources(mut self, resources: Vec<wgpu::BindingResource<'l>>) -> Self{
+        for resource in resources{
+            self = self.resource(resource);
+        }
+        self
+    }
+
     pub fn resource(mut self, resource: wgpu::BindingResource<'l>) -> Self{
         assert_lt!(self.entries.len(), self.layout_with_desc.entries.len());
         self.entries.push(wgpu::BindGroupEntry{
@@ -155,7 +162,7 @@ impl<'l> BindGroupBuilder<'l>{
 
 pub trait BindGroupContent{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
-    fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>);
+    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>>;
 }
 
 // TODO: Macro for Structs that can be bind groups.
@@ -177,9 +184,15 @@ macro_rules! bind_group_content_for_tuple{
                 }
                 ret
             }
-            fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>){
+            fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>>{
                 let ($($name, )+) = self;
-                ($($name.push_resources_to(bind_group_builder),)+);
+                let mut ret = Vec::new();
+                {
+                    $(
+                        ret.append(&mut $name.resources());
+                    )+
+                }
+                ret
             }
         }
     }
@@ -209,10 +222,12 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
         ret
     }
 
-    fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>) {
+    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+        let mut ret = Vec::with_capacity(N);
         for content in self{
-            content.push_resources_to(bind_group_builder);
+            ret.append(&mut content.resources());
         }
+        ret
     }
 }
 
@@ -227,9 +242,9 @@ impl<C: BindGroupContent> BindGroup<C>{
     pub fn new(content: C, device: &wgpu::Device) -> Self{
         let bind_group_layout = Self::create_bind_group_layout(device, None); 
 
-        let mut bind_group_builder = BindGroupBuilder::new(&bind_group_layout);
-        content.push_resources_to(&mut bind_group_builder);
-        let bind_group = bind_group_builder.create(device, None);
+        let bind_group = BindGroupBuilder::new(&bind_group_layout)
+            .push_resources(content.resources())
+            .create(device, None);
 
         Self{
             content,
@@ -241,9 +256,9 @@ impl<C: BindGroupContent> BindGroup<C>{
     pub fn new_vis(content: C, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Self{
         let bind_group_layout = Self::create_bind_group_layout_vis(device, None, visibility);
 
-        let mut bind_group_builder = BindGroupBuilder::new(&bind_group_layout);
-        content.push_resources_to(&mut bind_group_builder);
-        let bind_group = bind_group_builder.create(device, None);
+        let bind_group = BindGroupBuilder::new(&bind_group_layout)
+            .push_resources(content.resources())
+            .create(device, None);
 
         Self{
             content,

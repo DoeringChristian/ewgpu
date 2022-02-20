@@ -324,8 +324,10 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for Buffer<C>{
         }
     }
 
-    fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {
-        bind_group_builder.resource_ref(self.as_entire_binding())
+    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+        vec!{
+            self.as_entire_binding(),
+        }
     }
 }
 
