@@ -1,7 +1,5 @@
-use anyhow::*;
 use wgpu::util::DeviceExt;
-use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds}, borrow::{Borrow, BorrowMut}, future, cell::Cell};
-use binding::CreateBindGroupLayout;
+use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds}};
 use std::mem::ManuallyDrop;
 use std::ops::Bound;
 
@@ -10,6 +8,10 @@ use super::binding;
 
 // TODO: find a way to implement diffrent types of buffers.
 
+/// 
+/// A wrapper for the wgpu::BufferSlice but with its data exposed.
+///
+/// TODO: maybe imlement a BufferSliceMut
 pub struct BufferSlice<'bs, C: bytemuck::Pod>{
     buffer: &'bs Buffer<C>,
     slice: wgpu::BufferSlice<'bs>,
@@ -122,6 +124,18 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     }
 }
 
+///
+/// A builder for a Buffer
+///
+/// Example: 
+/// ```ignore 
+/// let buffer = BufferBuilder::new()
+///     .uniform().copy_dst()
+///     .append_slice([0, 1, 2, 3])
+///     .selt_label(Some("buffer"))
+///     .build(device);
+/// ```
+///
 pub struct BufferBuilder<'bb, C: bytemuck::Pod>{
     data: Vec<C>,
     usages: wgpu::BufferUsages,
@@ -283,6 +297,7 @@ impl<C: bytemuck::Pod> Buffer<C>{
         self.len
     }
 
+    // TODO: Export bound start and end to own functions.
     pub fn slice<S: RangeBounds<wgpu::BufferAddress>>(&self, bounds: S) -> BufferSlice<C>{
         let start_bound = bounds.start_bound();
         let end_bound = bounds.end_bound();
@@ -312,6 +327,7 @@ impl<C: bytemuck::Pod> Buffer<C>{
         }
     }
 
+    // TODO: maybe move to slice.
     pub fn write_buffer(&mut self, queue: &wgpu::Queue, offset: usize, data: &[C]){
         queue.write_buffer(&self.buffer, (offset * std::mem::size_of::<C>()) as u64, bytemuck::cast_slice(data));
     }
@@ -375,6 +391,7 @@ impl<'mbr, C: bytemuck::Pod> Drop for BufferView<'mbr, C>{
     }
 }
 
+// TODO: Actually make buffer mutable
 pub struct BufferViewMut<'mbr, C: bytemuck::Pod>{
     buffer: &'mbr Buffer<C>,
     buffer_view: ManuallyDrop<wgpu::BufferViewMut<'mbr>>,

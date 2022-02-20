@@ -296,13 +296,8 @@ impl<'cpb> ComputePipelineBuilder<'cpb>{
 
 
 ///
-/// A Render Pass with a Pipeline.
+/// A wrapper for wgpu::RenderPass
 ///
-/// used to reference that Pipeline so one is able to set the bind groups and vertex buffers by
-/// name.
-///
-/// Not quite sure about lifetime inheritance.
-
 pub struct RenderPass<'rp>{
     pub render_pass: wgpu::RenderPass<'rp>,
 }
@@ -318,7 +313,7 @@ impl<'rp> RenderPass<'rp>{
         }
     }
 
-    /*
+    /* TODO: maybe remove RenderPassPipeline
        #[inline]
        pub fn set_bind_group(&mut self, index: u32, bind_group: &'rp wgpu::BindGroup, offsets: &'rp [wgpu::DynamicOffset]){
        self.render_pass.set_bind_group(index, bind_group, offsets);
@@ -326,6 +321,9 @@ impl<'rp> RenderPass<'rp>{
        */
 }
 
+///
+/// A builder for the RenderPass.
+///
 pub struct RenderPassBuilder<'rp>{
     color_attachments: Vec<wgpu::RenderPassColorAttachment<'rp>>,
 }

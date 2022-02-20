@@ -23,14 +23,6 @@ pub trait GetBindGroup{
 }
 
 
-
-
-pub trait ToBindGroupLayouts{
-    fn bind_group_layouts<'l>(&'l self) -> Vec<&'l wgpu::BindGroupLayout>;
-}
-
-
-
 pub struct BindGroupLayoutWithDesc{
     pub layout: wgpu::BindGroupLayout,
     pub entries: Vec<wgpu::BindGroupLayoutEntry>,
@@ -53,14 +45,12 @@ impl BindGroupLayoutEntry{
 }
 
 pub struct BindGroupLayoutBuilder{
-    //index: u32,
     entries: Vec<BindGroupLayoutEntry>,
 }
 
 impl BindGroupLayoutBuilder{
     pub fn new() -> Self{
         Self{
-            //index: 0,
             entries: Vec::new(),
         }
     }

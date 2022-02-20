@@ -42,7 +42,6 @@ pub trait DataDrawable<'pd, D>{
     fn draw_data(&'pd self, render_pass: &'_ mut pipeline::RenderPass<'pd>, data: D);
 }
 
-// TODO: Rename to VMesh.
 pub struct Mesh<V: VertLayout>{
     nmesh: NMesh<(Buffer<V>,)>,
 }
