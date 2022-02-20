@@ -120,34 +120,6 @@ impl<'l> BindGroupBuilder<'l>{
         self
     }
 
-    pub fn resource_ref(&mut self, resource: wgpu::BindingResource<'l>){
-        assert_lt!(self.entries.len(), self.layout_with_desc.entries.len());
-        self.entries.push(wgpu::BindGroupEntry{
-            binding: self.layout_with_desc.entries[self.entries.len()].binding,
-            resource,
-        });
-    }
-
-    #[inline]
-    pub fn sampler(mut self, sampler: &'l wgpu::Sampler) -> Self{
-        self.resource(wgpu::BindingResource::Sampler(sampler))
-    }
-
-    #[inline]
-    pub fn sampler_ref(&mut self, sampler: &'l wgpu::Sampler){
-        self.resource_ref(wgpu::BindingResource::Sampler(sampler));
-    }
-
-    #[inline]
-    pub fn texture(mut self, texture_view: &'l wgpu::TextureView) -> Self{
-        self.resource(wgpu::BindingResource::TextureView(texture_view))
-    }
-
-    #[inline]
-    pub fn texture_ref(&mut self, texture_view: &'l wgpu::TextureView){
-        self.resource_ref(wgpu::BindingResource::TextureView(texture_view));
-    }
-
     pub fn create(&self, device: &wgpu::Device, label: Option<&str>) -> wgpu::BindGroup{
         assert_eq!(self.entries.len(), self.layout_with_desc.entries.len());
         device.create_bind_group(&wgpu::BindGroupDescriptor{
