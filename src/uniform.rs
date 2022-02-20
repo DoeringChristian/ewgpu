@@ -99,8 +99,10 @@ impl<C: bytemuck::Pod> UniformVec<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for UniformVec<C>{
-    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder, visibility: wgpu::ShaderStages) {
-        bind_group_layout_builder.push_entry_ref(visibility, binding::wgsl::uniform());
+    fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
+        vec!{
+            binding::BindGroupLayoutEntry::new(visibility, binding::wgsl::uniform()),
+        }
     }
 
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {
@@ -128,8 +130,10 @@ impl<C: bytemuck::Pod> Uniform<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
-    fn push_entries_to(bind_group_layout_builder: &mut binding::BindGroupLayoutBuilder, visibility: wgpu::ShaderStages) {
-        bind_group_layout_builder.push_entry_ref(visibility, binding::wgsl::uniform());
+    fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
+        vec!{
+            binding::BindGroupLayoutEntry::new(visibility, binding::wgsl::uniform())
+        }
     }
 
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut binding::BindGroupBuilder<'bgb>) {

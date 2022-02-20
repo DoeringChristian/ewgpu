@@ -293,9 +293,19 @@ impl RenderTarget for Texture{
 }
 
 impl BindGroupContent for Texture{
-    fn push_entries_to(bind_group_layout_builder: &mut BindGroupLayoutBuilder, visibility: wgpu::ShaderStages) {
-        bind_group_layout_builder.push_entry_ref(visibility, binding::wgsl::texture_2d());
-        bind_group_layout_builder.push_entry_ref(visibility, binding::wgsl::sampler());
+    fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
+        vec!{
+            BindGroupLayoutEntry{
+                visibility,
+                ty: binding::wgsl::texture_2d(),
+                count: None,
+            },
+            BindGroupLayoutEntry{
+                visibility,
+                ty: binding::wgsl::texture_2d(),
+                count: None,
+            }
+        }
     }
 
     fn push_resources_to<'bgb>(&'bgb self, bind_group_builder: &mut BindGroupBuilder<'bgb>) {
