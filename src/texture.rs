@@ -302,7 +302,7 @@ impl BindGroupContent for Texture{
             },
             BindGroupLayoutEntry{
                 visibility,
-                ty: binding::wgsl::texture_2d(),
+                ty: binding::wgsl::sampler(),
                 count: None,
             }
         }
