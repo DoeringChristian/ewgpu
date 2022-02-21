@@ -7,9 +7,13 @@ use std::fs::File;
 use std::io::Read;
 use std::str;
 use std::sync::Arc;
+use crate::PushConstantLayout;
+use crate::ToPushConstantLayout;
+
 use super::binding;
 use std::borrow::Cow;
 use anyhow::*;
+use wgpu::util::RenderEncoder;
 use core::ops::Range;
 use core::num::NonZeroU32;
 use naga;
@@ -131,16 +135,18 @@ impl<'vsb> VertexStateBuilder<'vsb>{
 
 pub struct RenderPipeline{
     pub pipeline: wgpu::RenderPipeline,
+    pub push_const_ranges: Vec<wgpu::PushConstantRange>
 }
 
 pub struct PipelineLayout{
     pub layout: wgpu::PipelineLayout,
+    push_const_ranges: Vec<wgpu::PushConstantRange>,
 }
 
 // TODO: put bind_group_names in Arc
 pub struct PipelineLayoutBuilder<'l>{
     bind_group_layouts: Vec<&'l binding::BindGroupLayoutWithDesc>,
-    push_constant_ranges: Vec<wgpu::PushConstantRange>,
+    push_const_layouts: Vec<PushConstantLayout>,
     index: usize,
 }
 
@@ -148,7 +154,7 @@ impl<'l> PipelineLayoutBuilder<'l>{
     pub fn new() -> Self{
         Self{
             bind_group_layouts: Vec::new(),
-            push_constant_ranges: Vec::new(),
+            push_const_layouts: Vec::new(),
             index: 0,
         }
     }
@@ -158,8 +164,8 @@ impl<'l> PipelineLayoutBuilder<'l>{
         self
     }
 
-    pub fn push_push_constant_ranges(mut self, push_constant_ranges: wgpu::PushConstantRange) -> Self{
-        self.push_constant_ranges.push(push_constant_ranges);
+    pub fn push_push_const_layout(mut self, push_const_layout: PushConstantLayout) -> Self{
+        self.push_const_layouts.push(push_const_layout);
         self
     }
 
@@ -170,12 +176,29 @@ impl<'l> PipelineLayoutBuilder<'l>{
             bind_group_layouts.push(&bind_group_layout_desc.layout);
         }
 
+        let mut offset = 0;
+        let push_const_ranges: Vec<wgpu::PushConstantRange> = self.push_const_layouts.iter()
+            .map(|x| {
+                // allign to 4 bytes.
+                let size_aligned = (x.size/4 +1)*4;
+                let range = Range::<u32>{
+                    start: offset,
+                    end: offset + size_aligned,
+                };
+                offset = range.end;
+                wgpu::PushConstantRange{
+                    stages: x.stages,
+                    range,
+                }
+            }).collect();
+
         PipelineLayout{
             layout: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
                 label,
                 bind_group_layouts: &bind_group_layouts,
-                push_constant_ranges: &self.push_constant_ranges,
+                push_constant_ranges: &push_const_ranges,
             }),
+            push_const_ranges,
         }
     }
 }
@@ -193,6 +216,14 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
             bind_group,
             offsets
         );
+    }
+
+    pub fn set_push_const<C: ToPushConstantLayout>(&mut self, index: u32, constant: &C){
+        //self.render_pass.render_pass.set_push_constants()
+        self.render_pass.render_pass.set_push_constants(
+            self.pipeline.push_const_ranges[index as usize].stages, 
+            self.pipeline.push_const_ranges[index as usize].range.start,
+            bytemuck::bytes_of(constant));
     }
 
     pub fn set_bind_groups(&mut self, bind_groups: &[&'rp wgpu::BindGroup]){
@@ -512,6 +543,7 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
         RenderPipeline{
             pipeline: render_pipeline,
+            push_const_ranges: layout.push_const_ranges.clone(),
         }
     }
 }

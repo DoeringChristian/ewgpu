@@ -16,6 +16,7 @@ pub mod render_target;
 pub mod texture;
 pub mod uniform;
 pub mod vert;
+pub mod push_constants;
 
 mod utils;
 
@@ -29,4 +30,5 @@ pub use self::render_target::*;
 pub use self::texture::*;
 pub use self::uniform::*;
 pub use self::vert::*;
+pub use self::push_constants::*;
 
