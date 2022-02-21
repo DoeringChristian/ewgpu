@@ -182,8 +182,7 @@ impl<'l> PipelineLayoutBuilder<'l>{
         let push_const_ranges: Vec<wgpu::PushConstantRange> = self.push_const_layouts.iter()
             .map(|x| {
                 // align to 4 bytes.
-                let r = x.size % wgpu::PUSH_CONSTANT_ALIGNMENT;
-                let size_aligned = if r != 0 {x.size + (wgpu::PUSH_CONSTANT_ALIGNMENT - r)} else {x.size};
+                let size_aligned = (((x.size as i32 - 4)/4 + 1)*4) as u32;
                 let range = Range::<u32>{
                     start: offset,
                     end: offset + size_aligned,
