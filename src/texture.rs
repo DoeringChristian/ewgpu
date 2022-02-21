@@ -28,8 +28,22 @@ pub struct TextureSlice<'ts>{
 }
 
 impl<'ts> TextureSlice<'ts>{
-    pub fn copy_to_texture(&self){
-
+    pub fn copy_to_texture(&self, encoder: &mut wgpu::CommandEncoder, dst: &Texture, offset: wgpu::Origin3d){
+        encoder.copy_texture_to_texture(
+            wgpu::ImageCopyTexture{
+                texture: &self.texture.texture,
+                mip_level: 0,
+                origin: self.origin,
+                aspect: wgpu::TextureAspect::All
+            },
+            wgpu::ImageCopyTexture{
+                texture: &dst.texture,
+                mip_level: 0,
+                origin: offset,
+                aspect: wgpu::TextureAspect::All,
+            },
+            self.extent,
+        );
     }
 }
 
