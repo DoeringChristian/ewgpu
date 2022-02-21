@@ -63,13 +63,20 @@ impl AppState{
                 force_fallback_adapter: false,
             },
         ).await.unwrap();
+
+        let limits = wgpu::Limits{
+            max_push_constant_size: 128,
+            ..Default::default()
+        };
+
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor{
                 features: wgpu::Features::empty()
                     .union(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES)
                     .union(wgpu::Features::VERTEX_WRITABLE_STORAGE)
+                    .union(wgpu::Features::PUSH_CONSTANTS)
                     .union(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS),
-                limits: wgpu::Limits::default(),
+                limits,
                 label: None,
             },
             None,

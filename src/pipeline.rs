@@ -7,8 +7,9 @@ use std::fs::File;
 use std::io::Read;
 use std::str;
 use std::sync::Arc;
+use crate::Buffer;
 use crate::PushConstantLayout;
-use crate::ToPushConstantLayout;
+use crate::PushConstant;
 
 use super::binding;
 use std::borrow::Cow;
@@ -159,12 +160,12 @@ impl<'l> PipelineLayoutBuilder<'l>{
         }
     }
 
-    pub fn push(mut self, bind_group_layout: &'l binding::BindGroupLayoutWithDesc) -> Self{
+    pub fn push_bind_group(mut self, bind_group_layout: &'l binding::BindGroupLayoutWithDesc) -> Self{
         self.bind_group_layouts.push(bind_group_layout);
         self
     }
 
-    pub fn push_push_const_layout(mut self, push_const_layout: PushConstantLayout) -> Self{
+    pub fn push_const_layout(mut self, push_const_layout: PushConstantLayout) -> Self{
         self.push_const_layouts.push(push_const_layout);
         self
     }
@@ -176,11 +177,13 @@ impl<'l> PipelineLayoutBuilder<'l>{
             bind_group_layouts.push(&bind_group_layout_desc.layout);
         }
 
+        // Convert the push_const_layouts to push_const_ranges using alignment
         let mut offset = 0;
         let push_const_ranges: Vec<wgpu::PushConstantRange> = self.push_const_layouts.iter()
             .map(|x| {
-                // allign to 4 bytes.
-                let size_aligned = (x.size/4 +1)*4;
+                // align to 4 bytes.
+                let r = x.size % wgpu::PUSH_CONSTANT_ALIGNMENT;
+                let size_aligned = if r != 0 {x.size + (wgpu::PUSH_CONSTANT_ALIGNMENT - r)} else {x.size};
                 let range = Range::<u32>{
                     start: offset,
                     end: offset + size_aligned,
@@ -210,16 +213,15 @@ pub struct RenderPassPipeline<'rp, 'rpr>{
 }
 
 impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
-    pub fn set_bind_group(&mut self, index: u32, bind_group: &'rp wgpu::BindGroup, offsets: &'rp [wgpu::DynamicOffset]){
+    pub fn set_bind_group<B: binding::GetBindGroup>(&mut self, index: u32, bind_group: &'rp B, offsets: &'rp [wgpu::DynamicOffset]){
         self.render_pass.render_pass.set_bind_group(
             index,
-            bind_group,
+            bind_group.get_bind_group(),
             offsets
         );
     }
 
-    pub fn set_push_const<C: ToPushConstantLayout>(&mut self, index: u32, constant: &C){
-        //self.render_pass.render_pass.set_push_constants()
+    pub fn set_push_const<C: PushConstant>(&mut self, index: u32, constant: &C){
         self.render_pass.render_pass.set_push_constants(
             self.pipeline.push_const_ranges[index as usize].stages, 
             self.pipeline.push_const_ranges[index as usize].range.start,
@@ -275,10 +277,89 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
     }
 }
 
-pub struct ComputePipeline{
-    pub pipeline: wgpu::ComputePipeline,
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct DispatchIndirect{
+    x: u32,
+    y: u32,
+    z: u32,
 }
 
+///
+/// Wrapper for wgpu::ComputePass
+///
+pub struct ComputePass<'cp>{
+    pub cpass: wgpu::ComputePass<'cp>,
+}
+
+impl<'cp> ComputePass<'cp>{
+    pub fn new(encoder: &'cp mut wgpu::CommandEncoder, label: Option<&str>) -> Self{
+        let cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor{
+            label,
+        });
+        Self{
+            cpass,
+        }
+    }
+
+    pub fn set_pipeline(&mut self, pipeline: &'cp ComputePipeline) -> ComputePassPipeline<'cp, '_>{
+        self.cpass.set_pipeline(&pipeline.pipeline);
+        ComputePassPipeline{
+            cpass: self,
+            pipeline,
+        }
+    }
+
+}
+
+///
+/// A ComputePass with pipeline needed for push_const offsets.
+///
+pub struct ComputePassPipeline<'cp, 'cpr>{
+    pub cpass: &'cpr mut ComputePass<'cp>,
+    pub pipeline: &'cp ComputePipeline,
+}
+
+impl<'cp, 'cpr> ComputePassPipeline<'cp, 'cpr>{
+    pub fn set_bind_group<B: binding::GetBindGroup>(&mut self, index: u32, bind_group: &'cp B, offsets: &'cp [wgpu::DynamicOffset]){
+        self.cpass.cpass.set_bind_group(index, bind_group.get_bind_group(), offsets);
+    }
+
+    pub fn set_push_const<C: PushConstant>(&mut self, index: u32, constant: &C){
+        self.cpass.cpass.set_push_constants(
+            self.pipeline.push_const_ranges[index as usize].range.start,
+            bytemuck::bytes_of(constant));
+    }
+
+    pub fn dispatch(&mut self, x: u32, y: u32, z: u32){
+        self.cpass.cpass.dispatch(x, y, z);
+    }
+
+    pub fn dispatch_indirect(&mut self, indirect_buffer: &'cp Buffer<DispatchIndirect>, indirect_offset: wgpu::BufferAddress){
+        self.cpass.cpass.dispatch_indirect(&indirect_buffer.buffer, indirect_offset);
+    }
+
+    pub fn set_pipeline(&'cpr mut self, pipeline: &'cp ComputePipeline) -> Self{
+        self.cpass.cpass.set_pipeline(&pipeline.pipeline);
+        Self{
+            cpass: self.cpass,
+            pipeline,
+        }
+    }
+}
+
+///
+/// A wrapper for wgpu::ComputePipeline with PushConstantRanges
+///
+pub struct ComputePipeline{
+    pub pipeline: wgpu::ComputePipeline,
+    pub push_const_ranges: Vec<wgpu::PushConstantRange>,
+}
+
+///
+/// A builder for a ComputePipeline
+///
+///
 pub struct ComputePipelineBuilder<'cpb>{
     label: wgpu::Label<'cpb>,
     layout: Option<&'cpb PipelineLayout>,
@@ -320,7 +401,8 @@ impl<'cpb> ComputePipelineBuilder<'cpb>{
                 layout: Some(&layout.layout),
                 module: self.module,
                 entry_point: self.entry_point,
-            })
+            }),
+            push_const_ranges: layout.push_const_ranges.clone(),
         }
     }
 }

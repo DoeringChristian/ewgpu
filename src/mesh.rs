@@ -212,7 +212,7 @@ impl<V: VertLayout> Model<V>{
 
 impl<V: VertLayout> Drawable for Model<V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
-        render_pass.set_bind_group(0, &self.uniform_buffer.get_bind_group(), &[]);
+        render_pass.set_bind_group(0, &self.uniform_buffer, &[]);
 
         self.mesh.draw(render_pass);
     }

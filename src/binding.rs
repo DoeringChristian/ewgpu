@@ -22,6 +22,12 @@ pub trait GetBindGroup{
     fn get_bind_group<'l>(&'l self) -> &'l wgpu::BindGroup;
 }
 
+impl GetBindGroup for wgpu::BindGroup{
+    fn get_bind_group<'l>(&'l self) -> &'l wgpu::BindGroup {
+        self
+    }
+}
+
 
 pub struct BindGroupLayoutWithDesc{
     pub layout: wgpu::BindGroupLayout,

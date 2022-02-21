@@ -179,6 +179,12 @@ impl <C: bytemuck::Pod> UniformBindGroup<C>{
     }
 }
 
+impl<C: bytemuck::Pod> binding::GetBindGroup for UniformBindGroup<C>{
+    fn get_bind_group<'l>(&'l self) -> &'l wgpu::BindGroup {
+        self.bind_group.get_bind_group()
+    }
+}
+
 impl<C: bytemuck::Pod> Deref for UniformBindGroup<C>{
     type Target = binding::BindGroup<Uniform<C>>;
 
