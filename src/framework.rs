@@ -526,7 +526,7 @@ impl<S: 'static + State<ImguiContext>> Framework<ImguiContext, S>{
                             self.state.render_imgui(&mut self.context.winit_context, render_context, control_flow);
 
                             let mut rpass = RenderPassBuilder::new()
-                                .push_color_attachment(view.color_attachment_clear())
+                                .push_color_attachment(view.color_attachment_load())
                                 .begin(&mut encoder, None);
 
                             renderer
