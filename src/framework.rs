@@ -13,7 +13,7 @@ use winit::{
     },
 };
 
-use std::{time::Instant, ops::{Deref, DerefMut}, marker::PhantomData, cell::RefCell};
+use std::{time::{Instant, Duration}, ops::{Deref, DerefMut}, marker::PhantomData, cell::RefCell};
 use super::*;
 
 /*
@@ -44,12 +44,15 @@ pub trait State<C: Context>{
 #[allow(unused)]
 pub trait Context{
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>){}
+    fn update(&mut self);
 }
 
 pub struct GPUContext{
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub adapter: wgpu::Adapter,
+    pub time: Instant,
+    pub dt: Duration,
 }
 
 impl GPUContext{
@@ -85,15 +88,23 @@ impl GPUContext{
             None,
         ).await.unwrap();
 
+        // DT is initialized with 1 second for first frame
         Self{
             device,
             queue,
             adapter,
+            time: Instant::now(),
+            dt: Duration::from_secs(1),
         }
     }
 }
 
 impl Context for GPUContext{
+    fn update(&mut self) {
+        let time = Instant::now();
+        self.dt = time - self.time;
+        self.time = time;
+    }
 }
 
 pub struct WinitContext{
@@ -141,6 +152,10 @@ impl Context for WinitContext{
             self.surface.configure(&self.device, &self.config);
         }
     }
+
+    fn update(&mut self) {
+        self.gpu_context.update();
+    }
 }
 
 impl Deref for WinitContext{
@@ -162,7 +177,6 @@ pub struct ImguiContext{
     pub imgui_context: RefCell<imgui::Context>,
     pub platform: RefCell<WinitPlatform>,
     pub renderer: RefCell<imgui_wgpu::Renderer>,
-    pub time: Instant,
 }
 
 impl ImguiContext{
@@ -210,29 +224,28 @@ impl ImguiContext{
             imgui_context,
             platform,
             renderer,
-            time: Instant::now(),
         }
     }
 
-    /*
-    pub fn ui<F: Fn(&imgui::Ui)>(&mut self, f: F, encoder: &mut wgpu::CommandEncoder, dst: &wgpu::TextureView){
-        let time = Instant::now();
-
-        self.platform
-            .prepare_frame(self.context.borrow_mut().io_mut(), &self.window)
-            .expect("Failed to prepare frame.");
-
-        self.context.borrow_mut().io_mut().update_delta_time(time - self.time);
-
+    pub fn ui<F>(&mut self, f: F, encoder: &mut wgpu::CommandEncoder, dst: &wgpu::TextureView)
+        where F: Fn(&imgui::Ui, &mut imgui_wgpu::Renderer, &WinitPlatform, &mut WinitContext)
+    {
         let mut renderer = self.renderer.borrow_mut();
-        let mut context = self.context.borrow_mut();
+        let mut context = self.imgui_context.borrow_mut();
+        let platform = self.platform.borrow();
         {
+            platform
+                .prepare_frame(context.io_mut(), &self.window)
+                .expect("Failed to prepare frame.");
+
+            //context.io_mut().update_delta_time(self.dt);
+
             let ui = context.frame();
 
-            f(&ui);
+            f(&ui, &mut renderer, &platform, &mut self.winit_context);
 
             let mut rpass = RenderPassBuilder::new()
-                .push_color_attachment(dst.color_attachment_clear())
+                .push_color_attachment(dst.color_attachment_load())
                 .begin(encoder, None);
 
             renderer.render(ui.render(), &self.queue, &self.device, &mut rpass.render_pass)
@@ -240,13 +253,16 @@ impl ImguiContext{
 
             drop(rpass);
         }
+
     }
-    */
 }
 
 impl Context for ImguiContext{
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>){
         self.winit_context.resize(new_size)
+    }
+    fn update(&mut self) {
+        self.winit_context.update();
     }
 }
 
@@ -425,6 +441,7 @@ impl<S: 'static + State<WinitContext>> Framework<WinitContext, S>{
 
                     self.context.queue.submit(Some(encoder.finish()));
                     output.present();
+                    self.context.update();
                 },
                 Event::DeviceEvent{device_id, ref event} => {
                     self.state.device_event(&mut self.context, &device_id, &event);
@@ -491,6 +508,8 @@ impl<S: 'static + State<ImguiContext>> Framework<ImguiContext, S>{
 
                     let mut encoder = self.context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: Some("imgui_encoder")});
 
+                    self.context.imgui_context.borrow_mut().io_mut().update_delta_time(self.context.dt);
+
                     // Call render function 
                     match self.state.render(&mut self.context, &view, &mut encoder, control_flow){
                         Ok(_) => {}
@@ -510,10 +529,6 @@ impl<S: 'static + State<ImguiContext>> Framework<ImguiContext, S>{
                             platform
                                 .prepare_frame(imgui_context.io_mut(), &self.context.window)
                                 .expect("Failed to prepare frame.");
-
-                            let time = Instant::now();
-                            imgui_context.io_mut().update_delta_time(time - self.context.time);
-                            self.context.time = time;
 
                             let ui = imgui_context.frame();
 
