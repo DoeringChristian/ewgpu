@@ -3,6 +3,7 @@ use anyhow::*;
 use super::render_target::*;
 use super::binding;
 use super::binding::*;
+use crate::*;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
@@ -43,6 +44,26 @@ impl<'ts> TextureSlice<'ts>{
                 aspect: wgpu::TextureAspect::All,
             },
             self.extent,
+        );
+    }
+
+    pub fn copy_to_buffer<C: bytemuck::Pod>(&self, encoder: &mut wgpu::CommandEncoder, dst: &mut Buffer<C>, offset: wgpu::BufferAddress){
+        encoder.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture{
+                texture: &self.texture.texture,
+                mip_level: 0,
+                origin: self.origin,
+                aspect: wgpu::TextureAspect::All
+            },
+            wgpu::ImageCopyBuffer{
+                buffer: &dst.buffer,
+                layout: wgpu::ImageDataLayout{
+                    offset,
+                    bytes_per_row: std::num::NonZeroU32::new(self.texture.size.width * self.texture.format.describe().block_size as u32),
+                    rows_per_image: std::num::NonZeroU32::new(self.texture.size.height),
+                }
+            },
+            self.extent
         );
     }
 }

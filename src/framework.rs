@@ -16,14 +16,24 @@ use winit::{
 use std::{time::{Instant, Duration}, ops::{Deref, DerefMut}, marker::PhantomData, cell::RefCell};
 use super::*;
 
-#[allow(unused)]
 pub trait State{
-    fn new(winit: &mut WinitContext, imgui: &mut ImguiContext) -> Self;
-    fn render(&mut self, winit: &mut WinitContext, imgui: &mut ImguiContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
+
+}
+
+#[allow(unused)]
+pub trait UIState{
+    fn new(gpu: &mut WinitContext, imgui: &mut ImguiContext) -> Self;
+    fn render(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn input(&mut self, event: &WindowEvent) -> bool{false}
     fn cursor_moved(&mut self, context: &mut ImguiContext, device_id: &winit::event::DeviceId, position: &winit::dpi::PhysicalPosition<f64>){}
     fn device_event(&mut self, context: &mut ImguiContext, device_id: &winit::event::DeviceId, device_event: &DeviceEvent){}
     fn resize(&mut self, context: &mut ImguiContext, new_size: winit::dpi::PhysicalSize<u32>){}
+}
+
+#[allow(unused)]
+pub trait HeadlessState{
+    fn new(gpu: &mut GPUContext) -> Self;
+    fn render(&mut self, gpu: &mut GPUContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>{Ok(())}
 }
 
 pub struct GPUContext{
@@ -243,7 +253,60 @@ impl<'irc, 'ui> Deref for ImguiRenderContext<'irc, 'ui>{
     }
 }
 
-pub struct Framework<S: State>{
+pub struct HeadlessFramework<S: HeadlessState>{
+    pub instance: wgpu::Instance,
+    pub gpu: GPUContext,
+    pub state: S,
+
+    pub o_tex: Texture,
+    pub o_buf: Buffer<u8>,
+}
+
+impl<S: 'static + HeadlessState> HeadlessFramework<S>{
+    pub fn new(size: [u32; 2]) -> Self{
+
+        let instance = wgpu::Instance::new(wgpu::Backends::all());
+
+        let mut gpu = GPUContext::new(&instance, None);
+
+        let state = S::new(&mut gpu);
+
+        let o_tex = Texture::new_black(size, &gpu.device, &gpu.queue, None, wgpu::TextureFormat::Rgba8Unorm).unwrap();
+        let o_buf = BufferBuilder::new()
+            .copy_dst()
+            .read()
+            .build_empty(&gpu.device, std::mem::size_of::<u32>() * size[0] as usize * size[1] as usize);
+
+        Self{
+            instance,
+            gpu,
+            state,
+            o_tex,
+            o_buf,
+        }
+    }
+
+    pub fn run(mut self) -> image::DynamicImage{
+        let mut encoder = self.gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: None});
+
+        {
+            self.state.render(&mut self.gpu, &self.o_tex.view, &mut encoder).unwrap();
+
+            self.o_tex.slice(.., .., ..).copy_to_buffer(&mut encoder, &mut self.o_buf, 0);
+
+            self.gpu.queue.submit(Some(encoder.finish()));
+        }
+
+        {
+            let buf_view = self.o_buf.slice(..).map_blocking(&self.gpu.device);
+            
+            let image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(self.o_tex.size.width, self.o_tex.size.height, Vec::from(buf_view.as_ref())).unwrap());
+            return image
+        }
+    }
+}
+
+pub struct UIFramework<S: UIState>{
     pub imgui: ImguiContext,
     pub winit: WinitContext,
     pub instance: wgpu::Instance,
@@ -251,7 +314,7 @@ pub struct Framework<S: State>{
     pub event_loop: EventLoop<()>,
 }
 
-impl<S: 'static + State> Framework<S>{
+impl<S: 'static + UIState> UIFramework<S>{
     pub fn new(window_builder: WindowBuilder) -> Self{
         env_logger::init();
         let event_loop = EventLoop::new();
