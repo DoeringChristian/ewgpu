@@ -16,12 +16,8 @@ use winit::{
 use std::{time::{Instant, Duration}, ops::{Deref, DerefMut}, marker::PhantomData, cell::RefCell};
 use super::*;
 
-pub trait State{
-
-}
-
 #[allow(unused)]
-pub trait UIState{
+pub trait ImguiState{
     fn new(gpu: &mut WinitContext, imgui: &mut ImguiContext) -> Self;
     fn render(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
     fn input(&mut self, event: &WindowEvent) -> bool{false}
@@ -31,7 +27,7 @@ pub trait UIState{
 }
 
 #[allow(unused)]
-pub trait HeadlessState{
+pub trait State{
     fn new(gpu: &mut GPUContext) -> Self;
     fn render(&mut self, gpu: &mut GPUContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>{Ok(())}
 }
@@ -253,7 +249,7 @@ impl<'irc, 'ui> Deref for ImguiRenderContext<'irc, 'ui>{
     }
 }
 
-pub struct HeadlessFramework<S: HeadlessState>{
+pub struct Framework<S: State>{
     pub instance: wgpu::Instance,
     pub gpu: GPUContext,
     pub state: S,
@@ -262,7 +258,7 @@ pub struct HeadlessFramework<S: HeadlessState>{
     pub o_buf: Buffer<u8>,
 }
 
-impl<S: 'static + HeadlessState> HeadlessFramework<S>{
+impl<S: 'static + State> Framework<S>{
     pub fn new(size: [u32; 2]) -> Self{
 
         let instance = wgpu::Instance::new(wgpu::Backends::all());
@@ -306,7 +302,7 @@ impl<S: 'static + HeadlessState> HeadlessFramework<S>{
     }
 }
 
-pub struct UIFramework<S: UIState>{
+pub struct ImguiFramework<S: ImguiState>{
     pub imgui: ImguiContext,
     pub winit: WinitContext,
     pub instance: wgpu::Instance,
@@ -314,7 +310,7 @@ pub struct UIFramework<S: UIState>{
     pub event_loop: EventLoop<()>,
 }
 
-impl<S: 'static + UIState> UIFramework<S>{
+impl<S: 'static + ImguiState> ImguiFramework<S>{
     pub fn new(window_builder: WindowBuilder) -> Self{
         env_logger::init();
         let event_loop = EventLoop::new();
