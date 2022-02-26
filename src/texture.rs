@@ -96,6 +96,7 @@ impl<'tb> TextureBuilder<'tb>{
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::RENDER_ATTACHMENT;
 
+        // Default format
         let format = wgpu::TextureFormat::Rgba8Unorm;
 
         let dimension = wgpu::TextureDimension::D2;
@@ -109,6 +110,11 @@ impl<'tb> TextureBuilder<'tb>{
             dimension,
             label: None,
         }
+    }
+
+    pub fn format(mut self, format: wgpu::TextureFormat) -> Self{
+        self.format = format;
+        self
     }
 
     pub fn from_raw(mut self, data: Vec<u8>, size: wgpu::Extent3d) -> Self{
@@ -152,6 +158,12 @@ impl<'tb> TextureBuilder<'tb>{
         Self::from_bytes(self, &buffer)
     }
 
+    pub fn clear(mut self, size: wgpu::Extent3d) -> Self{
+        self.size = size;
+        self.data = None;
+        self
+    }
+
     pub fn label(mut self, label: wgpu::Label<'tb>) -> Self{
         self.label = label;
         self
@@ -166,10 +178,7 @@ impl<'tb> TextureBuilder<'tb>{
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format: self.format,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING
-                    | wgpu::TextureUsages::COPY_DST
-                    | wgpu::TextureUsages::COPY_SRC
-                    | wgpu::TextureUsages::RENDER_ATTACHMENT
+                usage: self.usage
             }
         );
         let texture_view_desc = wgpu::TextureViewDescriptor{
