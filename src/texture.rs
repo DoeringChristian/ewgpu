@@ -10,6 +10,51 @@ use std::io::Read;
 use std::ops::Bound;
 use std::ops::Range;
 use std::ops::RangeBounds;
+use std::convert::From;
+
+pub trait IntoExtent3D{
+    fn into_extent_3d(self) -> wgpu::Extent3d;
+}
+
+impl IntoExtent3D for [u32; 2]{
+    fn into_extent_3d(self) -> wgpu::Extent3d {
+        wgpu::Extent3d{
+            width: self[0],
+            height: self[1],
+            depth_or_array_layers: 1,
+        }
+    }
+}
+
+impl IntoExtent3D for [u32; 3]{
+    fn into_extent_3d(self) -> wgpu::Extent3d {
+        wgpu::Extent3d{
+            width: self[0],
+            height: self[1],
+            depth_or_array_layers: self[2],
+        }
+    }
+}
+
+impl IntoExtent3D for [usize; 2]{
+    fn into_extent_3d(self) -> wgpu::Extent3d {
+        wgpu::Extent3d{
+            width: self[0] as u32,
+            height: self[1] as u32,
+            depth_or_array_layers: 1,
+        }
+    }
+}
+
+impl IntoExtent3D for [usize; 3]{
+    fn into_extent_3d(self) -> wgpu::Extent3d {
+        wgpu::Extent3d{
+            width: self[0] as u32,
+            height: self[1] as u32,
+            depth_or_array_layers: self[2] as u32,
+        }
+    }
+}
 
 ///
 /// 
