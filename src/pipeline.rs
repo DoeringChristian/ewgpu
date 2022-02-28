@@ -485,6 +485,11 @@ pub fn shader_with_shaderc(device: &wgpu::Device, src: &str, kind: shaderc::Shad
     Ok(module)
 }
 
+///
+/// A Builder for a RenderPipeline.
+///
+/// Pipeline layout has to be set.
+///
 pub struct RenderPipelineBuilder<'rpb>{
     label: Option<&'rpb str>,
     layout: Option<&'rpb PipelineLayout>,

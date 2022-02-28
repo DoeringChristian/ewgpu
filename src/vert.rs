@@ -124,6 +124,7 @@ impl Vert2 {
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use crate::vert::Vert;
 
     #[repr(C)]
     #[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
