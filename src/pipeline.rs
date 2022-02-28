@@ -1,24 +1,17 @@
-use std::collections::HashMap;
-use std::ops::Deref;
 use std::path::Path;
-use std::path::PathBuf;
-use std::{fs, ops};
+use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::str;
-use std::sync::Arc;
-use crate::Buffer;
-use crate::PushConstantLayout;
-use crate::PushConstant;
+use crate::*;
 
-use super::binding;
 use std::borrow::Cow;
 use anyhow::*;
-use wgpu::util::RenderEncoder;
 use core::ops::Range;
 use core::num::NonZeroU32;
 use naga;
 
+#[allow(unused)]
 const DEFAULT_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 const DEFAULT_ENTRY_POINT: &'static str = "main";
 
@@ -606,6 +599,10 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
     pub fn push_vert_layouts(mut self, vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'rpb>>) -> Self{
         self.vertex = self.vertex.push_vert_layouts(vertex_buffer_layouts);
         self
+    }
+
+    pub fn push_drawable_layouts<D: Drawable>(self) -> Self{
+        self.push_vert_layouts(D::create_vert_buffer_layouts())
     }
 
     ///

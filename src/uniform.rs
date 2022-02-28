@@ -2,7 +2,6 @@ use super::binding::BindGroup;
 use super::binding::CreateBindGroupLayout;
 use super::buffer::*;
 use super::binding;
-use wgpu::util::DeviceExt;
 use std::ops::{Deref, DerefMut};
 
 ///

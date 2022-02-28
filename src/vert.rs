@@ -1,14 +1,10 @@
 use super::buffer::*;
-use bytemuck::*;
-use wgpu::util::DeviceExt;
 use wgpu_utils_macros::Vert;
 use super::pipeline;
-use super::buffer::*;
 use std::ops::Range;
 
 // Possibly remove generic D
 pub trait VertBuffers{
-
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
     fn push_vertex_buffers_to<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
     fn get_min_range(&self) -> Range<u32>;

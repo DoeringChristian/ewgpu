@@ -1,13 +1,8 @@
 use proc_macro::{self, TokenStream};
-use syn::{parse_macro_input, DeriveInput};
-use quote::quote;
 
 mod vertex;
-mod render;
-mod push_constant;
 
 use vertex::*;
-use push_constant::*;
 
 ///
 /// A Macro for deriving A instance vector from a struct:
@@ -42,28 +37,4 @@ pub fn derive_vert(tokens: TokenStream) -> TokenStream{
     let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
 
     generate_vert(ast).into()
-}
-
-#[proc_macro_derive(Render, attributes(slot, index))]
-pub fn derive_render(tokens: TokenStream) -> TokenStream{
-    let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
-
-    
-    todo!()
-}
-
-
-///
-/// A Macro for deriving a PushConstant from a struct:
-///
-/// ```ignore
-///
-///
-/// ```
-///
-#[proc_macro_derive(PushConstant)]
-pub fn derive_push_constant(tokens: TokenStream) -> TokenStream{
-    let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
-
-    generate_push_constant(ast).into()
 }

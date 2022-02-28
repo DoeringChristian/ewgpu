@@ -1,9 +1,6 @@
 #[allow(unused)]
 use anyhow::*;
-use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
-use std::any::{Any, TypeId};
 
 pub trait CreateBindGroupLayout{
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc;
@@ -133,11 +130,7 @@ pub trait BindGroupContent{
     fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>>;
 }
 
-// TODO: Macro for Structs that can be bind groups.
-macro_rules! bind_group_content{
-    ($struct_name:ident, $($field_name:ident),+) =>{
-    }
-}
+// TODO: Derive macro for BindGroupContent.
 
 macro_rules! bind_group_content_for_tuple{
     ($($name:ident)+) => {
@@ -243,7 +236,7 @@ impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C>{
     fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc {
         BindGroupLayoutBuilder::new()
             .push_entries(C::entries(visibility))
-            .create(device, None)
+            .create(device, label)
     }
 }
 
@@ -286,6 +279,7 @@ impl From<BindGroup<super::Texture>> for imgui_wgpu::Texture{
 
 
 
+#[allow(dead_code)]
 mod glsl{
     pub fn buffer(read_only: bool) -> wgpu::BindingType {
         wgpu::BindingType::Buffer {
@@ -304,7 +298,12 @@ mod glsl{
     }
 
     pub fn sampler(filtering: bool) -> wgpu::BindingType {
-        wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
+        if filtering{
+            wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
+        }
+        else{
+            wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering)
+        }
     }
 
     #[allow(non_snake_case)]

@@ -1,6 +1,3 @@
-use anyhow::*;
-use super::texture;
-
 ///
 /// Can be attached as the ColorAttachment of a RenderPass
 ///

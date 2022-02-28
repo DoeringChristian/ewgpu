@@ -1,6 +1,3 @@
-use std::marker::PhantomData;
-
-use crate::RenderPassPipeline;
 
 // TODO: better way to implement push const range
 pub struct PushConstantLayout{
@@ -26,27 +23,10 @@ pub struct PushConstantVec<T: bytemuck::Pod>{
     pub content: T,
 }
 
-/*
- 
-   #[derive(PushConstant)]
-   struct MeshPushConstant{
-        #[vertex, fragment, compute]
-        int1: i32,
-   }
- 
- */
-
 #[cfg(test)]
 mod tests{
     #[allow(unused)]
     use super::*;
-
-    /*
-    #[derive(PushConstant)]
-    struct MeshPushConstant{
-
-    }
-    */
 
     #[test]
     fn push_consts(){

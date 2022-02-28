@@ -1,16 +1,8 @@
-use super::binding;
-use super::pipeline;
-use super::vert::*;
-use super::buffer::*;
-use super::uniform::UniformBindGroup;
-use super::binding::GetBindGroup;
+use crate::*;
 use bytemuck;
-use cgmath::*;
 #[allow(unused)]
 use wgpu::util::DeviceExt;
 use anyhow::*;
-use std::marker::PhantomData;
-use std::ops::Range;
 
 ///
 /// Drawables can be drawn using a RenderPassPipeline.
@@ -20,7 +12,6 @@ use std::ops::Range;
 ///
 pub trait Drawable{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
-    //fn draw_instanced<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>, range: Range<u32>);
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>>;
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
 }

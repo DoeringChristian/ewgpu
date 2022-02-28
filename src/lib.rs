@@ -2,7 +2,6 @@
 #[macro_use]
 extern crate more_asserts;
 
-#[macro_use]
 pub extern crate wgpu_utils_macros;
 
 extern crate nalgebra_glm as glm;

@@ -1,5 +1,4 @@
 use imgui_winit_support::WinitPlatform;
-use winit::{platform::unix::WindowBuilderExtUnix, dpi::PhysicalSize};
 #[allow(unused)]
 use winit::{
     event::*,
@@ -13,7 +12,7 @@ use winit::{
     },
 };
 
-use std::{time::{Instant, Duration}, ops::{Deref, DerefMut}, marker::PhantomData, cell::RefCell};
+use std::{time::{Instant, Duration}, ops::{Deref, DerefMut}};
 use super::*;
 
 #[allow(unused)]
@@ -267,7 +266,10 @@ impl<S: 'static + State> Framework<S>{
 
         let state = S::new(&mut gpu);
 
-        let o_tex = Texture::new_black(size, &gpu.device, &gpu.queue, None, wgpu::TextureFormat::Rgba8Unorm).unwrap();
+        let o_tex = TextureBuilder::new()
+            .clear(size)
+            .format(wgpu::TextureFormat::Rgba8Unorm)
+            .build(&gpu.device, &gpu.queue);
         let o_buf = BufferBuilder::new()
             .copy_dst()
             .read()

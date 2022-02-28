@@ -1,5 +1,3 @@
-use proc_macro::{self, TokenStream};
-use syn::{parse_macro_input, DeriveInput};
 use quote::quote;
 
 pub fn generate_instance(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
@@ -10,7 +8,7 @@ pub fn generate_instance(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
 
     if let syn::Data::Struct(syn::DataStruct{fields, ..}) = data{
         for field in fields{
-            attributes.push(generate_vertex_attributes(&ident, &field));
+            attributes.push(generate_vertex_attributes(&field));
         }
 
         let len = attributes.len();
@@ -44,7 +42,7 @@ pub fn generate_vert(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
 
     if let syn::Data::Struct(syn::DataStruct{fields, ..}) = data{
         for field in fields{
-            attributes.push(generate_vertex_attributes(&ident, &field));
+            attributes.push(generate_vertex_attributes(&field));
         }
 
         let len = attributes.len();
@@ -70,7 +68,7 @@ pub fn generate_vert(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
     panic!("Data type not supported");
 }
 
-pub fn generate_vertex_attributes(ident: &syn::Ident, field: &syn::Field) -> proc_macro2::TokenStream{
+pub fn generate_vertex_attributes(field: &syn::Field) -> proc_macro2::TokenStream{
     let field_name = match field.ident{
         Some(ref i) => format!("{}", i),
         None => String::from(""),
