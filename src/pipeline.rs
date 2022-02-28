@@ -27,34 +27,25 @@ pub trait RenderData{
     fn set_bind_groups(&self, render_pass_pipeline: &mut RenderPassPipeline);
 }
 
+///
+/// A struct representing a FragmentState.
+///
 pub struct FragmentState<'fs>{
     pub targets: Vec<wgpu::ColorTargetState>,
     pub entry_point: &'fs str,
     pub shader: &'fs wgpu::ShaderModule,
 }
 
-pub struct FragmentStateBuilder<'fsb>{
-    pub targets: Vec<wgpu::ColorTargetState>,
-    shader: &'fsb wgpu::ShaderModule,
-    entry_point: &'fsb str,
-}
-
-impl <'fsb> FragmentStateBuilder<'fsb>{
-
-    pub const DEFAULT_BLEND_STATE: wgpu::BlendState = wgpu::BlendState{
-        color: wgpu::BlendComponent::REPLACE,
-        alpha: wgpu::BlendComponent::REPLACE,
-    };
-
-    pub fn new(shader: &'fsb wgpu::ShaderModule) -> Self{
+impl<'fs> FragmentState<'fs>{
+    pub fn new(shader: &'fs wgpu::ShaderModule) -> Self{
         Self{
             targets: Vec::new(),
             shader,
             entry_point: DEFAULT_ENTRY_POINT,
         }
     }
-    
-    pub fn set_entry_point(mut self, entry_point: &'fsb str) -> Self{
+
+    pub fn set_entry_point(mut self, entry_point: &'fs str) -> Self{
         self.entry_point = entry_point;
         self
     }
@@ -75,15 +66,6 @@ impl <'fsb> FragmentStateBuilder<'fsb>{
         });
         self
     }
-
-    pub fn build(&self) -> FragmentState<'fsb>{
-        FragmentState{
-            targets: self.targets.clone(),
-            entry_point: self.entry_point,
-            shader: self.shader,
-        }
-    }
-
 }
 
 ///
@@ -94,46 +76,30 @@ impl <'fsb> FragmentStateBuilder<'fsb>{
 pub struct VertexState<'vs>{
     pub vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vs>>,
     pub entry_point: &'vs str,
-    pub vertex_shader: &'vs wgpu::ShaderModule,
+    pub shader: &'vs wgpu::ShaderModule,
 }
 
-pub struct VertexStateBuilder<'vsb>{
-    vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vsb>>,
-    entry_point: &'vsb str,
-    //module: &'vsb wgpu::ShaderModule,
-    vertex_shader: &'vsb wgpu::ShaderModule,
-    index: usize,
-}
-
-impl<'vsb> VertexStateBuilder<'vsb>{
-    pub fn new(vertex_shader: &'vsb wgpu::ShaderModule) -> Self{
+impl<'vs> VertexState<'vs>{
+    pub fn new(shader: &'vs wgpu::ShaderModule) -> Self{
         Self{
             vertex_buffer_layouts: Vec::new(),
             entry_point: DEFAULT_ENTRY_POINT,
-            index: 0,
-            vertex_shader,
+            shader,
         }
     }
-
-    pub fn set_entry_point(mut self, entry_point: &'vsb str) -> Self{
+    pub fn set_entry_point(mut self, entry_point: &'vs str) -> Self{
         self.entry_point = entry_point;
         self
     }
-
-    pub fn push_vert_layouts(mut self, mut vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vsb>>) -> Self{
+    pub fn push_vert_layouts(mut self, mut vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vs>>) -> Self{
         self.vertex_buffer_layouts.append(&mut vertex_buffer_layouts);
         self
     }
-
-    pub fn build(&self) -> VertexState<'vsb>{
-        VertexState{
-            vertex_buffer_layouts: self.vertex_buffer_layouts.clone(),
-            entry_point: self.entry_point,
-            vertex_shader: self.vertex_shader,
-        }
-    }
 }
 
+/// 
+/// A wrapper for wgpu::RenderPipeline with PushConstantRanges.
+///
 pub struct RenderPipeline{
     pub pipeline: wgpu::RenderPipeline,
     pub push_const_ranges: Vec<wgpu::PushConstantRange>
@@ -148,7 +114,6 @@ pub struct PipelineLayout{
 pub struct PipelineLayoutBuilder<'l>{
     bind_group_layouts: Vec<&'l binding::BindGroupLayoutWithDesc>,
     push_const_layouts: Vec<PushConstantLayout>,
-    index: usize,
 }
 
 impl<'l> PipelineLayoutBuilder<'l>{
@@ -156,7 +121,6 @@ impl<'l> PipelineLayoutBuilder<'l>{
         Self{
             bind_group_layouts: Vec::new(),
             push_const_layouts: Vec::new(),
-            index: 0,
         }
     }
 
@@ -170,7 +134,7 @@ impl<'l> PipelineLayoutBuilder<'l>{
         self
     }
 
-    pub fn create(self, device: &wgpu::Device, label: Option<&str>) -> PipelineLayout{
+    pub fn build(self, device: &wgpu::Device, label: Option<&str>) -> PipelineLayout{
 
         let mut bind_group_layouts = Vec::with_capacity(self.bind_group_layouts.len());
         for bind_group_layout_desc in self.bind_group_layouts{
@@ -541,7 +505,7 @@ pub struct RenderPipelineBuilder<'rpb>{
 
 impl<'rpb> RenderPipelineBuilder<'rpb>{
 
-    pub fn new(vertex: VertexState<'rpb>, fragment: FragmentState<'rpb>) -> Self{
+    pub fn new(vertex_shader: &'rpb wgpu::ShaderModule, fragment_shader: &'rpb wgpu::ShaderModule) -> Self{
         let label = None;
         let layout = None;
         let primitive = wgpu::PrimitiveState{
@@ -560,6 +524,18 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
             alpha_to_coverage_enabled: false,
         };
         let multiview = None;
+
+        let vertex = VertexState{
+            vertex_buffer_layouts: Vec::new(),
+            entry_point: DEFAULT_ENTRY_POINT,
+            shader: vertex_shader,
+        };
+        let fragment = FragmentState{
+            targets: Vec::new(),
+            entry_point: DEFAULT_ENTRY_POINT,
+            shader: fragment_shader,
+        };
+
         Self{
             label,
             layout,
@@ -570,6 +546,86 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
             multisample,
             multiview,
         }
+    }
+
+    pub fn set_primitive(mut self, primitive: wgpu::PrimitiveState) -> Self{
+        self.primitive = primitive;
+        self
+    }
+
+    pub fn set_topology(mut self, topology: wgpu::PrimitiveTopology) -> Self{
+        self.primitive.topology = topology;
+        self
+    }
+
+    pub fn set_strip_index_format(mut self, format: Option<wgpu::IndexFormat>) -> Self{
+        self.primitive.strip_index_format = format;
+        self
+    }
+
+    pub fn set_front_face(mut self, front_face: wgpu::FrontFace) -> Self{
+        self.primitive.front_face = front_face;
+        self
+    }
+
+    pub fn set_cull_mode(mut self, cull_mode: Option<wgpu::Face>) -> Self{
+        self.primitive.cull_mode = cull_mode;
+        self
+    }
+
+    pub fn set_polygon_mode(mut self, mode: wgpu::PolygonMode) -> Self{
+        self.primitive.polygon_mode = mode;
+        self
+    }
+
+    pub fn set_unclipped_depth(mut self, unclipped_depth: bool) -> Self{
+        self.primitive.unclipped_depth = unclipped_depth;
+        self
+    }
+
+    pub fn set_conservative(mut self, conservative: bool) -> Self{
+        self.primitive.conservative = conservative;
+        self
+    }
+
+    pub fn set_depth_stencil(mut self, depth_stencil: Option<wgpu::DepthStencilState>) -> Self{
+        self.depth_stencil = depth_stencil;
+        self
+    }
+
+    pub fn set_multisample(mut self, multisample: wgpu::MultisampleState) -> Self{
+        self.multisample = multisample;
+        self
+    }
+
+    pub fn set_multiview(mut self, multiview: Option<NonZeroU32>) -> Self{
+        self.multiview = multiview;
+        self
+    }
+
+    pub fn push_vert_layouts(mut self, vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'rpb>>) -> Self{
+        self.vertex = self.vertex.push_vert_layouts(vertex_buffer_layouts);
+        self
+    }
+
+    ///
+    /// Pushes a RenderTarget to the fragment state.
+    ///
+    /// Has to be pushed in the same order as their corresponding color attachements.
+    ///
+    pub fn push_target_replace(mut self, format: wgpu::TextureFormat) -> Self{
+        self.fragment = self.fragment.push_target_replace(format);
+        self
+    }
+
+    ///
+    /// Pushes a RenderTarget to the fragment state.
+    ///
+    /// Has to be pushed in the same order as their corresponding color attachements.
+    ///
+    pub fn push_target(mut self, color_target_state: wgpu::ColorTargetState) -> Self{
+        self.fragment.targets.push(color_target_state);
+        self
     }
 
     pub fn set_layout(mut self, layout: &'rpb PipelineLayout) -> Self{
@@ -584,23 +640,8 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
     pub fn build(self, device: &wgpu::Device) -> RenderPipeline{
 
-        /*
-           let layout = match self.layout{
-           Some(l) => Some(&l.layout),
-           _ => None,
-           };
-           */
         let layout = self.layout.expect("no layout provided");
-        /*
-           let fragment = match self.fragment{
-           Some(f) => Some(wgpu::FragmentState{
-           module: f.shader,
-           entry_point: f.entry_point,
-           targets: &self.fragment.unwrap().color_target_states,
-           }),
-           _ => None,
-           };
-           */
+
         let fragment = wgpu::FragmentState{
             module: self.fragment.shader,
             entry_point: self.fragment.entry_point,
@@ -611,7 +652,7 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
             label: self.label,
             layout: Some(&layout.layout),
             vertex: wgpu::VertexState{
-                module: self.vertex.vertex_shader,
+                module: self.vertex.shader,
                 entry_point: self.vertex.entry_point,
                 buffers: &self.vertex.vertex_buffer_layouts,
             },
