@@ -54,6 +54,28 @@ impl IntoExtent3D for [usize; 3]{
     }
 }
 
+impl IntoExtent3D for [i32; 2]{
+    #[inline]
+    fn into_extent_3d(self) -> wgpu::Extent3d {
+        wgpu::Extent3d{
+            width: self[0] as u32,
+            height: self[1] as u32,
+            depth_or_array_layers: 1,
+        }
+    }
+}
+
+impl IntoExtent3D for [i32; 3]{
+    #[inline]
+    fn into_extent_3d(self) -> wgpu::Extent3d {
+        wgpu::Extent3d{
+            width: self[0] as u32,
+            height: self[1] as u32,
+            depth_or_array_layers: self[2] as u32,
+        }
+    }
+}
+
 impl IntoExtent3D for wgpu::Extent3d{
     #[inline]
     fn into_extent_3d(self) -> wgpu::Extent3d {

@@ -204,7 +204,7 @@ impl ImguiContext{
     }
 
     pub fn ui<F>(&mut self, winit_context: &mut WinitContext, encoder: &mut wgpu::CommandEncoder, dst: &wgpu::TextureView, f: F)
-        where F: Fn(ImguiRenderContext, &mut WinitContext)
+        where F: Fn(ImguiRenderContext, &mut WinitContext, &mut wgpu::CommandEncoder)
     {
         self.platform
             .prepare_frame(self.context.io_mut(), &winit_context.window)
@@ -220,7 +220,7 @@ impl ImguiContext{
             ui: &ui,
         };
 
-        f(imgui_render_context, winit_context);
+        f(imgui_render_context, winit_context, encoder);
 
         let mut rpass = RenderPassBuilder::new()
             .push_color_attachment(dst.color_attachment_load())
