@@ -19,8 +19,8 @@ pollster = "0.2"
 bytemuck = {version = "1.4", features = ["derive"]}
 anyhow = "1.0"
 more-asserts = "*"
-nalgebra-glm = "*"
-nalgebra = "*"
+#nalgebra-glm = "*"
+#nalgebra = "*"
 naga = "*"
 shaderc = "*"
 wgpu_utils_macros = {path = "macros"}

@@ -1,5 +1,4 @@
 use crate::*;
-use bytemuck;
 #[allow(unused)]
 use wgpu::util::DeviceExt;
 use anyhow::*;
@@ -165,62 +164,4 @@ impl<V: VertLayout, I: VertLayout> Drawable for IMesh<V, I>{
         NIMesh::<(Buffer<V>, ), (Buffer<I>, )>::create_vert_buffer_layouts()
     }
 }
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct ModelTransforms{
-    pub model: [[f32; 4]; 4],
-    pub view: [[f32; 4]; 4],
-    pub proj: [[f32; 4]; 4],
-}
-
-pub struct Model<V: VertLayout>{
-    mesh: Mesh<V>,
-    uniform_buffer: UniformBindGroup<ModelTransforms>,
-}
-
-impl<V: VertLayout> Model<V>{
-    pub fn new(device: &wgpu::Device, verts: &[V], idxs: &[u32]) -> Result<Self>{
-
-        let mesh = Mesh::<V>::new(device, verts, idxs)?;
-
-        let model = glm::Mat4::identity();
-        let view = glm::Mat4::identity();
-        let proj = glm::Mat4::identity();
-        let model_transforms = ModelTransforms{
-            model: model.into(),
-            view: view.into(),
-            proj: proj.into()
-        };
-        let uniform_buffer = UniformBindGroup::new(device, model_transforms);
-
-        Ok(Self{
-            mesh,
-            uniform_buffer,
-        })
-    }
-}
-
-impl<V: VertLayout> Drawable for Model<V>{
-    fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
-        render_pass.set_bind_group(0, &self.uniform_buffer, &[]);
-
-        self.mesh.draw(render_pass);
-    }
-
-    fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
-        Self::create_vert_buffer_layouts()
-    }
-
-    fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>> {
-        vec!(V::buffer_layout())
-    }
-}
-
-impl<V: VertLayout> UpdatedDrawable<ModelTransforms> for Model<V>{
-    fn update(&mut self, queue: &mut wgpu::Queue, data: &ModelTransforms) {
-        *self.uniform_buffer.borrow_ref(queue) = *data;
-    }
-}
-
 

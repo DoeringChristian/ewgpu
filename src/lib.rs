@@ -113,7 +113,7 @@ extern crate more_asserts;
 
 pub extern crate wgpu_utils_macros;
 
-extern crate nalgebra_glm as glm;
+//extern crate nalgebra_glm as glm;
 
 pub mod binding;
 pub mod buffer;
