@@ -1,19 +1,12 @@
-use std::path::Path;
-use std::fs;
-use std::fs::File;
-use std::io::Read;
 use std::str;
 use crate::*;
 
-use std::borrow::Cow;
-use anyhow::*;
 use core::ops::Range;
 use core::num::NonZeroU32;
-use naga;
 
 #[allow(unused)]
 const DEFAULT_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
-const DEFAULT_ENTRY_POINT: &'static str = "main";
+pub const DEFAULT_ENTRY_POINT: &'static str = "main";
 
 pub trait RenderData{
     fn pipeline_layout() -> PipelineLayout;
@@ -325,7 +318,7 @@ pub struct ComputePipelineBuilder<'cpb>{
 
 impl<'cpb> ComputePipelineBuilder<'cpb>{
 
-    pub fn new(module: &'cpb wgpu::ShaderModule) -> Self{
+    pub fn new(module: &'cpb ComputeShader) -> Self{
         Self{
             label: None,
             layout: None,
@@ -421,70 +414,6 @@ impl<'rp> RenderPassBuilder<'rp>{
     }
 }
 
-pub fn shader_load(device: &wgpu::Device, path: &str, stage: naga::ShaderStage, label: Option<&str>) -> Result<wgpu::ShaderModule>{
-    let mut f = File::open(path)?;
-    let metadata = fs::metadata(path)?;
-    let mut buffer = vec![0; metadata.len() as usize];
-    f.read(&mut buffer)?;
-    let src = str::from_utf8(&buffer)?;
-
-
-    let extension = Path::new(path).extension().ok_or(anyhow!("No extension"))?;
-
-
-    let source = match extension.to_str().ok_or(anyhow!("string conversion"))?{
-        "glsl" => wgpu::ShaderSource::Glsl{
-            shader: Cow::from(src),
-            stage,
-            defines: naga::FastHashMap::default()
-        },
-        "wgsl" => wgpu::ShaderSource::Wgsl(Cow::from(src)),
-        _ => return Err(anyhow!("Unknown Extension")),
-    };
-
-    Ok(device.create_shader_module(&wgpu::ShaderModuleDescriptor{
-        label,
-        source,
-    }))
-}
-
-pub fn shader_with_shaderc(device: &wgpu::Device, src: &str, kind: shaderc::ShaderKind, entry_point: &str, label: Option<&str>) -> Result<wgpu::ShaderModule>{
-
-    let mut compiler = shaderc::Compiler::new().ok_or(anyhow!("error creating compiler"))?;
-    let mut options = shaderc::CompileOptions::new().ok_or(anyhow!("error creating shaderc options"))?;
-
-    options.set_warnings_as_errors();
-    options.set_target_env(shaderc::TargetEnv::Vulkan, 0);
-    options.set_optimization_level(shaderc::OptimizationLevel::Performance);
-    options.set_generate_debug_info();
-
-    options.add_macro_definition("VERTEX_SHADER", Some(if kind == shaderc::ShaderKind::Vertex {"1"} else {"0"}));
-    options.add_macro_definition("FRAGMENT_SHADER", Some(if kind == shaderc::ShaderKind::Fragment {"1"} else {"0"}));
-    options.add_macro_definition("COMPUTE_SHADER", Some(if kind == shaderc::ShaderKind::Compute {"1"} else {"0"}));
-
-    /*
-       options.set_include_callback(|name, include_type, source_file, _depth|{
-       let path = if include_type == shaderc::IncludeType::Relative{
-       Path::new(Path::new(source_file).parent().unwrap()).join(name)
-       }
-       });
-       */
-
-    //println!("{:?}: \n{}", label, compiler.preprocess(src, "preprocess", entry_point, Some(&options)).unwrap().as_text());
-
-    let spirv = match label{
-        Some(label) => compiler.compile_into_spirv(src, kind, label, entry_point, Some(&options))?,
-        _ => compiler.compile_into_spirv(src, kind, "no_label", entry_point, Some(&options))?,
-    };
-
-    let module = device.create_shader_module(&wgpu::ShaderModuleDescriptor{
-        label,
-        source: wgpu::ShaderSource::SpirV(Cow::from(spirv.as_binary()))
-    });
-
-    Ok(module)
-}
-
 ///
 /// A Builder for a RenderPipeline.
 ///
@@ -503,7 +432,7 @@ pub struct RenderPipelineBuilder<'rpb>{
 
 impl<'rpb> RenderPipelineBuilder<'rpb>{
 
-    pub fn new(vertex_shader: &'rpb wgpu::ShaderModule, fragment_shader: &'rpb wgpu::ShaderModule) -> Self{
+    pub fn new(vertex_shader: &'rpb VertexShader, fragment_shader: &'rpb FragmentShader) -> Self{
         let label = None;
         let layout = None;
         let primitive = wgpu::PrimitiveState{
@@ -637,6 +566,16 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
     pub fn set_label(mut self, label: wgpu::Label<'rpb>) -> Self{
         self.label = label;
+        self
+    }
+
+    pub fn vert_entry_point(mut self, entry_point: &'rpb str) -> Self{
+        self.vertex.entry_point = entry_point;
+        self
+    }
+
+    pub fn frag_entry_point(mut self, entry_point: &'rpb str) -> Self{
+        self.fragment.entry_point = entry_point;
         self
     }
 

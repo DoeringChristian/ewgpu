@@ -28,7 +28,7 @@
 //!         let mesh = Mesh::<Vert2>::new(&gpu.device, &Vert2::QUAD_VERTS,
 //!         &Vert2::QUAD_IDXS).unwrap();
 //!
-//!         let vshader = shader_with_shaderc(&gpu.device, "
+//!         let vshader = VertexShader::from_src(&gpu.device, "
 //!         #version 460
 //!         #if VERTEX_SHADER
 //!         
@@ -46,9 +46,9 @@
 //!         }
 //!         
 //!         #endif
-//!         ", shaderc::ShaderKind::Vertex, "main", None).unwrap();
+//!         ", None).unwrap();
 //!
-//!         let fshader = shader_with_shaderc(&gpu.device, "
+//!         let fshader = FragmentShader::from_src(&gpu.device, "
 //!         #version 460
 //!         #if FRAGMENT_SHADER
 //!         
@@ -66,7 +66,7 @@
 //!         }
 //!         
 //!         #endif
-//!         ", shaderc::ShaderKind::Fragment, "main", None).unwrap();
+//!         ", None).unwrap();
 //!
 //!         let layout = PipelineLayoutBuilder::new()
 //!             .push_const_layout(Consts::push_const_layout(wgpu::ShaderStages::all()))
@@ -125,6 +125,7 @@ pub mod texture;
 pub mod uniform;
 pub mod vert;
 pub mod push_constants;
+pub mod shader;
 
 mod utils;
 
@@ -139,4 +140,5 @@ pub use self::texture::*;
 pub use self::uniform::*;
 pub use self::vert::*;
 pub use self::push_constants::*;
+pub use self::shader::*;
 
