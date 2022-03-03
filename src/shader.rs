@@ -12,6 +12,7 @@ use std::borrow::Cow;
 /// TODO: Automatic reload if files update.
 /// Inspiration from Wumpf's [blub](https://github.com/Wumpf/blub/blob/master/src/wgpu_utils/shader.rs).
 ///
+#[derive(Debug)]
 pub struct ShaderModule{
     pub module: wgpu::ShaderModule,
     pub src_files: Vec<PathBuf>,
@@ -118,6 +119,7 @@ impl Deref for ShaderModule{
     }
 }
 
+#[derive(Debug)]
 pub struct FragmentShader{
     module: ShaderModule,
 }
@@ -144,6 +146,7 @@ impl Deref for FragmentShader{
     }
 }
 
+#[derive(Debug)]
 pub struct VertexShader{
     module: ShaderModule,
 }
@@ -169,6 +172,7 @@ impl Deref for VertexShader{
     }
 }
 
+#[derive(Debug)]
 pub struct ComputeShader{
     module: ShaderModule,
 }
