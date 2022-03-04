@@ -19,10 +19,8 @@ use super::*;
 pub trait ImguiState{
     fn new(gpu: &mut WinitContext, imgui: &mut ImguiContext) -> Self;
     fn render(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
-    fn input(&mut self, event: &WindowEvent) -> bool{false}
-    fn cursor_moved(&mut self, context: &mut ImguiContext, device_id: &winit::event::DeviceId, position: &winit::dpi::PhysicalPosition<f64>){}
-    fn device_event(&mut self, context: &mut ImguiContext, device_id: &winit::event::DeviceId, device_event: &DeviceEvent){}
-    fn resize(&mut self, context: &mut ImguiContext, new_size: winit::dpi::PhysicalSize<u32>){}
+    fn input(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, event: &WindowEvent) -> bool{false}
+    fn resize(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, new_size: winit::dpi::PhysicalSize<u32>){}
 }
 
 #[allow(unused)]
@@ -340,9 +338,10 @@ impl<S: 'static> ImguiFramework<S>
             state,
         }
     }
-    pub fn run<R: 'static, E: 'static>(mut self, render_cb: R, event_cb: E)
+    pub fn run<R: 'static, E: 'static, RZ: 'static>(mut self, render_cb: R, event_cb: E, resize: RZ)
         where R: Fn(&mut S, &mut WinitContext, &mut ImguiContext, &wgpu::TextureView, &mut wgpu::CommandEncoder, &mut ControlFlow) -> Result<(), wgpu::SurfaceError>,
               E: Fn(&mut S, &mut WinitContext, &mut ImguiContext, &WindowEvent) -> bool,
+              RZ: Fn(&mut S, &mut WinitContext, &mut ImguiContext, winit::dpi::PhysicalSize<u32>),
     {
         self.event_loop.run(move |event, _, control_flow|{
             match event{
@@ -354,9 +353,11 @@ impl<S: 'static> ImguiFramework<S>
                         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                         WindowEvent::Resized(physical_size) => {
                             self.winit.resize(*physical_size);
+                            resize(&mut self.state, &mut self.winit, &mut self.imgui, *physical_size);
                         },
                         WindowEvent::ScaleFactorChanged{new_inner_size, ..} => {
                             self.winit.resize(**new_inner_size);
+                            resize(&mut self.state, &mut self.winit, &mut self.imgui, **new_inner_size);
                         },
                         _ => {},
                     }
