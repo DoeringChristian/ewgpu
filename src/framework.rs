@@ -248,7 +248,7 @@ impl<'irc, 'ui> Deref for ImguiRenderContext<'irc, 'ui>{
     }
 }
 
-pub struct CFramework<S>{
+pub struct Framework<S>{
     pub instance: wgpu::Instance,
     pub gpu: GPUContext,
     pub state: S,
@@ -257,7 +257,7 @@ pub struct CFramework<S>{
     pub o_buf: Buffer<u8>,
 }
 
-impl<S> CFramework<S>{
+impl<S> Framework<S>{
     pub fn new<F>(size: [u32; 2], f: F) -> Self
         where F: Fn(&mut GPUContext) -> S
     {
@@ -306,70 +306,17 @@ impl<S> CFramework<S>{
     }
 }
 
-pub struct Framework<S: State>{
-    pub instance: wgpu::Instance,
-    pub gpu: GPUContext,
-    pub state: S,
-
-    pub o_tex: Texture,
-    pub o_buf: Buffer<u8>,
-}
-
-impl<S: 'static + State> Framework<S>{
-    pub fn new(size: [u32; 2]) -> Self{
-
-        let instance = wgpu::Instance::new(wgpu::Backends::all());
-
-        let mut gpu = GPUContext::new(&instance, None);
-
-        let state = S::new(&mut gpu);
-
-        let o_tex = TextureBuilder::new()
-            .clear(size)
-            .format(wgpu::TextureFormat::Rgba8Unorm)
-            .build(&gpu.device, &gpu.queue);
-        let o_buf = BufferBuilder::new()
-            .copy_dst()
-            .read()
-            .build_empty(&gpu.device, std::mem::size_of::<u32>() * size[0] as usize * size[1] as usize);
-
-        Self{
-            instance,
-            gpu,
-            state,
-            o_tex,
-            o_buf,
-        }
-    }
-
-    pub fn run(mut self) -> image::DynamicImage{
-        let mut encoder = self.gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: None});
-
-        {
-            self.state.render(&mut self.gpu, &self.o_tex.view, &mut encoder).unwrap();
-
-            self.o_tex.slice(.., .., ..).copy_to_buffer(&mut encoder, &mut self.o_buf, 0);
-
-            self.gpu.queue.submit(Some(encoder.finish()));
-        }
-
-        {
-            let buf_view = self.o_buf.slice(..).map_blocking(&self.gpu.device);
-            
-            let image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(self.o_tex.size.width, self.o_tex.size.height, Vec::from(buf_view.as_ref())).unwrap());
-            return image
-        }
-    }
-}
-
-pub struct CImguiFramework<S>{
+pub struct ImguiFramework<S>
+{
     pub imgui: ImguiContext,
     pub winit: WinitContext,
     pub instance: wgpu::Instance,
     pub state: S,
     pub event_loop: EventLoop<()>,
+
 }
-impl<S: 'static> CImguiFramework<S>{
+impl<S: 'static> ImguiFramework<S>
+{
     pub fn new<F>(window_builder: WindowBuilder, new: F) -> Self
         where F: Fn(&mut WinitContext, &mut ImguiContext) -> S
     {
@@ -402,7 +349,7 @@ impl<S: 'static> CImguiFramework<S>{
                 Event::WindowEvent{
                     ref event,
                     window_id,
-                } if window_id == self.winit.window.id() => if !event_cb(&mut self.state, &mut self.winit, &mut self.imgui, event){
+                } if window_id == self.winit.window.id() => if !event_cb(&mut self.state, &mut self.winit, &mut self.imgui, &event){
                     match event{
                         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                         WindowEvent::Resized(physical_size) => {
@@ -450,98 +397,3 @@ impl<S: 'static> CImguiFramework<S>{
     }
 
 }
-
-pub struct ImguiFramework<S: ImguiState>{
-    pub imgui: ImguiContext,
-    pub winit: WinitContext,
-    pub instance: wgpu::Instance,
-    pub state: S,
-    pub event_loop: EventLoop<()>,
-}
-
-impl<S: 'static + ImguiState> ImguiFramework<S>{
-    pub fn new(window_builder: WindowBuilder) -> Self{
-        env_logger::init();
-        let event_loop = EventLoop::new();
-
-        let window = window_builder.build(&event_loop).unwrap();
-
-        let instance = wgpu::Instance::new(wgpu::Backends::all());
-
-        let mut winit = WinitContext::new(&instance, window);
-        let mut imgui = ImguiContext::new(&winit);
-
-        let state = S::new(&mut winit, &mut imgui);
-
-        Self{
-            instance,
-            imgui,
-            winit,
-            event_loop,
-            state,
-        }
-    }
-
-    pub fn run(mut self){
-        self.event_loop.run(move |event, _, control_flow|{
-            match event{
-                Event::WindowEvent{
-                    ref event,
-                    window_id,
-                } if window_id == self.winit.window.id() => if !self.state.input(event){
-                    match event{
-                        WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                        WindowEvent::Resized(physical_size) => {
-                            self.winit.resize(*physical_size);
-                            self.state.resize(&mut self.imgui, *physical_size);
-                        },
-
-                        WindowEvent::ScaleFactorChanged{new_inner_size, ..} => {
-                            self.winit.resize(**new_inner_size);
-                            self.state.resize(&mut self.imgui, **new_inner_size);
-                        },
-                        WindowEvent::CursorMoved{device_id, position, ..} => {
-                            self.state.cursor_moved(&mut self.imgui, device_id, position);
-                        }
-                        _ => {},
-                    }
-                },
-
-                Event::RedrawRequested(window_id) if window_id == self.winit.window.id() => {
-                    let output = match self.winit.surface.get_current_texture(){
-                        Ok(o) => {o},
-                        Err(e) => {eprintln!("{:?}", e); return},
-                    };
-                    let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-                    let mut encoder = self.winit.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: Some("imgui_encoder")});
-
-                    // Call render function 
-                    match self.state.render(&mut self.winit, &mut self.imgui, &view, &mut encoder, control_flow){
-                        Ok(_) => {}
-
-                        Err(wgpu::SurfaceError::Lost) => self.winit.resize(self.winit.size),
-                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-
-                        Err(e) => eprintln!("{:?}", e),
-                    }
-
-                    self.winit.queue.submit(Some(encoder.finish()));
-                    output.present();
-                    self.winit.update();
-                },
-                Event::DeviceEvent{device_id, ref event} => {
-                    self.state.device_event(&mut self.imgui, &device_id, &event);
-                }
-
-                Event::MainEventsCleared => {
-                    self.winit.window.request_redraw();
-                },
-                _ => {}
-            }
-            self.imgui.platform.handle_event(self.imgui.context.io_mut(), &self.winit.window, &event);
-        });
-    }
-}
-
-

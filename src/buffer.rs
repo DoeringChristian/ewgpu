@@ -307,7 +307,7 @@ impl<C: bytemuck::Pod> Buffer<C>{
     /// example: 
     /// ```rust
     ///# use wgpu_utils::*;
-    ///# CFramework::new([1920, 1080], |gpu|{
+    ///# Framework::new([1920, 1080], |gpu|{
     ///     let buffer = BufferBuilder::<u64>::new()
     ///         .read().write()
     ///         .append_slice(&[0, 1, 2, 3])
