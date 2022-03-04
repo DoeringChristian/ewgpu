@@ -248,6 +248,64 @@ impl<'irc, 'ui> Deref for ImguiRenderContext<'irc, 'ui>{
     }
 }
 
+pub struct CFramework<S>{
+    pub instance: wgpu::Instance,
+    pub gpu: GPUContext,
+    pub state: S,
+
+    pub o_tex: Texture,
+    pub o_buf: Buffer<u8>,
+}
+
+impl<S> CFramework<S>{
+    pub fn new<F>(size: [u32; 2], f: F) -> Self
+        where F: Fn(&mut GPUContext) -> S
+    {
+        let instance = wgpu::Instance::new(wgpu::Backends::all());
+
+        let mut gpu = GPUContext::new(&instance, None);
+
+        let state = f(&mut gpu);
+
+        let o_tex = TextureBuilder::new()
+            .clear(size)
+            .format(wgpu::TextureFormat::Rgba8Unorm)
+            .build(&gpu.device, &gpu.queue);
+        let o_buf = BufferBuilder::new()
+            .copy_dst()
+            .read()
+            .build_empty(&gpu.device, std::mem::size_of::<u32>() * size[0] as usize * size[1] as usize);
+
+        Self{
+            instance,
+            gpu,
+            state,
+            o_tex,
+            o_buf,
+        }
+    }
+    pub fn run<F>(mut self, f: F) -> image::DynamicImage
+        where F: Fn(&mut S, &mut GPUContext, &wgpu::TextureView, &mut wgpu::CommandEncoder){
+
+        let mut encoder = self.gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: None});
+
+        {
+            f(&mut self.state, &mut self.gpu, &self.o_tex.view, &mut encoder);
+
+            self.o_tex.slice(.., .., ..).copy_to_buffer(&mut encoder, &mut self.o_buf, 0);
+
+            self.gpu.queue.submit(Some(encoder.finish()));
+        }
+
+        {
+            let buf_view = self.o_buf.slice(..).map_blocking(&self.gpu.device);
+            
+            let image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(self.o_tex.size.width, self.o_tex.size.height, Vec::from(buf_view.as_ref())).unwrap());
+            return image
+        }
+    }
+}
+
 pub struct Framework<S: State>{
     pub instance: wgpu::Instance,
     pub gpu: GPUContext,

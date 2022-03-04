@@ -1,7 +1,8 @@
 use wgpu::util::DeviceExt;
-use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds}};
+use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds, Range}};
 use std::mem::ManuallyDrop;
 use std::ops::Bound;
+use crate::utils::Align;
 
 use super::binding;
 
@@ -125,7 +126,7 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
 }
 
 ///
-/// A builder for a Buffer
+/// A builder for a Buffer.
 ///
 /// Example: 
 /// ```ignore 
@@ -134,6 +135,7 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
 ///     .append_slice([0, 1, 2, 3])
 ///     .selt_label(Some("buffer"))
 ///     .build(device);
+///
 /// ```
 ///
 pub struct BufferBuilder<'bb, C: bytemuck::Pod>{
@@ -298,6 +300,23 @@ impl<C: bytemuck::Pod> Buffer<C>{
     }
 
     // TODO: Export bound start and end to own functions.
+    ///
+    /// Slices have to be aligned with MAP_ALIGNMENT (8 bytes).
+    /// TODO: for some reason the start_bound is multiplied by two.
+    ///
+    /// example: 
+    /// ```rust
+    ///# use wgpu_utils::*;
+    ///# CFramework::new([1920, 1080], |gpu|{
+    ///     let buffer = BufferBuilder::<u64>::new()
+    ///         .read().write()
+    ///         .append_slice(&[0, 1, 2, 3])
+    ///         .set_label(Some("buffer"))
+    ///         .build(&gpu.device);
+    ///    buffer.slice(0..).map_blocking_mut(&gpu.device)[0] = 8;
+    ///    assert_eq!(buffer.slice(..).map_blocking(&gpu.device).as_ref(), [8, 1, 2, 3]);
+    ///# });
+    /// ```
     pub fn slice<S: RangeBounds<wgpu::BufferAddress>>(&self, bounds: S) -> BufferSlice<C>{
         let start_bound = bounds.start_bound();
         let end_bound = bounds.end_bound();
@@ -317,13 +336,20 @@ impl<C: bytemuck::Pod> Buffer<C>{
         let start_bound = start_bound;
         let end_bound = end_bound;
 
-        let size = end_bound - start_bound;
+        let len = end_bound - start_bound;
+
+        // Get a range in bytes for wgpu::Buffer::slice(range)
+        let range = (start_bound * std::mem::size_of::<C>() as u64)..(end_bound * std::mem::size_of::<C>() as u64);
+        // TODO: Evaluate weather it is better to align the values or to let wgpu panic if not
+        // aligned.
+        //let range = range.start.align_floor(wgpu::MAP_ALIGNMENT)..range.end.align_ceil(wgpu::MAP_ALIGNMENT);
+        //println!("{:?}", range);
 
         BufferSlice{
             buffer: self,
-            slice: self.buffer.slice(bounds),
+            slice: self.buffer.slice(range),
             offset: start_bound,
-            len: size,
+            len,
         }
     }
 
