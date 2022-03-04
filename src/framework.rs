@@ -362,6 +362,95 @@ impl<S: 'static + State> Framework<S>{
     }
 }
 
+pub struct CImguiFramework<S>{
+    pub imgui: ImguiContext,
+    pub winit: WinitContext,
+    pub instance: wgpu::Instance,
+    pub state: S,
+    pub event_loop: EventLoop<()>,
+}
+impl<S: 'static> CImguiFramework<S>{
+    pub fn new<F>(window_builder: WindowBuilder, new: F) -> Self
+        where F: Fn(&mut WinitContext, &mut ImguiContext) -> S
+    {
+        env_logger::init();
+        let event_loop = EventLoop::new();
+
+        let window = window_builder.build(&event_loop).unwrap();
+
+        let instance = wgpu::Instance::new(wgpu::Backends::all());
+
+        let mut winit = WinitContext::new(&instance, window);
+        let mut imgui = ImguiContext::new(&winit);
+
+        let state = new(&mut winit, &mut imgui);
+
+        Self{
+            instance,
+            imgui,
+            winit,
+            event_loop,
+            state,
+        }
+    }
+    pub fn run<R: 'static, E: 'static>(mut self, render_cb: R, event_cb: E)
+        where R: Fn(&mut S, &mut WinitContext, &mut ImguiContext, &wgpu::TextureView, &mut wgpu::CommandEncoder, &mut ControlFlow) -> Result<(), wgpu::SurfaceError>,
+              E: Fn(&mut S, &mut WinitContext, &mut ImguiContext, &WindowEvent) -> bool,
+    {
+        self.event_loop.run(move |event, _, control_flow|{
+            match event{
+                Event::WindowEvent{
+                    ref event,
+                    window_id,
+                } if window_id == self.winit.window.id() => if !event_cb(&mut self.state, &mut self.winit, &mut self.imgui, event){
+                    match event{
+                        WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                        WindowEvent::Resized(physical_size) => {
+                            self.winit.resize(*physical_size);
+                        },
+                        WindowEvent::ScaleFactorChanged{new_inner_size, ..} => {
+                            self.winit.resize(**new_inner_size);
+                        },
+                        _ => {},
+                    }
+                },
+
+                Event::RedrawRequested(window_id) if window_id == self.winit.window.id() => {
+                    let output = match self.winit.surface.get_current_texture(){
+                        Ok(o) => {o},
+                        Err(e) => {eprintln!("{:?}", e); return},
+                    };
+                    let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+                    let mut encoder = self.winit.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: Some("imgui_encoder")});
+
+                    // Call render function 
+
+                    match render_cb(&mut self.state, &mut self.winit, &mut self.imgui, &view, &mut encoder, control_flow){
+                        Ok(_) => {}
+
+                        Err(wgpu::SurfaceError::Lost) => self.winit.resize(self.winit.size),
+                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+
+                        Err(e) => eprintln!("{:?}", e),
+                    }
+
+                    self.winit.queue.submit(Some(encoder.finish()));
+                    output.present();
+                    self.winit.update();
+                },
+
+                Event::MainEventsCleared => {
+                    self.winit.window.request_redraw();
+                },
+                _ => {}
+            }
+            self.imgui.platform.handle_event(self.imgui.context.io_mut(), &self.winit.window, &event);
+        });
+    }
+
+}
+
 pub struct ImguiFramework<S: ImguiState>{
     pub imgui: ImguiContext,
     pub winit: WinitContext,
