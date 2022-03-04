@@ -19,7 +19,7 @@ use super::*;
 pub trait ImguiState{
     fn new(gpu: &mut WinitContext, imgui: &mut ImguiContext) -> Self;
     fn render(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, control_flow: &mut ControlFlow) -> Result<(), wgpu::SurfaceError>{Ok(())}
-    fn input(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, event: &WindowEvent) -> bool{false}
+    fn event(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, event: &WindowEvent) -> bool{false}
     fn resize(&mut self, gpu: &mut WinitContext, imgui: &mut ImguiContext, new_size: winit::dpi::PhysicalSize<u32>){}
 }
 
@@ -304,6 +304,19 @@ impl<S> Framework<S>{
     }
 }
 
+impl<S: State> Framework<S>{
+    pub fn new_state(size: [u32; 2]) -> Self{
+        Self::new(size, |gpu|{
+            S::new(gpu)
+        })
+    }
+    pub fn run_state(self) -> image::DynamicImage{
+        self.run(|state, gpu, dst, encoder|{
+            let _ret = S::render(state, gpu, dst, encoder);
+        })
+    }
+}
+
 pub struct ImguiFramework<S>
 {
     pub imgui: ImguiContext,
@@ -396,5 +409,22 @@ impl<S: 'static> ImguiFramework<S>
             self.imgui.platform.handle_event(self.imgui.context.io_mut(), &self.winit.window, &event);
         });
     }
+}
 
+impl<S: 'static + ImguiState> ImguiFramework<S>{
+    pub fn new_state(window_builder: WindowBuilder) -> Self{
+        Self::new(window_builder, |gpu, imgui|{
+            S::new(gpu, imgui)
+        })
+    }
+
+    pub fn run_state(self){
+        self.run(|state, gpu, imgui, dst, encoder, control_flow|{
+            S::render(state, gpu, imgui, dst, encoder, control_flow)
+        }, |state, gpu, imgui, event|{
+            S::event(state, gpu, imgui, event)
+        }, |state, gpu, imgui, size|{
+            S::resize(state, gpu, imgui, size)
+        });
+    }
 }
