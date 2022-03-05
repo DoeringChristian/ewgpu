@@ -345,9 +345,13 @@ impl<C: bytemuck::Pod> Buffer<C>{
         //let range = range.start.align_floor(wgpu::MAP_ALIGNMENT)..range.end.align_ceil(wgpu::MAP_ALIGNMENT);
         //println!("{:?}", range);
 
+        let slice = self.buffer.slice(range);
+
+        //println!("{:?}", slice);
+
         BufferSlice{
             buffer: self,
-            slice: self.buffer.slice(range),
+            slice,
             offset: start_bound,
             len,
         }
