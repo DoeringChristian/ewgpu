@@ -340,10 +340,10 @@ impl<S: 'static> ImguiFramework<S>
             state,
         }
     }
-    pub fn run<R: 'static, E: 'static, RZ: 'static>(mut self, render_cb: R, event_cb: E, resize: RZ)
-        where R: Fn(&mut S, &mut WinitContext, &mut ImguiContext, &wgpu::TextureView, &mut wgpu::CommandEncoder, &mut ControlFlow) -> Result<(), wgpu::SurfaceError>,
-              E: Fn(&mut S, &mut WinitContext, &mut ImguiContext, &WindowEvent) -> bool,
-              RZ: Fn(&mut S, &mut WinitContext, &mut ImguiContext, winit::dpi::PhysicalSize<u32>),
+    pub fn run<R: 'static, E: 'static, RZ: 'static>(mut self, mut render_cb: R, mut event_cb: E, mut resize: RZ)
+        where R: FnMut(&mut S, &mut WinitContext, &mut ImguiContext, &wgpu::TextureView, &mut wgpu::CommandEncoder, &mut ControlFlow) -> Result<(), wgpu::SurfaceError>,
+              E: FnMut(&mut S, &mut WinitContext, &mut ImguiContext, &WindowEvent) -> bool,
+              RZ: FnMut(&mut S, &mut WinitContext, &mut ImguiContext, winit::dpi::PhysicalSize<u32>),
     {
         self.event_loop.run(move |event, _, control_flow|{
             match event{
