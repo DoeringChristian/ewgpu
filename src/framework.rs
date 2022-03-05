@@ -250,8 +250,8 @@ impl ImguiContext{
         }
     }
 
-    pub fn ui<F>(&mut self, winit_context: &mut WinitContext, encoder: &mut wgpu::CommandEncoder, dst: &wgpu::TextureView, f: F)
-        where F: Fn(ImguiRenderContext, &mut WinitContext, &mut wgpu::CommandEncoder)
+    pub fn ui<F>(&mut self, winit_context: &mut WinitContext, encoder: &mut wgpu::CommandEncoder, dst: &wgpu::TextureView, mut f: F)
+        where F: FnMut(ImguiRenderContext, &mut WinitContext, &mut wgpu::CommandEncoder)
     {
         self.platform
             .prepare_frame(self.context.io_mut(), &winit_context.window)
