@@ -26,7 +26,7 @@ pub trait ImguiState{
 #[allow(unused)]
 pub trait State{
     fn new(gpu: &mut GPUContext) -> Self;
-    fn render(&mut self, gpu: &mut GPUContext, dst: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>{Ok(())}
+    fn render(&mut self, gpu: &mut GPUContext);
 }
 
 pub struct GPUContext{
@@ -84,6 +84,28 @@ impl GPUContext{
         let time = Instant::now();
         self.dt = time - self.time;
         self.time = time;
+    }
+    pub fn encode<F>(&mut self, mut f: F)
+        where F: FnMut(&mut GPUContext, &mut wgpu::CommandEncoder){
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: None});
+
+        f(self, &mut encoder);
+
+        self.queue.submit(Some(encoder.finish()));
+    }
+    pub fn encode_img<F>(&mut self, size: [u32; 2], mut f: F) -> image::DynamicImage
+        where F: FnMut(&mut GPUContext, &wgpu::TextureView, &mut wgpu::CommandEncoder)
+    {
+        let o_tex = TextureBuilder::new()
+            .clear([1920, 1080])
+            .format(wgpu::TextureFormat::Rgba8Unorm)
+            .build(&self.device, &self.queue);
+
+        self.encode(|gpu, encoder|{
+            f(gpu, &o_tex.view, encoder);
+        });
+        o_tex.slice(.., .., ..).to_image(&self.device)
     }
 }
 
@@ -250,13 +272,10 @@ pub struct Framework<S>{
     pub instance: wgpu::Instance,
     pub gpu: GPUContext,
     pub state: S,
-
-    pub o_tex: Texture,
-    pub o_buf: Buffer<u8>,
 }
 
 impl<S> Framework<S>{
-    pub fn new<F>(size: [u32; 2], f: F) -> Self
+    pub fn new<F>(f: F) -> Self
         where F: Fn(&mut GPUContext) -> S
     {
         let instance = wgpu::Instance::new(wgpu::Backends::all());
@@ -265,55 +284,25 @@ impl<S> Framework<S>{
 
         let state = f(&mut gpu);
 
-        let o_tex = TextureBuilder::new()
-            .clear(size)
-            .format(wgpu::TextureFormat::Rgba8Unorm)
-            .build(&gpu.device, &gpu.queue);
-        let o_buf = BufferBuilder::new()
-            .copy_dst()
-            .read()
-            .build_empty(&gpu.device, std::mem::size_of::<u32>() * size[0] as usize * size[1] as usize);
-
         Self{
             instance,
             gpu,
             state,
-            o_tex,
-            o_buf,
         }
     }
-    pub fn run<F>(mut self, f: F) -> image::DynamicImage
-        where F: Fn(&mut S, &mut GPUContext, &wgpu::TextureView, &mut wgpu::CommandEncoder){
-
-        let mut encoder = self.gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: None});
-
-        {
-            f(&mut self.state, &mut self.gpu, &self.o_tex.view, &mut encoder);
-
-            self.o_tex.slice(.., .., ..).copy_to_buffer(&mut encoder, &mut self.o_buf, 0);
-
-            self.gpu.queue.submit(Some(encoder.finish()));
-        }
-
-        {
-            let buf_view = self.o_buf.slice(..).map_blocking(&self.gpu.device);
-            
-            let image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(self.o_tex.size.width, self.o_tex.size.height, Vec::from(buf_view.as_ref())).unwrap());
-            return image
-        }
+    pub fn run<F>(mut self, mut f: F)
+        where F: FnMut(&mut S, &mut GPUContext)
+    {
+        f(&mut self.state, &mut self.gpu);
     }
 }
 
 impl<S: State> Framework<S>{
     pub fn new_state(size: [u32; 2]) -> Self{
-        Self::new(size, |gpu|{
-            S::new(gpu)
-        })
+        Self::new(S::new)
     }
-    pub fn run_state(self) -> image::DynamicImage{
-        self.run(|state, gpu, dst, encoder|{
-            let _ret = S::render(state, gpu, dst, encoder);
-        })
+    pub fn run_state(self){
+        self.run(S::render)
     }
 }
 
@@ -419,12 +408,6 @@ impl<S: 'static + ImguiState> ImguiFramework<S>{
     }
 
     pub fn run_state(self){
-        self.run(|state, gpu, imgui, dst, encoder, control_flow|{
-            S::render(state, gpu, imgui, dst, encoder, control_flow)
-        }, |state, gpu, imgui, event|{
-            S::event(state, gpu, imgui, event)
-        }, |state, gpu, imgui, size|{
-            S::resize(state, gpu, imgui, size)
-        });
+        self.run(S::render, S::event, S::resize)
     }
 }

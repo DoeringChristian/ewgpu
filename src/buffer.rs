@@ -109,11 +109,44 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
         pollster::block_on(self.map_async_poll_mut(device))
     }
 
-    pub fn copy_to_buffer(&self, dst: &mut Buffer<C>, offset: &wgpu::BufferAddress, encoder: &mut wgpu::CommandEncoder){
+    ///
+    /// Copy the buffer slice to another buffer.
+    /// Only the bytes that fit into the destination buffer are copied.
+    ///
+    /// ```rust
+    /// use wgpu_utils::*;
+    /// Framework::new(|gpu|{
+    ///     (
+    ///         BufferBuilder::<u64>::new()
+    ///             .read().write().copy_src()
+    ///             .append_slice(&[0, 1, 2, 3])
+    ///             .set_label(Some("buffer1"))
+    ///             .build(&gpu.device),
+    ///         BufferBuilder::<u64>::new()
+    ///             .read().write().copy_dst()
+    ///             .append_slice(&[0, 0, 0, 0])
+    ///             .set_label(Some("buffer2"))
+    ///             .build(&gpu.device)
+    ///     )
+    ///
+    /// }).run(|buffers, gpu|{
+    ///     gpu.encode(|gpu, encoder|{
+    ///         buffers.0.slice(..).copy_to_buffer(&mut buffers.1, 1, encoder);
+    ///     });
+    ///
+    ///     gpu.encode(|gpu, encoder|{
+    ///         assert_eq!(buffers.1.slice(..).map_blocking(&gpu.device).as_ref(), [0, 0, 1, 2]);
+    ///     })
+    ///});
+    /// ```
+    ///
+    pub fn copy_to_buffer(&self, dst: &mut Buffer<C>, offset: wgpu::BufferAddress, encoder: &mut wgpu::CommandEncoder){
         let src_offset_bytes = self.offset * std::mem::size_of::<C>() as u64;
-        let size_bytes = self.len * std::mem::size_of::<C>() as u64;
 
         let offset_bytes = offset * std::mem::size_of::<C>() as u64;
+
+        let size_bytes = self.len * std::mem::size_of::<C>() as u64;
+        let size_bytes = size_bytes.min(dst.size() as u64 - offset_bytes);
 
         encoder.copy_buffer_to_buffer(
             &self.buffer.buffer,
@@ -294,9 +327,21 @@ impl<C: bytemuck::Pod> Buffer<C>{
     pub fn new_mapped_vert(device: &wgpu::Device, label: wgpu::Label, data: &[C]) -> Self{
         Self::new_mapped(device, wgpu::BufferUsages::VERTEX, label, data)
     }
+
+    ///
+    /// Returns the number of elements in the buffer.
+    ///
     #[inline]
     pub fn len(&self) -> usize{
         self.len
+    }
+
+    ///
+    /// Returns the size of the buffer in bytes.
+    ///
+    #[inline]
+    pub fn size(&self) -> usize{
+        self.len * std::mem::size_of::<C>()
     }
 
     // TODO: Export bound start and end to own functions.
@@ -307,7 +352,7 @@ impl<C: bytemuck::Pod> Buffer<C>{
     /// example: 
     /// ```rust
     ///# use wgpu_utils::*;
-    ///# Framework::new([1920, 1080], |gpu|{
+    ///# Framework::new(|gpu|{
     ///     let buffer = BufferBuilder::<u64>::new()
     ///         .read().write()
     ///         .append_slice(&[0, 1, 2, 3])

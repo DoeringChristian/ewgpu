@@ -84,24 +84,24 @@
 //!         }
 //!     }
 //!
-//!     fn render(&mut self, gpu: &mut GPUContext, dst: &wgpu::TextureView, encoder: &mut
-//!     wgpu::CommandEncoder) -> Result<(), wgpu::SurfaceError>{
+//!     fn render(&mut self, gpu: &mut GPUContext){
 //!         {
-//!             let mut rpass = RenderPassBuilder::new()
-//!                 .push_color_attachment(dst.color_attachment_clear())
-//!                 .begin(encoder, None);
+//!             gpu.encode_img([1920, 1080], |gpu, dst, encoder|{
+//!                 let mut rpass = RenderPassBuilder::new()
+//!                     .push_color_attachment(dst.color_attachment_clear())
+//!                     .begin(encoder, None);
 //!
-//!             let mut rpass_ppl = rpass.set_pipeline(&self.pipeline);
+//!                 let mut rpass_ppl = rpass.set_pipeline(&self.pipeline);
 //!
-//!             let consts = Consts{
-//!                 color: [1.0, 0.0, 0.0, 1.0]
-//!             };
+//!                 let consts = Consts{
+//!                     color: [1.0, 0.0, 0.0, 1.0]
+//!                 };
 //!
-//!             rpass_ppl.set_push_const(0, &consts);
+//!                 rpass_ppl.set_push_const(0, &consts);
 //!
-//!             self.mesh.draw(&mut rpass_ppl);
+//!                 self.mesh.draw(&mut rpass_ppl);
+//!             });
 //!         }
-//!         Ok(())
 //!     }
 //!}
 //!

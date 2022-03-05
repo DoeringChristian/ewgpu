@@ -138,6 +138,21 @@ impl<'ts> TextureSlice<'ts>{
             self.extent
         );
     }
+
+    pub fn to_image(&self, device: &wgpu::Device) -> image::DynamicImage{
+        let o_buf = BufferBuilder::new()
+            .copy_dst()
+            .read()
+            .build_empty(device, std::mem::size_of::<u32>() * self.extent.width as usize * self.extent.height as usize);
+
+        let buf_view = o_buf.slice(..).map_blocking(device);
+
+        let image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(
+                self.extent.width, self.extent.height,
+                Vec::from(buf_view.as_ref())
+        ).unwrap());
+        image
+    }
 }
 
 pub struct TextureBuilder<'tb>{
