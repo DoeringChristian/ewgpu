@@ -1,5 +1,9 @@
 
-// TODO: better way to implement push const range
+///
+/// A trait implemented by all types that can be used as push constants.
+///
+/// By default all types that derive bytemuck::Pod can be push constants.
+///
 pub struct PushConstantLayout{
     pub stages: wgpu::ShaderStages,
     pub size: u32,
@@ -21,14 +25,4 @@ impl<T: bytemuck::Pod> PushConstant for T{
 pub struct PushConstantVec<T: bytemuck::Pod>{
     pub layout: PushConstantLayout,
     pub content: T,
-}
-
-#[cfg(test)]
-mod tests{
-    #[allow(unused)]
-    use super::*;
-
-    #[test]
-    fn push_consts(){
-    }
 }

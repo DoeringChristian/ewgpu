@@ -23,8 +23,8 @@ more-asserts = "*"
 #nalgebra = "*"
 naga = "*"
 shaderc = "*"
-wgpu_utils_macros = {path = "macros"}
 imgui = "*"
 imgui-wgpu = "*"
 imgui-winit-support = {version = "*", default-features = false, features = ["winit-26"]}
 
+wgpu_utils_macros = {path = "macros"}
