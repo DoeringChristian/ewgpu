@@ -154,6 +154,33 @@ impl WinitContext{
     fn update(&mut self) {
         self.gpu_context.update();
     }
+
+    pub fn encode<F>(&mut self, control_flow: &mut ControlFlow, mut f: F)
+        where F: FnMut(&mut Self, &wgpu::TextureView, &mut wgpu::CommandEncoder, &mut ControlFlow) -> Result<(), wgpu::SurfaceError>
+    {
+        let output = match self.surface.get_current_texture(){
+            Ok(o) => {o},
+            Err(e) => {eprintln!("{:?}", e); return},
+        };
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: Some("imgui_encoder")});
+
+        // Call render function 
+
+        match f(self, &view, &mut encoder, control_flow){
+            Ok(_) => {}
+
+            Err(wgpu::SurfaceError::Lost) => self.resize(self.size),
+            Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+
+            Err(e) => eprintln!("{:?}", e),
+        }
+
+        self.queue.submit(Some(encoder.finish()));
+        output.present();
+        self.update();
+    }
 }
 
 impl Deref for WinitContext{
