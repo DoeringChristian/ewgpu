@@ -1,8 +1,7 @@
 use wgpu::util::DeviceExt;
-use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds, Range}};
+use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds}};
 use std::mem::ManuallyDrop;
 use std::ops::Bound;
-use crate::utils::Align;
 
 use super::binding;
 

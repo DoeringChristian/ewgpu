@@ -98,7 +98,7 @@ impl GPUContext{
         where F: FnMut(&mut GPUContext, &wgpu::TextureView, &mut wgpu::CommandEncoder)
     {
         let o_tex = TextureBuilder::new()
-            .clear([1920, 1080])
+            .clear(size)
             .format(wgpu::TextureFormat::Rgba8Unorm)
             .build(&self.device, &self.queue);
 

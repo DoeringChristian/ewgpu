@@ -39,7 +39,7 @@ fn push_const_compute(){
         (out_buf, cpipeline)
 
     }).run(|state, gpu|{
-        gpu.encode(|gpu, encoder|{
+        gpu.encode(|_gpu, encoder|{
             let mut cpass = ComputePass::new(encoder, None);
 
             let mut cpass_ppl = cpass.set_pipeline(&state.1);
