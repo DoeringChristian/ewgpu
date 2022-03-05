@@ -325,7 +325,7 @@ impl<S> Framework<S>{
 }
 
 impl<S: State> Framework<S>{
-    pub fn new_state(size: [u32; 2]) -> Self{
+    pub fn new_state() -> Self{
         Self::new(S::new)
     }
     pub fn run_state(self){
