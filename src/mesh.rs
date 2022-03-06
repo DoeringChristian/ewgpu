@@ -1,3 +1,4 @@
+use std::ops::Range;
 use crate::*;
 #[allow(unused)]
 use wgpu::util::DeviceExt;
@@ -11,6 +12,7 @@ use anyhow::*;
 ///
 pub trait Drawable{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>);
+    fn draw_indexed<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>, range: Range<u32>);
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>>;
     fn create_vert_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
 }
@@ -52,6 +54,9 @@ impl<V: VertLayout> Drawable for Mesh<V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
         self.nmesh.draw(render_pass);
     }
+    fn draw_indexed<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>, range: Range<u32>) {
+        self.nmesh.draw_indexed(render_pass, range)
+    }
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
         Self::create_vert_buffer_layouts()
     }
@@ -79,10 +84,13 @@ impl<V: VertBuffers> NMesh<V>{
 
 impl<V: VertBuffers> Drawable for NMesh<V>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
+        self.draw_indexed(render_pass, 0..1)
+    }
+    fn draw_indexed<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>, range: Range<u32>) {
         self.buffers.push_vertex_buffers_to(render_pass);
         render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
 
-        render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, 0..1);
+        render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, range);
     }
 
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
@@ -114,12 +122,16 @@ impl<VB: VertBuffers, IB: VertBuffers> NIMesh<VB, IB>{
 
 impl<VB: VertBuffers, IB: VertBuffers> Drawable for NIMesh<VB, IB>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
+        self.draw_indexed(render_pass, self.inst_buffers.get_min_range())
+    }
+
+    fn draw_indexed<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>, range: Range<u32>) {
         self.vert_buffers.push_vertex_buffers_to(render_pass);
         self.inst_buffers.push_vertex_buffers_to(render_pass);
 
         render_pass.set_index_buffer(self.idx_buffer.buffer.slice(..), wgpu::IndexFormat::Uint32);
 
-        render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, self.inst_buffers.get_min_range());
+        render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, range);
     }
 
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
@@ -155,6 +167,10 @@ impl<V: VertLayout, I: VertLayout> IMesh<V, I>{
 impl<V: VertLayout, I: VertLayout> Drawable for IMesh<V, I>{
     fn draw<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>) {
         self.nimesh.draw(render_pass);
+    }
+
+    fn draw_indexed<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>, range: Range<u32>) {
+        self.nimesh.draw_indexed(render_pass, range)
     }
 
     fn get_vert_buffer_layouts(&self) -> Vec<wgpu::VertexBufferLayout<'static>> {
