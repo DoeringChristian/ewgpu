@@ -110,6 +110,7 @@ impl<'l> PipelineLayoutBuilder<'l>{
         }
     }
 
+    // TODO: simplify
     pub fn push_bind_group(mut self, bind_group_layout: &'l binding::BindGroupLayoutWithDesc) -> Self{
         self.bind_group_layouts.push(bind_group_layout);
         self

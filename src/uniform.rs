@@ -66,6 +66,7 @@ impl<C: bytemuck::Pod> Drop for UniformVecRef<'_, C>{
 ///
 /// A Buffer with a vector that can be used as a Unform directly.
 /// It keeps a copy of the content in memory for easier updates.
+/// TODO: Remove content.
 ///
 pub struct UniformVec<C: bytemuck::Pod>{
     buffer: Buffer<C>,

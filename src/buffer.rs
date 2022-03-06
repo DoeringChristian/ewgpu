@@ -251,9 +251,12 @@ impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
 ///
 /// A typesafe wrapper for wgpu::Buffer.
 ///
+#[allow(unused)]
 pub struct Buffer<C: bytemuck::Pod>{
     pub buffer: wgpu::Buffer,
     len: usize,
+    usage: wgpu::BufferUsages,
+    label: Option<String>,
     _pd: PhantomData<C>,
 }
 
@@ -266,9 +269,13 @@ impl<C: bytemuck::Pod> Buffer<C>{
             mapped_at_creation: false,
         });
 
+        let label = label.map(|x|{x.to_string()});
+
         Self{
             buffer,
             len,
+            usage,
+            label,
             _pd: PhantomData,
         }
     }
@@ -280,9 +287,13 @@ impl<C: bytemuck::Pod> Buffer<C>{
             usage,
         });
 
+        let label = label.map(|x|{x.to_string()});
+
         Self{
             buffer,
             len: data.len(),
+            usage,
+            label,
             _pd: PhantomData,
         }
     }
@@ -385,13 +396,8 @@ impl<C: bytemuck::Pod> Buffer<C>{
         // Get a range in bytes for wgpu::Buffer::slice(range)
         let range = (start_bound * std::mem::size_of::<C>() as u64)..(end_bound * std::mem::size_of::<C>() as u64);
         // TODO: Evaluate weather it is better to align the values or to let wgpu panic if not
-        // aligned.
-        //let range = range.start.align_floor(wgpu::MAP_ALIGNMENT)..range.end.align_ceil(wgpu::MAP_ALIGNMENT);
-        //println!("{:?}", range);
 
         let slice = self.buffer.slice(range);
-
-        //println!("{:?}", slice);
 
         BufferSlice{
             buffer: self,
