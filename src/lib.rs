@@ -141,4 +141,5 @@ pub use self::uniform::*;
 pub use self::vert::*;
 pub use self::push_constants::*;
 pub use self::shader::*;
+pub use crate::wgpu_utils_macros::*;
 
