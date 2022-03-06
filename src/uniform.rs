@@ -9,7 +9,7 @@ use std::ops::{Deref, DerefMut};
 /// droped.
 ///
 pub struct UniformRef<'ur, C: bytemuck::Pod>{
-    queue: &'ur mut wgpu::Queue,
+    queue: &'ur wgpu::Queue,
     uniform: &'ur mut Uniform<C>,
 }
 
@@ -142,7 +142,7 @@ impl<C: bytemuck::Pod> Uniform<C>{
         }
     }
 
-    pub fn borrow_ref<'ur>(&'ur mut self, queue: &'ur mut wgpu::Queue) -> UniformRef<'ur, C>{
+    pub fn borrow_ref<'ur>(&'ur mut self, queue: &'ur wgpu::Queue) -> UniformRef<'ur, C>{
         UniformRef{
             queue,
             uniform: self,
