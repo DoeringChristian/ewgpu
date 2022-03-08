@@ -68,9 +68,12 @@
 //!         #endif
 //!         ", None).unwrap();
 //!
-//!         let layout = PipelineLayoutBuilder::new()
-//!             .push_const_layout(Consts::push_const_layout(wgpu::ShaderStages::all()))
-//!             .build(&gpu.device, None);
+//!         let layout = pipeline_layout!(&gpu.device,
+//!             bind_groups: {},
+//!             push_constants: {
+//!                 Consts,
+//!             }
+//!         );
 //!
 //!         let pipeline = RenderPipelineBuilder::new(&vshader, &fshader)
 //!             .push_drawable_layouts::<Mesh<Vert2>>()
