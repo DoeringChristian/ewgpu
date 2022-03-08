@@ -27,10 +27,20 @@ fn push_const_compute(){
                     .build_empty(&gpu.device, 1);
         let out_buf = BindGroup::new(out_buf, &gpu.device);
 
+        /*
         let layout = PipelineLayoutBuilder::new()
             .push_bind_group(&BindGroup::<Buffer<u32>>::create_bind_group_layout(&gpu.device, None))
             .push_const_layout(u32::push_const_layout(wgpu::ShaderStages::COMPUTE))
             .build(&gpu.device, None);
+        */
+        let layout = pipeline_layout!(&gpu.device, 
+            bind_groups: {
+                buffer1: BindGroup::<Buffer<u32>>,
+            },
+            push_constants: {
+                u32 => wgpu::ShaderStages::COMPUTE,
+                }
+        );
 
         let cpipeline = ComputePipelineBuilder::new(&cshader)
             .set_layout(&layout)

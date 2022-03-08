@@ -159,6 +159,12 @@ macro_rules! push_constant_ranges{
     ($device:expr, [$($ty:ty,)*]) => {
         [$(<$ty>::push_const_layout(wgpu::ShaderStages::all()))*]
     };
+    ($device: expr, {$($ty:ty => $vis:expr,)*}) => {
+        [$(<$ty>::push_const_layout($vis))*]
+    };
+    ($device: expr, [$($ty:ty => $vis:expr,)*]) => {
+        [$(<$ty>::push_const_layout($vis))*]
+    };
 }
 
 ///
