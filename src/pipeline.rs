@@ -93,7 +93,103 @@ pub struct RenderPipeline{
 
 pub struct PipelineLayout{
     pub layout: wgpu::PipelineLayout,
-    push_const_ranges: Vec<wgpu::PushConstantRange>,
+    pub push_const_ranges: Vec<wgpu::PushConstantRange>,
+}
+
+impl PipelineLayout{
+    pub fn new(device: &wgpu::Device, bind_group_layouts: &[&wgpu::BindGroupLayout], push_const_layouts: &[PushConstantLayout], label: wgpu::Label) -> Self{
+
+        let mut offset = 0;
+        let push_const_ranges: Vec<wgpu::PushConstantRange> = push_const_layouts.iter()
+            .map(|x| {
+                // align to 4 bytes.
+                let size_aligned = (((x.size as i32 - 4)/4 + 1)*4) as u32;
+                let range = Range::<u32>{
+                    start: offset,
+                    end: offset + size_aligned,
+                };
+                offset = range.end;
+                wgpu::PushConstantRange{
+                    stages: x.stages,
+                    range,
+                }
+            }).collect();
+
+        Self{
+            layout: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
+                label,
+                push_constant_ranges: &push_const_ranges,
+                bind_group_layouts: &bind_group_layouts,
+            }),
+            push_const_ranges,
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! bind_group_layouts{
+    ($device:expr, {$($name:ident: $ty:ty => $vis:expr,)*}) => {
+        [$(bind_group_layouts!($device, {$name, $ty, $vis})),*]
+    };
+    ($device:expr, {$($name:ident: $ty:ty,)*}) => {
+        [$(bind_group_layouts!($device, {$name, $ty, wgpu::ShaderStages::all()})),*]
+    };
+    ($device:expr, [$($name:ident: $ty:ty,)*]) => {
+        [$(bind_group_layouts!($device, {$name, $ty, wgpu::ShaderStages::all()})),*]
+    };
+    ($device:expr, {$name:ident, $ty:ty, $vis:expr}) => {
+        &<$ty>::create_bind_group_layout_vis(&$device, Some(std::stringify!($name)), $vis).layout
+    };
+    ($device:expr, $ty:path) => {
+        &<$ty>::create_bind_group_layout(&$device, None).layout
+    };
+}
+
+#[macro_export]
+macro_rules! push_constant_ranges{
+    ($device:expr, {$($ty:ty,)*}) => {
+        [$(<$ty>::push_const_layout(wgpu::ShaderStages::all()))*]
+    };
+    ($device:expr, [$($ty:ty,)*]) => {
+        [$(<$ty>::push_const_layout(wgpu::ShaderStages::all()))*]
+    };
+}
+
+///
+/// A macro for generating pipeline layouts.
+/// TODO: find way to use with and without visibility qualifier.
+///
+/// ```rust
+/// use wgpu_utils::*;
+/// Framework::new(|gpu|{
+///     let layout = pipeline_layout!(&gpu.device,
+///         bind_groups: {
+///             buffer2: BindGroup::<Buffer<f32>> => wgpu::ShaderStages::FRAGMENT,
+///         },
+///         push_constants: {
+///             f32,
+///         }
+///     );
+/// });
+/// ```
+///
+#[macro_export]
+macro_rules! pipeline_layout{
+    ($device:expr, $bg:tt) => {
+        PipelineLayout::new($device, &bind_group_layouts!($device, $bg), &[], None)
+    };
+    ($device:expr, bind_groups: $bg:tt) => {
+        pipeline_layout!($device, $bg)
+    };
+    ($device:expr, bind_groups: $bg:tt, push_constants: $pc:tt) => {
+        pipeline_layout!($device, $bg, $pc)
+    };
+    ($device:expr, push_constants: $pc:tt, bind_groups: $bg:tt) => {
+        pipeline_layout!($device, $bg, $pc)
+    };
+    ($device:expr, $bg:tt, $pc:tt) => {
+        PipelineLayout::new($device, &bind_group_layouts!($device, $bg), &push_constant_ranges!($device, $pc), None)
+    }
 }
 
 // TODO: put bind_group_names in Arc

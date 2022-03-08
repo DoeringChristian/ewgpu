@@ -159,6 +159,10 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
 
 ///
 /// A builder for a Buffer.
+/// Be aware of the padding sometimes added in glsl for example:
+/// A struct of with a vec3 type in glsl might be padded to 32 bytes.
+/// Writing an array of [f32; 3] to that buffer might result
+/// in a misalignment.
 ///
 /// Example: 
 /// ```ignore 

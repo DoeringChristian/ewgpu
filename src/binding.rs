@@ -113,7 +113,7 @@ impl<'l> BindGroupBuilder<'l>{
         self
     }
 
-    pub fn create(&self, device: &wgpu::Device, label: Option<&str>) -> wgpu::BindGroup{
+    pub fn build(&self, device: &wgpu::Device, label: Option<&str>) -> wgpu::BindGroup{
         assert_eq!(self.entries.len(), self.layout_with_desc.entries.len());
         device.create_bind_group(&wgpu::BindGroupDescriptor{
             label,
@@ -205,7 +205,7 @@ impl<C: BindGroupContent> BindGroup<C>{
 
         let bind_group = BindGroupBuilder::new(&bind_group_layout)
             .push_resources(content.resources())
-            .create(device, None);
+            .build(device, None);
 
         Self{
             content,
@@ -219,7 +219,7 @@ impl<C: BindGroupContent> BindGroup<C>{
 
         let bind_group = BindGroupBuilder::new(&bind_group_layout)
             .push_resources(content.resources())
-            .create(device, None);
+            .build(device, None);
 
         Self{
             content,
