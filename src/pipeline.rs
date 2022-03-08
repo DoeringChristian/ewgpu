@@ -97,12 +97,18 @@ pub struct PipelineLayout{
 }
 
 impl PipelineLayout{
+    ///
+    /// Create a new pipeline layout from push_const_layouts and bind_group_layouts.
+    ///
+    /// Mostly for the pipeline_layout macro.
+    ///
     pub fn new(device: &wgpu::Device, bind_group_layouts: &[&wgpu::BindGroupLayout], push_const_layouts: &[PushConstantLayout], label: wgpu::Label) -> Self{
 
         let mut offset = 0;
         let push_const_ranges: Vec<wgpu::PushConstantRange> = push_const_layouts.iter()
             .map(|x| {
                 // align to 4 bytes.
+                // TODO: write tests and use Align trait.
                 let size_aligned = (((x.size as i32 - 4)/4 + 1)*4) as u32;
                 let range = Range::<u32>{
                     start: offset,
