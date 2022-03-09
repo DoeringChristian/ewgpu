@@ -237,11 +237,8 @@ impl<'tb> TextureBuilder<'tb>{
         Self::from_image(self, &img)
     }
 
-    pub fn load_from_path(self, path: &str) -> Self{
-        let mut f = File::open(path).unwrap();
-        let metadata = fs::metadata(path).unwrap();
-        let mut buffer = vec![0; metadata.len() as usize];
-        f.read(&mut buffer).unwrap();
+    pub fn load_from_path(self, path: &std::path::Path) -> Self{
+        let buffer = fs::read(path).unwrap();
         Self::from_bytes(self, &buffer)
     }
 
