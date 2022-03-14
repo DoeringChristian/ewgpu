@@ -236,6 +236,12 @@ impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
     }
 
     #[inline]
+    pub fn set_usage(mut self, usage: wgpu::BufferUsages) -> Self{
+        self.usages = usage;
+        self
+    }
+
+    #[inline]
     pub fn set_label(mut self, label: wgpu::Label<'bb>) -> Self{
         self.label = label;
         self
