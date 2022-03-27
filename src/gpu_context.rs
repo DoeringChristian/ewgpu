@@ -1,6 +1,7 @@
 
 use std::time::{Instant, Duration};
 use super::*;
+use winit::window::Window;
 
 ///
 /// ```rust
@@ -143,6 +144,7 @@ impl<'gcb> GPUContextBuilder<'gcb>{
             dt: Duration::from_secs(1),
         }
     }
+
 }
 
 pub struct GPUContext{

@@ -29,95 +29,6 @@ pub trait State{
     fn render(&mut self, gpu: &mut GPUContext);
 }
 
-
-pub struct WinitContext{
-    pub gpu_context: GPUContext,
-    pub surface: wgpu::Surface,
-    pub config: wgpu::SurfaceConfiguration,
-    pub size: winit::dpi::PhysicalSize<u32>,
-    pub window: Window,
-}
-
-impl WinitContext{
-    pub fn new(instance: &wgpu::Instance, window: Window) -> Self{
-        let surface = unsafe{instance.create_surface(&window)};
-
-        let size = window.inner_size();
-
-        let gpu_context = GPUContext::new(instance, Some(&surface));
-
-        let config = wgpu::SurfaceConfiguration{
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_preferred_format(&gpu_context.adapter).unwrap(),
-            width: size.width,
-            height: size.height,
-            present_mode: wgpu::PresentMode::Fifo,
-        };
-        surface.configure(&gpu_context.device, &config);
-
-        Self{
-            gpu_context,
-            surface,
-            config,
-            size,
-            window,
-        }
-    }
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>){
-        if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
-            self.config.width = new_size.width;
-            self.config.height = new_size.height;
-            self.surface.configure(&self.device, &self.config);
-        }
-    }
-
-    fn update(&mut self) {
-        self.gpu_context.update();
-    }
-
-    pub fn encode<F>(&mut self, control_flow: &mut ControlFlow, mut f: F)
-        where F: FnMut(&mut Self, &wgpu::TextureView, &mut wgpu::CommandEncoder, &mut ControlFlow) -> Result<(), wgpu::SurfaceError>
-    {
-        let output = match self.surface.get_current_texture(){
-            Ok(o) => {o},
-            Err(e) => {eprintln!("{:?}", e); return},
-        };
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor{label: Some("imgui_encoder")});
-
-        // Call render function 
-
-        match f(self, &view, &mut encoder, control_flow){
-            Ok(_) => {}
-
-            Err(wgpu::SurfaceError::Lost) => self.resize(self.size),
-            Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-
-            Err(e) => eprintln!("{:?}", e),
-        }
-
-        self.queue.submit(Some(encoder.finish()));
-        output.present();
-        self.update();
-    }
-}
-
-impl Deref for WinitContext{
-    type Target = GPUContext;
-
-    fn deref(&self) -> &Self::Target {
-        &self.gpu_context
-    }
-}
-
-impl<'w> DerefMut for WinitContext{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.gpu_context
-    }
-}
-
 pub struct ImguiContext{
     pub context: imgui::Context,
     pub platform: WinitPlatform,
@@ -294,6 +205,7 @@ impl<S: 'static> ImguiFramework<S>
               RZ: FnMut(&mut S, &mut WinitContext, &mut ImguiContext, winit::dpi::PhysicalSize<u32>),
     {
         self.event_loop.run(move |event, _, control_flow|{
+            self.imgui.platform.handle_event(self.imgui.context.io_mut(), &self.winit.window, &event);
             match event{
                 Event::WindowEvent{
                     ref event,
@@ -343,7 +255,7 @@ impl<S: 'static> ImguiFramework<S>
                 },
                 _ => {}
             }
-            self.imgui.platform.handle_event(self.imgui.context.io_mut(), &self.winit.window, &event);
+            //self.imgui.platform.handle_event(self.imgui.context.io_mut(), &self.winit.window, &event);
         });
     }
 }
