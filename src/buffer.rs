@@ -114,29 +114,34 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     ///
     /// ```rust
     /// use wgpu_utils::*;
-    /// Framework::new(|gpu|{
-    ///     (
-    ///         BufferBuilder::<u64>::new()
-    ///             .read().write().copy_src()
-    ///             .append_slice(&[0, 1, 2, 3])
-    ///             .set_label(Some("buffer1"))
-    ///             .build(&gpu.device),
-    ///         BufferBuilder::<u64>::new()
-    ///             .read().write().copy_dst()
-    ///             .append_slice(&[0, 0, 0, 0])
-    ///             .set_label(Some("buffer2"))
-    ///             .build(&gpu.device)
-    ///     )
     ///
-    /// }).run(|buffers, gpu|{
-    ///     gpu.encode(|gpu, encoder|{
-    ///         buffers.0.slice(..).copy_to_buffer(&mut buffers.1, 1, encoder);
-    ///     });
+    /// let instance = wgpu::Instance::new(wgpu::Backends::all());
     ///
-    ///     gpu.encode(|gpu, encoder|{
-    ///         assert_eq!(buffers.1.slice(..).map_blocking(&gpu.device).as_ref(), [0, 0, 1, 2]);
-    ///     })
-    ///});
+    /// let mut gpu = GPUContextBuilder::new()
+    ///     .enable_feature(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS)
+    ///     .set_limits(wgpu::Limits{
+    ///         max_push_constant_size: 128,
+    ///         ..Default::default()
+    ///     }).build(&instance);
+    ///
+    /// let buffer1 = BufferBuilder::<u64>::new()
+    ///                 .read().write().copy_src()
+    ///                 .append_slice(&[0, 1, 2, 3])
+    ///                 .set_label(Some("buffer1"))
+    ///                 .build(&gpu.device);
+    /// let mut buffer2 = BufferBuilder::<u64>::new()
+    ///                 .read().write().copy_dst()
+    ///                 .append_slice(&[0, 0, 0, 0])
+    ///                 .set_label(Some("buffer2"))
+    ///                 .build(&gpu.device);
+    ///
+    /// gpu.encode(|gpu, encoder|{
+    ///     buffer1.slice(..).copy_to_buffer(&mut buffer2, 1, encoder);
+    /// });
+    ///
+    /// gpu.encode(|gpu, encoder|{
+    ///     assert_eq!(buffer2.slice(..).map_blocking(&gpu.device).as_ref(), [0, 0, 1, 2]);
+    /// })
     /// ```
     ///
     pub fn copy_to_buffer(&self, dst: &mut Buffer<C>, offset: wgpu::BufferAddress, encoder: &mut wgpu::CommandEncoder){
