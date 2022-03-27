@@ -15,17 +15,36 @@ use winit::{
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-pub trait BuildWinit{
-    fn build_winit(self, instance: &wgpu::Instance, window: Window) -> WinitContext;
+pub trait BuildWinitContext{
+    fn build_winit_context(self, instance: &wgpu::Instance, window: Window) -> WinitContext;
 }
 
-impl<'gcb> BuildWinit for GPUContextBuilder<'gcb>{
-    fn build_winit(self, instance: &wgpu::Instance, window: Window) -> WinitContext {
+impl<'gcb> BuildWinitContext for GPUContextBuilder<'gcb>{
+    fn build_winit_context(self, instance: &wgpu::Instance, window: Window) -> WinitContext {
+        let winit_context_builder: WinitContextBuilder = self.into();
+        winit_context_builder.build(instance, window)
+    }
+}
+
+impl<'wcb> From<GPUContextBuilder<'wcb>> for WinitContextBuilder<'wcb>{
+    fn from(gpu_context_builder: GPUContextBuilder<'wcb>) -> Self {
+        WinitContextBuilder{
+            gpu_context_builder
+        }
+    }
+}
+
+pub struct WinitContextBuilder<'wcb>{
+    gpu_context_builder: GPUContextBuilder<'wcb>,
+}
+
+impl<'wcb> WinitContextBuilder<'wcb>{
+    pub fn build(self, instance: &wgpu::Instance, window: Window) -> WinitContext{
         let surface = unsafe{instance.create_surface(&window)};
 
         let size = window.inner_size();
 
-        let gpu_context = self
+        let gpu_context = self.gpu_context_builder
             .set_compatible_surface(Some(&surface))
             .build(instance);
 
