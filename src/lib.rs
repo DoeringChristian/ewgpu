@@ -131,6 +131,7 @@ pub mod push_constants;
 pub mod shader;
 pub mod gpu_context;
 pub mod winit_context;
+pub mod imgui_context;
 
 mod utils;
 
@@ -149,4 +150,5 @@ pub use self::shader::*;
 pub use crate::wgpu_utils_macros::*;
 pub use crate::gpu_context::*;
 pub use crate::winit_context::*;
+pub use crate::imgui_context::*;
 

@@ -29,103 +29,14 @@ pub trait State{
     fn render(&mut self, gpu: &mut GPUContext);
 }
 
-pub struct ImguiContext{
-    pub context: imgui::Context,
-    pub platform: WinitPlatform,
-    pub renderer: imgui_wgpu::Renderer,
-}
-
 pub struct ImguiInternal{
     pub context: imgui::Context,
     pub platform: WinitPlatform,
     pub renderer: imgui_wgpu::Renderer,
 }
 
-impl ImguiContext{
-    pub fn new(winit_context: &WinitContext) -> Self{
-
-        let mut context = imgui::Context::create();
-        let mut platform = imgui_winit_support::WinitPlatform::init(&mut context);
-        platform.attach_window(
-            context.io_mut(),
-            &winit_context.window,
-            imgui_winit_support::HiDpiMode::Default,
-        );
-        context.set_ini_filename(None);
-
-        let hidpi_factor = winit_context.window.scale_factor();
-        let font_size = (13.0 * hidpi_factor) as f32;
-        context.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
-
-        context.fonts().add_font(&[
-            imgui::FontSource::DefaultFontData{
-                config: Some(imgui::FontConfig{
-                    oversample_h: 1,
-                    pixel_snap_h: true,
-                    size_pixels: font_size,
-                    ..Default::default()
-                }),
-            }
-        ]);
-
-        let renderer_config = imgui_wgpu::RendererConfig{
-            texture_format: winit_context.config.format,
-            ..Default::default()
-        };
-
-        let renderer = imgui_wgpu::Renderer::new(&mut context, &winit_context.device, &winit_context.queue, renderer_config);
-
-        Self{
-            renderer,
-            context,
-            platform,
-        }
-    }
-
-    pub fn ui<F>(&mut self, winit_context: &mut WinitContext, encoder: &mut wgpu::CommandEncoder, dst: &wgpu::TextureView, mut f: F)
-        where F: FnMut(ImguiRenderContext, &mut WinitContext, &mut wgpu::CommandEncoder)
-    {
-        self.platform
-            .prepare_frame(self.context.io_mut(), &winit_context.window)
-            .expect("Failed to prepare frame.");
-
-        self.context.io_mut().update_delta_time(winit_context.dt);
-
-        let ui = self.context.frame();
-
-        let imgui_render_context = ImguiRenderContext{
-            platform: &self.platform,
-            renderer: &self.renderer,
-            ui: &ui,
-        };
-
-        f(imgui_render_context, winit_context, encoder);
-
-        let mut rpass = RenderPassBuilder::new()
-            .push_color_attachment(dst.color_attachment_load())
-            .begin(encoder, None);
-
-        self.renderer.render(ui.render(), &winit_context.queue, &winit_context.device, &mut rpass.render_pass)
-            .expect("Rendering Failed");
-
-        drop(rpass);
-    }
-}
 
 
-pub struct ImguiRenderContext<'irc, 'ui>{
-    pub platform: &'irc WinitPlatform,
-    pub renderer: &'irc imgui_wgpu::Renderer,
-    pub ui: &'irc imgui::Ui<'ui>,
-}
-
-impl<'irc, 'ui> Deref for ImguiRenderContext<'irc, 'ui>{
-    type Target = imgui::Ui<'ui>;
-
-    fn deref(&self) -> &Self::Target {
-        self.ui
-    }
-}
 
 pub struct Framework<S>{
     pub instance: wgpu::Instance,
