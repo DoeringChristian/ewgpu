@@ -1,6 +1,6 @@
 
 use std::time::{Instant, Duration};
-use super::*;
+use crate::*;
 use winit::window::Window;
 
 ///
