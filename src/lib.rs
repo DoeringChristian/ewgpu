@@ -22,8 +22,6 @@
 //! env_logger::init();
 //! 
 //! let event_loop = EventLoop::new();
-//!
-//! let instance = wgpu::Instance::new(wgpu::Backends::all());
 //! 
 //! let mut gpu = GPUContextBuilder::new()
 //!     .set_features_util()
@@ -31,7 +29,7 @@
 //!         max_push_constant_size: 128,
 //!         ..Default::default()
 //!     })
-//!     .build(&instance);
+//!     .build();
 //!
 //! let mesh = Mesh::<Vert2>::new(&gpu.device, &Vert2::QUAD_VERTS,
 //! &Vert2::QUAD_IDXS).unwrap();

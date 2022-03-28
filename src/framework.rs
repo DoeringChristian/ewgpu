@@ -38,7 +38,6 @@ pub struct ImguiInternal{
 
 
 pub struct Framework<S>{
-    pub instance: wgpu::Instance,
     pub gpu: GPUContext,
     pub state: S,
 }
@@ -49,12 +48,11 @@ impl<S> Framework<S>{
     {
         let instance = wgpu::Instance::new(wgpu::Backends::all());
 
-        let mut gpu = GPUContext::new(&instance, None);
+        let mut gpu = GPUContext::new(instance, None);
 
         let state = f(&mut gpu);
 
         Self{
-            instance,
             gpu,
             state,
         }
@@ -79,7 +77,6 @@ pub struct ImguiFramework<S>
 {
     pub imgui: ImguiContext,
     pub winit: WinitContext,
-    pub instance: wgpu::Instance,
     pub state: S,
     pub event_loop: EventLoop<()>,
 
@@ -96,13 +93,12 @@ impl<S: 'static> ImguiFramework<S>
 
         let instance = wgpu::Instance::new(wgpu::Backends::all());
 
-        let mut winit = WinitContext::new(&instance, window);
+        let mut winit = WinitContext::new(instance, window);
         let mut imgui = ImguiContext::new(&winit);
 
         let state = new(&mut winit, &mut imgui);
 
         Self{
-            instance,
             imgui,
             winit,
             event_loop,

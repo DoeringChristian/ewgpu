@@ -122,7 +122,7 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     ///     .set_limits(wgpu::Limits{
     ///         max_push_constant_size: 128,
     ///         ..Default::default()
-    ///     }).build(&instance);
+    ///     }).build();
     ///
     /// let buffer1 = BufferBuilder::<u64>::new()
     ///                 .read().write().copy_src()

@@ -10,13 +10,13 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 pub trait BuildWinitContext{
-    fn build_winit_context(self, instance: &wgpu::Instance, window: Window) -> WinitContext;
+    fn build_winit_context(self, window: Window) -> WinitContext;
 }
 
 impl<'gcb> BuildWinitContext for GPUContextBuilder<'gcb>{
-    fn build_winit_context(self, instance: &wgpu::Instance, window: Window) -> WinitContext {
+    fn build_winit_context(self, window: Window) -> WinitContext {
         let winit_context_builder: WinitContextBuilder = self.into();
-        winit_context_builder.build(instance, window)
+        winit_context_builder.build(window)
     }
 }
 
@@ -33,14 +33,17 @@ pub struct WinitContextBuilder<'wcb>{
 }
 
 impl<'wcb> WinitContextBuilder<'wcb>{
-    pub fn build(self, instance: &wgpu::Instance, window: Window) -> WinitContext{
+    pub fn build(self, window: Window) -> WinitContext{
+
+        let instance = wgpu::Instance::new(self.gpu_context_builder.backends);
+
         let surface = unsafe{instance.create_surface(&window)};
 
         let size = window.inner_size();
 
         let gpu_context = self.gpu_context_builder
             .set_compatible_surface(Some(&surface))
-            .build(instance);
+            .build_with_instance(instance);
 
         let config = wgpu::SurfaceConfiguration{
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -71,7 +74,7 @@ pub struct WinitContext{
 
 impl WinitContext{
     // TODO: unimplement
-    pub fn new(instance: &wgpu::Instance, window: Window) -> Self{
+    pub fn new(instance: wgpu::Instance, window: Window) -> Self{
         let surface = unsafe{instance.create_surface(&window)};
 
         let size = window.inner_size();

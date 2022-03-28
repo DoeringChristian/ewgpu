@@ -17,7 +17,7 @@ use crate::*;
 ///     .set_limits(wgpu::Limits{
 ///         max_push_constant_size: 128,
 ///         ..Default::default()
-///     }).build(&instance);
+///     }).build();
 ///
 ///
 /// gpu.encode(|gpu, encoder|{
@@ -28,6 +28,7 @@ use crate::*;
 pub struct GPUContextBuilder<'gcb>{
     request_adapter_options: wgpu::RequestAdapterOptions<'gcb>,
     device_descriptor: wgpu::DeviceDescriptor<'gcb>,
+    pub(crate) backends: wgpu::Backends,
 }
 
 impl<'gcb> GPUContextBuilder<'gcb>{
@@ -42,9 +43,11 @@ impl<'gcb> GPUContextBuilder<'gcb>{
             features: wgpu::Features::default(),
             limits: wgpu::Limits::default(),
         };
+        let backends = wgpu::Backends::all();
         Self{
             request_adapter_options,
             device_descriptor,
+            backends,
         }
     }
 
@@ -121,11 +124,11 @@ impl<'gcb> GPUContextBuilder<'gcb>{
         self
     }
 
-    pub fn build(&self, instance: &wgpu::Instance) -> GPUContext{
-        pollster::block_on(self.build_async(instance))
+    pub fn build_with_instance(&self, instance: wgpu::Instance) -> GPUContext{
+        pollster::block_on(self.build_with_instance_async(instance))
     }
 
-    pub async fn build_async(&self, instance: &wgpu::Instance) -> GPUContext{
+    pub async fn build_with_instance_async(&self, instance: wgpu::Instance) -> GPUContext{
         let adapter = instance.request_adapter(
             &self.request_adapter_options
         ).await.unwrap();
@@ -139,6 +142,42 @@ impl<'gcb> GPUContextBuilder<'gcb>{
             device,
             queue,
             adapter,
+            instance,
+            time: Instant::now(),
+            dt: Duration::from_secs(1),
+        }
+    } 
+
+    pub fn build(&self) -> GPUContext{
+        pollster::block_on(self.build_async())
+    }
+
+    pub async fn build_async(&self) -> GPUContext{
+
+        let instance = wgpu::Instance::new(self.backends);
+        /*
+        let instance = if let Some(instance) = self.instance{
+            instance
+        } else{
+            wgpu::Instance::new(self.backends)
+        };
+        */
+
+
+        let adapter = instance.request_adapter(
+            &self.request_adapter_options
+        ).await.unwrap();
+
+        let (device, queue) = adapter.request_device(
+            &self.device_descriptor,
+            None,
+        ).await.unwrap();
+
+        GPUContext{
+            device,
+            queue,
+            adapter,
+            instance,
             time: Instant::now(),
             dt: Duration::from_secs(1),
         }
@@ -150,16 +189,17 @@ pub struct GPUContext{
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub adapter: wgpu::Adapter,
+    pub instance: wgpu::Instance,
     pub time: Instant,
     pub dt: Duration,
 }
 
 impl GPUContext{
-    pub fn new(instance: &wgpu::Instance, surface: Option<&wgpu::Surface>) -> Self{
+    pub fn new(instance: wgpu::Instance, surface: Option<&wgpu::Surface>) -> Self{
         pollster::block_on(Self::new_async(instance, surface))
     }
 
-    pub async fn new_async(instance: &wgpu::Instance, surface: Option<&wgpu::Surface>) -> Self{
+    pub async fn new_async(instance: wgpu::Instance, surface: Option<&wgpu::Surface>) -> Self{
         //let instance = wgpu::Instance::new(wgpu::Backends::all());
 
         let adapter = instance.request_adapter(
@@ -194,6 +234,7 @@ impl GPUContext{
             device,
             queue,
             adapter,
+            instance,
             time: Instant::now(),
             dt: Duration::from_secs(1),
         }
