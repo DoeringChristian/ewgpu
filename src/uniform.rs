@@ -77,7 +77,7 @@ pub struct UniformVec<C: bytemuck::Pod>{
 impl<C: bytemuck::Pod> UniformVec<C>{
     fn name() -> &'static str{
         let type_name = std::any::type_name::<C>();
-        let pos = type_name.rfind(':').unwrap();
+        let pos = type_name.rfind(':').unwrap_or_else(||{0});
         &type_name[(pos + 1)..]
     }
 
