@@ -377,15 +377,17 @@ impl<C: bytemuck::Pod> Buffer<C>{
     /// example: 
     /// ```rust
     ///# use wgpu_utils::*;
-    ///# Framework::new(|gpu|{
-    ///     let buffer = BufferBuilder::<u64>::new()
-    ///         .read().write()
-    ///         .append_slice(&[0, 1, 2, 3])
-    ///         .set_label(Some("buffer"))
-    ///         .build(&gpu.device);
-    ///    buffer.slice(0..).map_blocking_mut(&gpu.device)[0] = 8;
-    ///    assert_eq!(buffer.slice(..).map_blocking(&gpu.device).as_ref(), [8, 1, 2, 3]);
-    ///# });
+    /// # let gpu = GPUContextBuilder::new()
+    /// #   .set_features_util()
+    /// #   .build();
+    ///
+    /// let buffer = BufferBuilder::<u64>::new()
+    ///     .read().write()
+    ///     .append_slice(&[0, 1, 2, 3])
+    ///     .set_label(Some("buffer"))
+    ///     .build(&gpu.device);
+    /// buffer.slice(0..).map_blocking_mut(&gpu.device)[0] = 8;
+    /// assert_eq!(buffer.slice(..).map_blocking(&gpu.device).as_ref(), [8, 1, 2, 3]);
     /// ```
     pub fn slice<S: RangeBounds<wgpu::BufferAddress>>(&self, bounds: S) -> BufferSlice<C>{
         let start_bound = bounds.start_bound();
