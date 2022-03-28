@@ -210,6 +210,11 @@ impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
         self
     }
     #[inline]
+    pub fn index(mut self) -> Self{
+        self.usages |= wgpu::BufferUsages::INDEX;
+        self
+    }
+    #[inline]
     pub fn storage(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::STORAGE;
         self
