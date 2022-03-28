@@ -1,8 +1,6 @@
 use image::GenericImageView;
 use crate::*;
 use std::fs;
-use std::fs::File;
-use std::io::Read;
 use std::ops::Bound;
 use std::ops::RangeBounds;
 

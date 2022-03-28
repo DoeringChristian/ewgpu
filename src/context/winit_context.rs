@@ -2,14 +2,8 @@
 use crate::*;
 use winit::{
     event::*,
-    event_loop::{
-        ControlFlow,
-        EventLoop,
-    },
-    window::{
-        Window,
-        WindowBuilder,
-    },
+    event_loop::ControlFlow,
+    window::Window,
 };
 
 use std::ops::Deref;

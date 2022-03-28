@@ -12,7 +12,6 @@ use winit::{
     },
 };
 
-use std::{time::{Instant, Duration}, ops::{Deref, DerefMut}};
 use super::*;
 
 #[allow(unused)]

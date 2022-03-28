@@ -1,7 +1,6 @@
 
 use std::time::{Instant, Duration};
 use crate::*;
-use winit::window::Window;
 
 ///
 /// ```rust
