@@ -77,6 +77,10 @@ impl<'vs> VertexState<'vs>{
         self.entry_point = entry_point;
         self
     }
+    pub fn push_vert_layout(mut self, vertex_buffer_layout: wgpu::VertexBufferLayout<'vs>) -> Self{
+        self.vertex_buffer_layouts.push(vertex_buffer_layout);
+        self
+    }
     pub fn push_vert_layouts(mut self, mut vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vs>>) -> Self{
         self.vertex_buffer_layouts.append(&mut vertex_buffer_layouts);
         self
@@ -636,6 +640,11 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
     pub fn set_multiview(mut self, multiview: Option<NonZeroU32>) -> Self{
         self.multiview = multiview;
+        self
+    }
+
+    pub fn push_vert_layout(mut self, vertex_buffer_layout: wgpu::VertexBufferLayout<'rpb>) -> Self{
+        self.vertex = self.vertex.push_vert_layout(vertex_buffer_layout);
         self
     }
 
