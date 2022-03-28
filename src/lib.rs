@@ -11,6 +11,7 @@
 //! An example of how to render to a image:
 //!```rust
 //! use wgpu_utils::*;
+//! use wgpu_utils::mesh::*;
 //!
 //! #[repr(C)]
 //! #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -125,6 +126,7 @@ pub mod vert;
 pub mod push_constants;
 pub mod shader;
 pub mod context;
+pub mod drawable;
 
 mod utils;
 
@@ -132,7 +134,7 @@ mod utils;
 pub use self::binding::*;
 pub use self::buffer::*;
 pub use self::framework::*;
-pub use self::mesh::*;
+//pub use self::mesh::*;
 pub use self::pipeline::*;
 pub use self::render_target::*;
 pub use self::texture::*;
@@ -142,4 +144,5 @@ pub use self::push_constants::*;
 pub use self::shader::*;
 pub use crate::wgpu_utils_macros::*;
 pub use context::*;
+pub use crate::drawable::*;
 
