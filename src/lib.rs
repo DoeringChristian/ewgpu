@@ -12,101 +12,98 @@
 //!```rust
 //! use wgpu_utils::*;
 //!
-//!#[repr(C)]
-//!#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-//!struct Consts{
-//!     pub color: [f32; 4],
-//!}
+//! #[repr(C)]
+//! #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+//! struct Consts{
+//!      pub color: [f32; 4],
+//! }
+//! use winit::{window::WindowBuilder, event_loop::EventLoop};
+//! 
+//! env_logger::init();
+//! 
+//! let event_loop = EventLoop::new();
 //!
-//!struct ImgState{
-//!     pipeline: RenderPipeline,
-//!     mesh: Mesh<Vert2>,
-//!}
+//! let instance = wgpu::Instance::new(wgpu::Backends::all());
+//! 
+//! let mut gpu = GPUContextBuilder::new()
+//!     .set_features_util()
+//!     .set_limits(wgpu::Limits{
+//!         max_push_constant_size: 128,
+//!         ..Default::default()
+//!     })
+//!     .build(&instance);
 //!
-//!impl State for ImgState{
-//!     fn new(gpu: &mut GPUContext) -> Self{
-//!         let mesh = Mesh::<Vert2>::new(&gpu.device, &Vert2::QUAD_VERTS,
-//!         &Vert2::QUAD_IDXS).unwrap();
+//! let mesh = Mesh::<Vert2>::new(&gpu.device, &Vert2::QUAD_VERTS,
+//! &Vert2::QUAD_IDXS).unwrap();
 //!
-//!         let vshader = VertexShader::from_src(&gpu.device, "
-//!         #version 460
-//!         #if VERTEX_SHADER
+//! let vshader = VertexShader::from_src(&gpu.device, "
+//! #version 460
+//! #if VERTEX_SHADER
 //!         
-//!         layout(location = 0) in vec2 i_pos;
-//!         layout(location = 1) in vec2 i_uv;
+//! layout(location = 0) in vec2 i_pos;
+//! layout(location = 1) in vec2 i_uv;
 //!         
-//!         layout(location = 0) out vec2 f_pos;
-//!         layout(location = 1) out vec2 f_uv;
+//! layout(location = 0) out vec2 f_pos;
+//! layout(location = 1) out vec2 f_uv;
 //!         
-//!         void main(){
-//!             f_pos = i_pos;
-//!             f_uv = i_uv;
+//! void main(){
+//!     f_pos = i_pos;
+//!     f_uv = i_uv;
 //!         
-//!             gl_Position = vec4(i_pos, 0.0, 1.0);
-//!         }
+//!     gl_Position = vec4(i_pos, 0.0, 1.0);
+//! }
 //!         
-//!         #endif
-//!         ", None).unwrap();
+//! #endif
+//! ", None).unwrap();
 //!
-//!         let fshader = FragmentShader::from_src(&gpu.device, "
-//!         #version 460
-//!         #if FRAGMENT_SHADER
+//! let fshader = FragmentShader::from_src(&gpu.device, "
+//! #version 460
+//! #if FRAGMENT_SHADER
 //!         
-//!         layout(location = 0) in vec2 f_pos;
-//!         layout(location = 1) in vec2 f_uv;
+//! layout(location = 0) in vec2 f_pos;
+//! layout(location = 1) in vec2 f_uv;
 //!         
-//!         layout(location = 0) out vec4 o_color;
+//! layout(location = 0) out vec4 o_color;
 //!         
-//!         layout(push_constant) uniform PushConstants{
-//!             vec4 color;
-//!         } constants;
+//! layout(push_constant) uniform PushConstants{
+//!     vec4 color;
+//! } constants;
 //!         
-//!         void main(){
-//!             o_color = vec4(1.0, 0., 0., 1.);
-//!         }
+//! void main(){
+//!     o_color = vec4(1.0, 0., 0., 1.);
+//! }
 //!         
-//!         #endif
-//!         ", None).unwrap();
+//! #endif
+//! ", None).unwrap();
 //!
-//!         let layout = pipeline_layout!(&gpu.device,
-//!             bind_groups: {},
-//!             push_constants: {
-//!                 Consts,
-//!             }
-//!         );
-//!
-//!         let pipeline = RenderPipelineBuilder::new(&vshader, &fshader)
-//!             .push_drawable_layouts::<Mesh<Vert2>>()
-//!             .push_target_replace(wgpu::TextureFormat::Rgba8Unorm)
-//!             .set_layout(&layout)
-//!             .build(&gpu.device);
-//!
-//!         Self{
-//!             mesh,
-//!             pipeline,
-//!         }
+//! let layout = pipeline_layout!(&gpu.device,
+//!     bind_groups: {},
+//!     push_constants: {
+//!         Consts,
 //!     }
+//! );
 //!
-//!     fn render(&mut self, gpu: &mut GPUContext){
-//!         {
-//!             gpu.encode_img([1920, 1080], |gpu, dst, encoder|{
-//!                 let mut rpass = RenderPassBuilder::new()
-//!                     .push_color_attachment(dst.color_attachment_clear())
-//!                     .begin(encoder, None);
+//! let pipeline = RenderPipelineBuilder::new(&vshader, &fshader)
+//!     .push_drawable_layouts::<Mesh<Vert2>>()
+//!     .push_target_replace(wgpu::TextureFormat::Rgba8Unorm)
+//!     .set_layout(&layout)
+//!     .build(&gpu.device);
+//! 
+//! gpu.encode_img([1920, 1080], |gpu, dst, encoder|{
+//!     let mut rpass = RenderPassBuilder::new()
+//!         .push_color_attachment(dst.color_attachment_clear())
+//!         .begin(encoder, None);
 //!
-//!                 let mut rpass_ppl = rpass.set_pipeline(&self.pipeline);
+//!     let mut rpass_ppl = rpass.set_pipeline(&pipeline);
 //!
-//!                 let consts = Consts{
-//!                     color: [1.0, 0.0, 0.0, 1.0]
-//!                 };
+//!     let consts = Consts{
+//!         color: [1.0, 0.0, 0.0, 1.0]
+//!     };
 //!
-//!                 rpass_ppl.set_push_const(0, &consts);
+//!     rpass_ppl.set_push_const(0, &consts);
 //!
-//!                 self.mesh.draw(&mut rpass_ppl);
-//!             });
-//!         }
-//!     }
-//!}
+//!     mesh.draw(&mut rpass_ppl);
+//! });
 //!
 //!```
 //!
