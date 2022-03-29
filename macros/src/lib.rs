@@ -1,8 +1,10 @@
 use proc_macro::{self, TokenStream};
 
 mod vertex;
+mod bind_group_content;
 
 use vertex::*;
+use bind_group_content::*;
 
 ///
 /// A Macro for deriving A instance vector from a struct:
@@ -38,3 +40,23 @@ pub fn derive_vert(tokens: TokenStream) -> TokenStream{
 
     generate_vert(ast).into()
 }
+
+///
+/// A macro to derive the BindGroupContent trait from a struct whos fields implement
+/// BindGroupContent.
+///
+/// ```
+/// #[derive(BindGroupContent)]
+/// struct TestBindGroupContent{
+///     indices: Buffer<u32>,
+///     other_indices: Buffer<u64>,
+/// }
+/// ```
+///
+#[proc_macro_derive(BindGroupContent)]
+pub fn derive_bind_group_content(tokens: TokenStream) -> TokenStream{
+    let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
+
+    generate_bind_group_content(ast).into()
+}
+
