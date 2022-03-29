@@ -1,0 +1,18 @@
+[package]
+name = "wireframe"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wgpu_utils = {path = "../../"}
+winit = "0.26"
+wgpu = "*"
+env_logger = "0.9"
+imgui = "*"
+imgui-wgpu = "*"
+bytemuck = "*"
+shaderc = "*"
+nalgebra-glm = "*"
+nalgebra = "*"
