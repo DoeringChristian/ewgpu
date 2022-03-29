@@ -1,8 +1,15 @@
-# Wgpu Utils:
+# Easy WGPU:
 
-This is a simple wrapper for [wgpu](https://github.com/gfx-rs/wgpu) that
-provides builders. It also re-implements some of the types from wgpu to use
-generics and make it safer.  
+
+
+This crate provides a wrapper on [wgpu](https://github.com/gfx-rs/wgpu).
+It is still in an early state and changes can happen that break existing code.
+The main focus is to make the writing of graphics application,
+for which engines are too high level easy.
+This crate therefore re-implements some of the types from wgpu using
+generics to make it safer and easier.
+Though the main goal is comfort, runtime performance should not be impacted.
+
 ## Examples: 
 Wgpu Buffers can be unsafe when types do not match:
 ```rust
@@ -13,11 +20,14 @@ let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor{
 });
 ```
 When reading the buffer back from the GPU it is not guaranteed that the buffer
-to which one reads it has the same format. 
+has the same format. 
 
 In this library:
 ```rust
-let buffer = Buffer::<i32>::new_storage(device, None, data);
+let buffer = BufferBuilder::new()
+    .storage().read().write()
+    .append_slice(&[0, 1, 2, 3])
+    .build(device);
 ```
 
 Now when reading the buffer back the mapped slice is of the same type as the
@@ -51,11 +61,8 @@ I have noticed that nearly all projects using wgpu that are listed on their webs
 ## Goals:
 Hide all operations in wgpu that could result in panics and/or undefined
 behaviour behind rust's safety infrastructure if possible.
+And make it as easy as possible to write simple graphics programs.
 
 ### Immediate Goals:
- - [ ] Implement some way to use the Rust type system to prevent Buffers that are initialized without the COPY_DST usage to be target of a copy_to_buffer operation. 
- - [ ] Implement some way to prevent Buffers/Slices of buffers that are initialized without the COPY_SRC usage to be source of a copy_to_buffer operation.
  - [ ] Write unit tests for all testable modules.
  - [ ] Rename all generic default names from C to T.
- - [ ] Add functions to Framework that allow configuration.
- - [ ] Make ModelTransforms a generic in Model struct.
