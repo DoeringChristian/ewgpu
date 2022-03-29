@@ -429,6 +429,40 @@ impl<C: bytemuck::Pod> Buffer<C>{
         }
     }
 
+    pub fn expand_to(&mut self, len: usize, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device){
+        if len > self.len(){
+            self.resize(len, encoder, device);
+        }
+    }
+
+    pub fn resize(&mut self, len: usize, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device){
+        let label = if let Some(string) = &self.label{
+            Some(string.as_str())
+        }
+        else{
+            None
+        };
+        let mut tmp_buf = Buffer::<C>::new_empty(device, self.usage, label, len);
+        self.slice(..).copy_to_buffer(&mut tmp_buf, 0, encoder);
+        *self = tmp_buf;
+    }
+
+    pub fn expand_to_clear(&mut self, len: usize, device: &wgpu::Device){
+        if len > self.len(){
+            self.resize_clear(len, device);
+        }
+    }
+
+    pub fn resize_clear(&mut self, len: usize, device: &wgpu::Device){
+        let label = if let Some(string) = &self.label{
+            Some(string.as_str())
+        }
+        else{
+            None
+        };
+        *self = Buffer::<C>::new_empty(device, self.usage, label, len);
+    }
+
     // TODO: maybe move to slice.
     pub fn write_buffer(&mut self, queue: &wgpu::Queue, offset: usize, data: &[C]){
         queue.write_buffer(&self.buffer, (offset * std::mem::size_of::<C>()) as u64, bytemuck::cast_slice(data));
