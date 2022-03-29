@@ -214,6 +214,17 @@ impl<C: BindGroupContent> BindGroup<C>{
         }
     }
 
+    ///
+    /// Has to be called whenever a buffer is changed for example when expand_to_clear is called on
+    /// it.
+    /// TODO: Change this requirement.
+    ///
+    pub fn update(&mut self, device: &wgpu::Device){
+        self.bind_group = BindGroupBuilder::new(&self.bind_group_layout)
+            .push_resources(self.content.resources())
+            .build(device, None);
+    }
+
     pub fn new_vis(content: C, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Self{
         let bind_group_layout = Self::create_bind_group_layout_vis(device, None, visibility);
 
@@ -276,7 +287,6 @@ impl From<BindGroup<super::Texture>> for imgui_wgpu::Texture{
         )
     }
 }
-
 
 
 #[allow(dead_code)]
