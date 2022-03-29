@@ -5,7 +5,7 @@
 This crate provides a wrapper on [wgpu](https://github.com/gfx-rs/wgpu).
 It is still in an early state and changes can happen that break existing code.
 The main focus is to make the writing of graphics application,
-for which engines are too high level easy.
+for which engines are too high level, easy.
 This crate therefore re-implements some of the types from wgpu using
 generics to make it safer and easier.
 Though the main goal is comfort, runtime performance should not be impacted.
