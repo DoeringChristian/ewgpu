@@ -113,7 +113,7 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     /// Only the bytes that fit into the destination buffer are copied.
     ///
     /// ```rust
-    /// use wgpu_utils::*;
+    /// use ewgpu::*;
     ///
     /// let instance = wgpu::Instance::new(wgpu::Backends::all());
     ///
@@ -381,7 +381,7 @@ impl<C: bytemuck::Pod> Buffer<C>{
     ///
     /// example: 
     /// ```rust
-    ///# use wgpu_utils::*;
+    ///# use ewgpu::*;
     /// # let gpu = GPUContextBuilder::new()
     /// #   .set_features_util()
     /// #   .build();

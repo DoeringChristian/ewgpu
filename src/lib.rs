@@ -10,8 +10,8 @@
 //!
 //! An example of how to render to a image:
 //!```rust
-//! use wgpu_utils::*;
-//! use wgpu_utils::mesh::*;
+//! use ewgpu::*;
+//! use ewgpu::mesh::*;
 //!
 //! #[repr(C)]
 //! #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -110,7 +110,7 @@
 #[macro_use]
 extern crate more_asserts;
 
-pub extern crate wgpu_utils_macros;
+pub extern crate ewgpu_macros;
 
 //extern crate nalgebra_glm as glm;
 
@@ -142,7 +142,7 @@ pub use self::uniform::*;
 pub use self::vert::*;
 pub use self::push_constants::*;
 pub use self::shader::*;
-pub use crate::wgpu_utils_macros::*;
+pub use crate::ewgpu_macros::*;
 pub use context::*;
 pub use crate::drawable::*;
 

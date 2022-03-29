@@ -176,7 +176,7 @@ macro_rules! push_constant_ranges{
 /// TODO: find way to use with and without visibility qualifier.
 ///
 /// ```rust
-/// use wgpu_utils::*;
+/// use ewgpu::*;
 /// Framework::new(|gpu|{
 ///     let layout = pipeline_layout!(&gpu.device,
 ///         bind_groups: {

@@ -1,4 +1,4 @@
-use wgpu_utils::*;
+use ewgpu::*;
 
 #[test]
 fn push_const_compute(){

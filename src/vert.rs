@@ -1,5 +1,5 @@
 use super::buffer::*;
-use wgpu_utils_macros::Vert;
+use ewgpu_macros::Vert;
 use super::pipeline;
 use std::ops::Range;
 

@@ -4,7 +4,7 @@ use crate::*;
 
 ///
 /// ```rust
-/// use wgpu_utils::*;
+/// use ewgpu::*;
 ///
 /// let instance = wgpu::Instance::new(wgpu::Backends::all());
 ///
