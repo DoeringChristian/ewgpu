@@ -300,11 +300,12 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         }
     }
 
-    pub fn set_vertex_buffer(&mut self, index: u32, buffer_slice: wgpu::BufferSlice<'rp>){
+    pub fn set_vertex_buffer<T: bytemuck::Pod>(&mut self, index: u32, buffer_slice: BufferSlice<'rp, T>){
         self.render_pass.render_pass.set_vertex_buffer(
             index,
-            buffer_slice
+            buffer_slice.slice
         );
+        // TODO: evaluate weather this is a good idea.
         self.vert_buffer_index = index + 1;
     }
 
@@ -316,8 +317,8 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         self.vert_buffer_index += 1;
     }
 
-    pub fn set_index_buffer(&mut self, buffer_slice: wgpu::BufferSlice<'rp>, format: wgpu::IndexFormat){
-        self.render_pass.render_pass.set_index_buffer(buffer_slice, format);
+    pub fn set_index_buffer<T: bytemuck::Pod>(&mut self, buffer_slice: BufferSlice<'rp, T>, format: wgpu::IndexFormat){
+        self.render_pass.render_pass.set_index_buffer(buffer_slice.slice, format);
     }
 
 

@@ -14,7 +14,7 @@ use super::binding;
 /// TODO: maybe imlement a BufferSliceMut
 pub struct BufferSlice<'bs, C: bytemuck::Pod>{
     buffer: &'bs Buffer<C>,
-    slice: wgpu::BufferSlice<'bs>,
+    pub(crate) slice: wgpu::BufferSlice<'bs>,
     offset: wgpu::BufferAddress,
     len: wgpu::BufferAddress,
 }

@@ -29,7 +29,3 @@ imgui-winit-support = {version = "*", default-features = false, features = ["win
 
 wgpu_utils_macros = {path = "macros"}
 
-
-[[example]]
-name = "wireframe"
-test = true
