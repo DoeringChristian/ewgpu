@@ -2,6 +2,8 @@
 name = "ewgpu_macros"
 version = "0.1.0"
 edition = "2021"
+description = "Derive macros for ewgpu."
+license = "MIT"
 
 [lib]
 proc_macro = true
