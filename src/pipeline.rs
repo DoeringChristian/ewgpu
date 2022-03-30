@@ -519,71 +519,97 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
         }
     }
 
+    #[inline]
     pub fn set_primitive(mut self, primitive: wgpu::PrimitiveState) -> Self{
         self.primitive = primitive;
         self
     }
 
+    #[inline]
     pub fn set_topology(mut self, topology: wgpu::PrimitiveTopology) -> Self{
         self.primitive.topology = topology;
         self
     }
 
+    #[inline]
     pub fn set_strip_index_format(mut self, format: Option<wgpu::IndexFormat>) -> Self{
         self.primitive.strip_index_format = format;
         self
     }
 
+    #[inline]
     pub fn set_front_face(mut self, front_face: wgpu::FrontFace) -> Self{
         self.primitive.front_face = front_face;
         self
     }
 
+    #[inline]
     pub fn set_cull_mode(mut self, cull_mode: Option<wgpu::Face>) -> Self{
         self.primitive.cull_mode = cull_mode;
         self
     }
 
+    #[inline]
     pub fn set_polygon_mode(mut self, mode: wgpu::PolygonMode) -> Self{
         self.primitive.polygon_mode = mode;
         self
     }
 
+    #[inline]
     pub fn set_unclipped_depth(mut self, unclipped_depth: bool) -> Self{
         self.primitive.unclipped_depth = unclipped_depth;
         self
     }
 
+    #[inline]
     pub fn set_conservative(mut self, conservative: bool) -> Self{
         self.primitive.conservative = conservative;
         self
     }
 
+    #[inline]
+    pub fn set_depth_stencil_less32(mut self) -> Self{
+        self.depth_stencil = Some(wgpu::DepthStencilState{
+            format: wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        });
+        self
+    }
+
+    #[inline]
     pub fn set_depth_stencil(mut self, depth_stencil: Option<wgpu::DepthStencilState>) -> Self{
         self.depth_stencil = depth_stencil;
         self
     }
 
+    #[inline]
     pub fn set_multisample(mut self, multisample: wgpu::MultisampleState) -> Self{
         self.multisample = multisample;
         self
     }
 
+    #[inline]
     pub fn set_multiview(mut self, multiview: Option<NonZeroU32>) -> Self{
         self.multiview = multiview;
         self
     }
 
+    #[inline]
     pub fn push_vert_layout(mut self, vertex_buffer_layout: wgpu::VertexBufferLayout<'rpb>) -> Self{
         self.vertex = self.vertex.push_vert_layout(vertex_buffer_layout);
         self
     }
 
+    #[inline]
     pub fn push_vert_layouts(mut self, vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'rpb>>) -> Self{
         self.vertex = self.vertex.push_vert_layouts(vertex_buffer_layouts);
         self
     }
 
+    #[inline]
     pub fn push_drawable_layouts<D: Drawable>(self) -> Self{
         self.push_vert_layouts(D::create_vert_buffer_layouts())
     }
@@ -593,6 +619,7 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
     ///
     /// Has to be pushed in the same order as their corresponding color attachements.
     ///
+    #[inline]
     pub fn push_target_replace(mut self, format: wgpu::TextureFormat) -> Self{
         self.fragment = self.fragment.push_target_replace(format);
         self
@@ -603,26 +630,31 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
     ///
     /// Has to be pushed in the same order as their corresponding color attachements.
     ///
+    #[inline]
     pub fn push_target(mut self, color_target_state: wgpu::ColorTargetState) -> Self{
         self.fragment.targets.push(color_target_state);
         self
     }
 
+    #[inline]
     pub fn set_layout(mut self, layout: &'rpb PipelineLayout) -> Self{
         self.layout = Some(layout);
         self
     }
 
+    #[inline]
     pub fn set_label(mut self, label: wgpu::Label<'rpb>) -> Self{
         self.label = label;
         self
     }
 
+    #[inline]
     pub fn vert_entry_point(mut self, entry_point: &'rpb str) -> Self{
         self.vertex.entry_point = entry_point;
         self
     }
 
+    #[inline]
     pub fn frag_entry_point(mut self, entry_point: &'rpb str) -> Self{
         self.fragment.entry_point = entry_point;
         self
