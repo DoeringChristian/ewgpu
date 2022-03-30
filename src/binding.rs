@@ -123,7 +123,15 @@ impl<'l> BindGroupBuilder<'l>{
     }
 }
 
+pub trait IntoBindGroup: BindGroupContent + Sized{
+    fn into_bind_group(self, device: &wgpu::Device) -> BindGroup<Self>;
+}
 
+impl<C: BindGroupContent> IntoBindGroup for C{
+    fn into_bind_group(self, device: &wgpu::Device) -> BindGroup<Self> {
+        BindGroup::new(self, device)
+    }
+}
 
 pub trait BindGroupContent{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
