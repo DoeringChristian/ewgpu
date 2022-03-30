@@ -1,4 +1,5 @@
 use super::buffer::*;
+use ewgpu_macros::make_vert;
 use ewgpu_macros::Vert;
 use super::pipeline;
 use std::ops::Range;
@@ -69,8 +70,9 @@ pub trait VertLayout: bytemuck::Pod + bytemuck::Zeroable + Copy + Clone {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Default, bytemuck::Zeroable, bytemuck::Pod)]
-#[derive(Vert)]
+//#[derive(Copy, Clone, Debug, Default)]
+//#[derive(Vert, bytemuck::Pod, bytemuck::Zeroable)]
+#[make_vert]
 pub struct Vert2 {
     #[location = 0]
     pub pos: [f32; 2],

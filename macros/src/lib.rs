@@ -9,10 +9,72 @@ use bind_group_content::*;
 use pipeline_layout::*;
 
 ///
+/// An attribute macro for deriving Copy, Clone, bytemuck::Zeroable, bytemuck::Pod, Vert
+///
+/// ```
+/// #[make_vert]
+/// struct Vert{
+///     #[location = 0]
+///     pub uint8: u8,
+///     #[location = 1]
+///     pub uint8x2: [u8; 2],
+///     #[location = 2]
+///     pub uint8x4: [u8; 4],
+///     #[location = 3]
+///     pub unorm8x2: [u8; 2],
+///     #[location = 4]
+///     pub unorm8x4: [u8; 2],
+/// }
+///
+/// let layout = Vert::buffer_layout();
+/// ```
+///
+#[proc_macro_attribute]
+pub fn make_vert(_metadata: TokenStream, input: TokenStream) -> TokenStream{
+    let input: proc_macro2::TokenStream = input.into();
+
+    quote::quote!{
+        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Vert)]
+        #input
+    }.into()
+}
+
+///
+/// An attribute macro for deriving Copy, Clone, bytemuck::Zeroable, bytemuck::Pod, Instance
+///
+/// ```
+/// #[derive(Copy, Clone, bytemuck::Zeroable, bytemuck::Pod, Inst)]
+/// struct Inst{
+///     #[location = 0]
+///     pub uint8: u8,
+///     #[location = 1]
+///     pub uint8x2: [u8; 2],
+///     #[location = 2]
+///     pub uint8x4: [u8; 4],
+///     #[location = 3]
+///     pub unorm8x2: [u8; 2],
+///     #[location = 4]
+///     pub unorm8x4: [u8; 2],
+/// }
+///
+/// let layout = Inst::buffer_layout();
+/// ```
+///
+#[proc_macro_attribute]
+pub fn make_inst(_metadata: TokenStream, input: TokenStream) -> TokenStream{
+    let input: proc_macro2::TokenStream = input.into();
+
+    quote::quote!{
+        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Inst)]
+        #input
+    }.into()
+}
+
+///
 /// A Macro for deriving A instance vector from a struct:
 ///
 /// ```
-/// #[derive(Copy, Clone, bytemuck::Zeroable, bytemuck::Pod, Instance)]
+/// #[derive(Copy, Clone, bytemuck::Zeroable, bytemuck::Pod, Inst)]
 /// struct Inst{
 ///     #[location = 0]
 ///     pub uint8: u8,
