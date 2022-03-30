@@ -38,13 +38,6 @@ pub fn generate_bind_group_content(ast: syn::DeriveInput) -> proc_macro2::TokenS
     panic!("Data type not supported");
 }
 
-pub fn field_name(field: &syn::Field) -> String{
-    match field.ident{
-        Some(ref i) => format!("{}", i),
-        None => String::from(""),
-    }
-}
-
 pub fn generate_bind_group_entry(field: &syn::Field) -> proc_macro2::TokenStream{
     let ty = &field.ty;
     quote!{

@@ -1,6 +1,4 @@
 use quote::quote;
-use quote::TokenStreamExt;
-use quote::ToTokens;
 use proc_macro::TokenStream;
 use syn::*;
 use syn::parse::Parse;
@@ -48,7 +46,7 @@ impl Slot{
 
 impl Parse for Slot{
     fn parse(input: parse::ParseStream) -> Result<Self> {
-        let mut name = None;
+        let name;
         let ty;
         let mut vis = None;
 
