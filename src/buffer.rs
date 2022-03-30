@@ -185,6 +185,16 @@ pub struct BufferBuilder<'bb, C: bytemuck::Pod>{
     label: wgpu::Label<'bb>,
 }
 
+impl<'bb, C: bytemuck::Pod> Default for BufferBuilder<'bb, C>{
+    fn default() -> Self {
+        Self{
+            data: Vec::new(),
+            usages: wgpu::BufferUsages::empty(),
+            label: None,
+        }
+    }
+}
+
 impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
     pub fn new() -> Self{
         Self{
@@ -366,6 +376,11 @@ impl<C: bytemuck::Pod> Buffer<C>{
         self.len
     }
 
+    #[inline]
+    pub fn is_empty(&self) -> bool{
+        self.len == 0
+    }
+
     ///
     /// Returns the size of the buffer in bytes.
     ///
@@ -399,7 +414,7 @@ impl<C: bytemuck::Pod> Buffer<C>{
         let end_bound = bounds.end_bound();
 
         let start_bound = match start_bound{
-            Bound::Unbounded => 0 as wgpu::BufferAddress,
+            Bound::Unbounded => 0,
             Bound::Included(offset) => {(offset + 0).max(0)},
             Bound::Excluded(offset) => {(offset + 1).max(0)},
         };
@@ -436,11 +451,12 @@ impl<C: bytemuck::Pod> Buffer<C>{
     }
 
     pub fn resize(&mut self, len: usize, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device){
-        let label = if let Some(string) = &self.label{
-            Some(string.as_str())
-        }
-        else{
-            None
+        // Need to allow manual_map because we cannot use map as it would return a ref to a value
+        // in the closure.
+        #[allow(clippy::manual_map)]
+        let label = match &self.label{
+            Some(string) => Some(string.as_str()),
+            None => None
         };
         let mut tmp_buf = Buffer::<C>::new_empty(device, self.usage, label, len);
         self.slice(..).copy_to_buffer(&mut tmp_buf, 0, encoder);
@@ -454,11 +470,12 @@ impl<C: bytemuck::Pod> Buffer<C>{
     }
 
     pub fn resize_clear(&mut self, len: usize, device: &wgpu::Device){
-        let label = if let Some(string) = &self.label{
-            Some(string.as_str())
-        }
-        else{
-            None
+        // Need to allow manual_map because we cannot use map as it would return a ref to a value
+        // in the closure.
+        #[allow(clippy::manual_map)]
+        let label = match &self.label{
+            Some(string) => Some(string.as_str()),
+            None => None
         };
         *self = Buffer::<C>::new_empty(device, self.usage, label, len);
     }
@@ -476,7 +493,7 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for Buffer<C>{
         }
     }
 
-    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+    fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
             self.as_entire_binding(),
         }

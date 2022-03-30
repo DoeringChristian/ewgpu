@@ -64,6 +64,6 @@ pub fn derive_bind_group_content(tokens: TokenStream) -> TokenStream{
 
 #[proc_macro]
 pub fn pipeline_layout(tokens: TokenStream) -> TokenStream{
-    generate_pipeline_layout(tokens).into()
+    generate_pipeline_layout(tokens)
 }
 

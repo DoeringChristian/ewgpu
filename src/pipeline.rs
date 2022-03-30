@@ -6,7 +6,7 @@ use core::num::NonZeroU32;
 
 #[allow(unused)]
 const DEFAULT_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
-pub const DEFAULT_ENTRY_POINT: &'static str = "main";
+pub const DEFAULT_ENTRY_POINT: &str = "main";
 
 pub trait RenderData{
     fn pipeline_layout() -> PipelineLayout;
@@ -129,7 +129,7 @@ impl PipelineLayout{
             layout: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
                 label,
                 push_constant_ranges: &push_const_ranges,
-                bind_group_layouts: &bind_group_layouts,
+                bind_group_layouts,
             }),
             push_const_ranges,
         }
@@ -137,6 +137,7 @@ impl PipelineLayout{
 }
 
 // TODO: put bind_group_names in Arc
+#[derive(Default)]
 pub struct PipelineLayoutBuilder<'l>{
     bind_group_layouts: Vec<&'l binding::BindGroupLayoutWithDesc>,
     push_const_layouts: Vec<PushConstantLayout>,
@@ -428,6 +429,7 @@ impl<'rp> RenderPass<'rp>{
 ///
 /// A builder for the RenderPass.
 ///
+#[derive(Default)]
 pub struct RenderPassBuilder<'rp>{
     color_attachments: Vec<wgpu::RenderPassColorAttachment<'rp>>,
 }

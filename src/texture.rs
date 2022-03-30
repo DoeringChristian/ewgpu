@@ -163,9 +163,8 @@ pub struct TextureBuilder<'tb>{
     pub label: wgpu::Label<'tb>,
 }
 
-impl<'tb> TextureBuilder<'tb>{
-
-    pub fn new() -> Self{
+impl<'tb> Default for TextureBuilder<'tb>{
+    fn default() -> Self {
         let sampler_descriptor = wgpu::SamplerDescriptor{
                 address_mode_u: wgpu::AddressMode::ClampToEdge,
                 address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -195,6 +194,13 @@ impl<'tb> TextureBuilder<'tb>{
             dimension,
             label: None,
         }
+    }
+}
+
+impl<'tb> TextureBuilder<'tb>{
+
+    pub fn new() -> Self{
+        Self::default()
     }
 
     #[inline]
@@ -442,7 +448,7 @@ impl<'tb> TextureBuilder<'tb>{
 }
 
 impl Texture{
-    pub fn slice<'ts, S: RangeBounds<u32>>(&'ts self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice<'ts>{
+    pub fn slice<S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice{
         let range_x = {
             let start_bound = match bound_x.start_bound(){
                 Bound::Unbounded => 0,
@@ -520,7 +526,7 @@ impl BindGroupContent for Texture{
         }
     }
 
-    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+    fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
             wgpu::BindingResource::TextureView(&self.view),
             wgpu::BindingResource::Sampler(&self.sampler),

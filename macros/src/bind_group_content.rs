@@ -32,7 +32,7 @@ pub fn generate_bind_group_content(ast: syn::DeriveInput) -> proc_macro2::TokenS
             }
         };
 
-        return output.into();
+        return output;
     }
 
     panic!("Data type not supported");

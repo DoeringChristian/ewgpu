@@ -204,13 +204,13 @@ impl<'uwc> Deref for UpdatedWinitContext<'uwc>{
     type Target = WinitContext;
 
     fn deref(&self) -> &Self::Target{
-        &self.winit
+        self.winit
     }
 }
 
 impl<'uwc> DerefMut for UpdatedWinitContext<'uwc>{
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.winit
+        self.winit
     }
 }
 

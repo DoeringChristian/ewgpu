@@ -29,7 +29,7 @@ pub fn generate_instance(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 }
             }
         };
-        return output.into();
+        return output;
     }
     panic!("Data type not supported");
 }
@@ -63,7 +63,7 @@ pub fn generate_vert(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 }
             }
         };
-        return output.into();
+        return output;
     }
     panic!("Data type not supported");
 }
@@ -74,7 +74,7 @@ pub fn generate_vertex_attributes(field: &syn::Field) -> proc_macro2::TokenStrea
         None => String::from(""),
     };
 
-    let location_attr = field.attrs.iter().filter(|x| x.path.is_ident("location")).next().unwrap_or_else(|| panic!("Field {} has no location attribute", field_name));
+    let location_attr = field.attrs.iter().find(|x| x.path.is_ident("location")).unwrap_or_else(|| panic!("Field {} has no location attribute", field_name));
 
     let meta = location_attr.parse_meta().unwrap_or_else(|_| panic!("Field {} does not have a attribute that conforms to structured format.", field_name));
 
@@ -89,10 +89,7 @@ pub fn generate_vertex_attributes(field: &syn::Field) -> proc_macro2::TokenStrea
         _ => panic!("Field {} location attribute value must be a string literal", field_name),
     };
 
-    let norm_attr = match field.attrs.iter().filter(|x| x.path.is_ident("norm")).next(){
-        Some(_) => true,
-        None => false,
-    };
+    let norm_attr = field.attrs.iter().any(|x| x.path.is_ident("norm"));
 
     let format = format(field, norm_attr);
 

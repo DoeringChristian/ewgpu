@@ -12,15 +12,15 @@ pub trait CreateBindGroup: CreateBindGroupLayout{
 }
 
 pub trait GetBindGroupLayout{
-    fn get_bind_group_layout<'l>(&'l self) -> &'l BindGroupLayoutWithDesc;
+    fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc;
 }
 
 pub trait GetBindGroup{
-    fn get_bind_group<'l>(&'l self) -> &'l wgpu::BindGroup;
+    fn get_bind_group(&self) -> &wgpu::BindGroup;
 }
 
 impl GetBindGroup for wgpu::BindGroup{
-    fn get_bind_group<'l>(&'l self) -> &'l wgpu::BindGroup {
+    fn get_bind_group(&self) -> &wgpu::BindGroup {
         self
     }
 }
@@ -47,6 +47,7 @@ impl BindGroupLayoutEntry{
     }
 }
 
+#[derive(Default)]
 pub struct BindGroupLayoutBuilder{
     entries: Vec<BindGroupLayoutEntry>,
 }
@@ -135,7 +136,7 @@ impl<C: BindGroupContent> IntoBindGroup for C{
 
 pub trait BindGroupContent{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
-    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>>;
+    fn resources(&self) -> Vec<wgpu::BindingResource>;
 }
 
 // TODO: Derive macro for BindGroupContent.
@@ -191,7 +192,7 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
         ret
     }
 
-    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+    fn resources(&self) -> Vec<wgpu::BindingResource> {
         let mut ret = Vec::with_capacity(N);
         for content in self{
             ret.append(&mut content.resources());
@@ -274,13 +275,13 @@ impl<C: BindGroupContent> DerefMut for BindGroup<C>{
 }
 
 impl<C: BindGroupContent> GetBindGroupLayout for BindGroup<C>{
-    fn get_bind_group_layout<'l>(&'l self) -> &'l BindGroupLayoutWithDesc {
+    fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc {
         &self.bind_group_layout
     }
 }
 
 impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
-    fn get_bind_group<'l>(&'l self) -> &'l wgpu::BindGroup {
+    fn get_bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
     }
 }

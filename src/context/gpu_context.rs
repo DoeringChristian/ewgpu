@@ -31,8 +31,8 @@ pub struct GPUContextBuilder<'gcb>{
     pub(crate) backends: wgpu::Backends,
 }
 
-impl<'gcb> GPUContextBuilder<'gcb>{
-    pub fn new() -> Self{
+impl<'gcb> Default for GPUContextBuilder<'gcb>{
+    fn default() -> Self {
         let request_adapter_options = wgpu::RequestAdapterOptions{
             power_preference: wgpu::PowerPreference::default(),
             compatible_surface: None,
@@ -49,6 +49,12 @@ impl<'gcb> GPUContextBuilder<'gcb>{
             device_descriptor,
             backends,
         }
+    }
+}
+
+impl<'gcb> GPUContextBuilder<'gcb>{
+    pub fn new() -> Self{
+        Self::default()
     }
 
     pub fn set_device_descriptor(mut self, device_descriptor: wgpu::DeviceDescriptor<'gcb>) -> Self{

@@ -116,7 +116,7 @@ impl<S: 'static> ImguiFramework<S>
                 Event::WindowEvent{
                     ref event,
                     window_id,
-                } if window_id == self.winit.window.id() => if !event_cb(&mut self.state, &mut self.winit, &mut self.imgui, &event){
+                } if window_id == self.winit.window.id() => if !event_cb(&mut self.state, &mut self.winit, &mut self.imgui, event){
                     match event{
                         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                         WindowEvent::Resized(physical_size) => {

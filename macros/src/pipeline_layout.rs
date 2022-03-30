@@ -148,10 +148,8 @@ impl Parse for PipelineLayout{
                 push_constants = Some(input.parse()?);
             }
         }
-        else{
-            if bind_groups.is_none(){
-                bind_groups = Some(input.parse()?);
-            }
+        else if bind_groups.is_none(){
+            bind_groups = Some(input.parse()?);
         }
 
         if input.peek(Token!(,)){
@@ -174,10 +172,8 @@ impl Parse for PipelineLayout{
                 push_constants = Some(input.parse()?);
             }
         }
-        else{
-            if push_constants.is_none(){
-                push_constants = Some(input.parse()?);
-            }
+        else if push_constants.is_none(){
+            push_constants = Some(input.parse()?);
         }
         if input.peek(Token!(,)){
             let _c: Token!(,) = input.parse()?;

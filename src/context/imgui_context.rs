@@ -110,7 +110,7 @@ impl ImguiContext{
     }
 
     pub fn handle_events(&mut self, winit: &WinitContext, event: &Event<()>) -> UpdatedImguiContext{
-            self.platform.handle_event(self.context.io_mut(), &winit.window, &event);
+            self.platform.handle_event(self.context.io_mut(), &winit.window, event);
             UpdatedImguiContext{
                 imgui: self
             }
@@ -202,12 +202,12 @@ impl<'uic> Deref for UpdatedImguiContext<'uic>{
     type Target = ImguiContext;
 
     fn deref(&self) -> &Self::Target {
-        &self.imgui
+        self.imgui
     }
 }
 
 impl<'uic> DerefMut for UpdatedImguiContext<'uic>{
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.imgui
+        self.imgui
     }
 }

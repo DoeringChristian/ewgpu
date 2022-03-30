@@ -77,7 +77,7 @@ pub struct UniformVec<C: bytemuck::Pod>{
 impl<C: bytemuck::Pod> UniformVec<C>{
     fn name() -> &'static str{
         let type_name = std::any::type_name::<C>();
-        let pos = type_name.rfind(':').unwrap_or_else(||{0});
+        let pos = type_name.rfind(':').unwrap_or(0);
         &type_name[(pos + 1)..]
     }
 
@@ -121,7 +121,7 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for UniformVec<C>{
         }
     }
 
-    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+    fn resources(& self) -> Vec<wgpu::BindingResource> {
         vec!{
             self.buffer.as_entire_binding(),
         }
@@ -157,7 +157,7 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
         }
     }
 
-    fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>> {
+    fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
             self.uniform_vec.buffer.as_entire_binding(),
         }
@@ -180,7 +180,7 @@ impl <C: bytemuck::Pod> UniformBindGroup<C>{
 }
 
 impl<C: bytemuck::Pod> binding::GetBindGroup for UniformBindGroup<C>{
-    fn get_bind_group<'l>(&'l self) -> &'l wgpu::BindGroup {
+    fn get_bind_group(&self) -> &wgpu::BindGroup {
         self.bind_group.get_bind_group()
     }
 }
