@@ -197,11 +197,113 @@ impl<'tb> TextureBuilder<'tb>{
         }
     }
 
+    #[inline]
+    pub fn dimension(mut self, dimension: wgpu::TextureDimension) -> Self{
+        self.dimension = dimension;
+        self
+    }
+
+    #[inline]
     pub fn format(mut self, format: wgpu::TextureFormat) -> Self{
         self.format = format;
         self
     }
 
+    #[inline]
+    pub fn usage(mut self, usage: wgpu::TextureUsages) -> Self{
+        self.usage = usage;
+        self
+    }
+
+    #[inline]
+    pub fn set_sampler_descriptor(mut self, sampler_descriptor: wgpu::SamplerDescriptor<'tb>) -> Self{
+        self.sampler_descriptor = sampler_descriptor;
+        self
+    }
+
+    #[inline]
+    pub fn set_address_modes(mut self, u: wgpu::AddressMode, v: wgpu::AddressMode, w: wgpu::AddressMode) -> Self{
+        self.sampler_descriptor.address_mode_u = u;
+        self.sampler_descriptor.address_mode_v = v;
+        self.sampler_descriptor.address_mode_w = w;
+        self
+    }
+
+    #[inline]
+    pub fn set_address_mode_u(mut self, u: wgpu::AddressMode) -> Self{
+        self.sampler_descriptor.address_mode_u = u;
+        self
+    }
+
+    #[inline]
+    pub fn set_address_mode_v(mut self, v: wgpu::AddressMode) -> Self{
+        self.sampler_descriptor.address_mode_v = v;
+        self
+    }
+
+    #[inline]
+    pub fn set_address_mode_w(mut self, w: wgpu::AddressMode) -> Self{
+        self.sampler_descriptor.address_mode_w = w;
+        self
+    }
+
+    #[inline]
+    pub fn set_filters(mut self, mag: wgpu::FilterMode, min: wgpu::FilterMode, mipmap: wgpu::FilterMode) -> Self{
+        self.sampler_descriptor.mag_filter = mag;
+        self.sampler_descriptor.min_filter = min;
+        self.sampler_descriptor.mipmap_filter = mipmap;
+        self
+    }
+
+    #[inline]
+    pub fn set_filter_mag(mut self, mag: wgpu::FilterMode) -> Self{
+        self.sampler_descriptor.mag_filter = mag;
+        self
+    }
+
+    #[inline]
+    pub fn set_filter_min(mut self, min: wgpu::FilterMode) -> Self{
+        self.sampler_descriptor.min_filter = min;
+        self
+    }
+
+    #[inline]
+    pub fn set_filter_mipmap(mut self, mipmap: wgpu::FilterMode) -> Self{
+        self.sampler_descriptor.mipmap_filter = mipmap;
+        self
+    }
+
+    #[inline]
+    pub fn set_lod_min_clamp(mut self, lod_min_clamp: f32) -> Self{
+        self.sampler_descriptor.lod_min_clamp = lod_min_clamp;
+        self
+    }
+
+    #[inline]
+    pub fn set_lod_max_clamp(mut self, lod_max_clamp: f32) -> Self{
+        self.sampler_descriptor.lod_max_clamp = lod_max_clamp;
+        self
+    }
+
+    #[inline]
+    pub fn set_compare(mut self, compare: Option<wgpu::CompareFunction>) -> Self{
+        self.sampler_descriptor.compare = compare;
+        self
+    }
+
+    #[inline]
+    pub fn set_anisotropy_clamp(mut self, anisotropy_clamp: Option<std::num::NonZeroU8>) -> Self{
+        self.sampler_descriptor.anisotropy_clamp = anisotropy_clamp;
+        self
+    }
+
+    #[inline]
+    pub fn set_border_color(mut self, border_color: Option<wgpu::SamplerBorderColor>) -> Self{
+        self.sampler_descriptor.border_color = border_color;
+        self
+    }
+
+    #[inline]
     pub fn from_raw(mut self, data: Vec<u8>, size: wgpu::Extent3d) -> Self{
         self.data = Some(data);
         self.size = size;
@@ -289,6 +391,36 @@ impl<'tb> TextureBuilder<'tb>{
                 self.size,
             );
         }
+
+        Texture{
+            texture,
+            view,
+            sampler,
+            format: self.format,
+            size: self.size,
+        }
+    }
+
+    pub fn build_empty(&mut self, device: &wgpu::Device) -> Texture{
+        let texture = device.create_texture(
+            &wgpu::TextureDescriptor{
+                label: self.label,
+                size: self.size,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: self.format,
+                usage: self.usage
+            }
+        );
+        let texture_view_desc = wgpu::TextureViewDescriptor{
+            format: Some(self.format),
+            ..Default::default()
+        };
+        let view = texture.create_view(&texture_view_desc);
+        let sampler = device.create_sampler(
+            &self.sampler_descriptor
+        );
 
         Texture{
             texture,
