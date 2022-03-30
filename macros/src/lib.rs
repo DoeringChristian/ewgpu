@@ -2,9 +2,11 @@ use proc_macro::{self, TokenStream};
 
 mod vertex;
 mod bind_group_content;
+mod pipeline_layout;
 
 use vertex::*;
 use bind_group_content::*;
+use pipeline_layout::*;
 
 ///
 /// A Macro for deriving A instance vector from a struct:
@@ -58,5 +60,10 @@ pub fn derive_bind_group_content(tokens: TokenStream) -> TokenStream{
     let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
 
     generate_bind_group_content(ast).into()
+}
+
+#[proc_macro]
+pub fn pipeline_layout(tokens: TokenStream) -> TokenStream{
+    generate_pipeline_layout(tokens).into()
 }
 
