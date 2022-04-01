@@ -206,21 +206,21 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         );
     }
 
-    pub fn set_push_const<C: PushConstant>(&mut self, index: u32, constant: &C){
-        self.render_pass.render_pass.set_push_constants(
-            self.pipeline.push_const_ranges[index as usize].stages, 
-            self.pipeline.push_const_ranges[index as usize].range.start,
-            bytemuck::bytes_of(constant));
-    }
-
     pub fn set_bind_groups(&mut self, bind_groups: &[&'rp wgpu::BindGroup]){
         for (i, bind_group) in bind_groups.iter().enumerate(){
             self.render_pass.render_pass.set_bind_group(
                 i as u32,
-                bind_group,
-                &[],
-            )
+                &bind_group,
+                &[]
+            );
         }
+    }
+
+    pub fn set_push_const<C: PushConstant>(&mut self, index: usize, constant: &C){
+        self.render_pass.render_pass.set_push_constants(
+            self.pipeline.push_const_ranges[index].stages, 
+            self.pipeline.push_const_ranges[index].range.start,
+            bytemuck::bytes_of(constant));
     }
 
     pub fn set_vertex_buffer<T: VertLayout>(&mut self, index: u32, buffer_slice: BufferSlice<'rp, T>){
@@ -228,10 +228,6 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
             index,
             buffer_slice.slice
         );
-    }
-
-    pub fn set_index_buffern<T: bytemuck::Pod>(&mut self, buffer_slice: BufferSlice<'rp, T>, format: wgpu::IndexFormat){
-        self.render_pass.render_pass.set_index_buffer(buffer_slice.slice, format);
     }
 
     pub fn set_index_buffer(&mut self, buffer_slice: BufferSlice<'rp, u32>){
@@ -243,11 +239,18 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
     }
 
     pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>){
-        self.render_pass.render_pass.draw(vertices, instances);
+        self.render_pass.render_pass.draw(
+            vertices.start..vertices.end,
+            instances.start..instances.end
+        );
     }
 
     pub fn draw_indexed(&mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
-        self.render_pass.render_pass.draw_indexed(indices, base_vertex, instances);
+        self.render_pass.render_pass.draw_indexed(
+            indices.start..indices.end, 
+            base_vertex, 
+            instances.start..instances.end
+        );
     }
 
     pub fn set_pipeline(&'rpr mut self, pipeline: &'rp RenderPipeline) -> Self{

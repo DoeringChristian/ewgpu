@@ -1,6 +1,3 @@
-use ewgpu_macros::make_vert;
-use ewgpu_macros::Vert;
-
 pub trait VertLayout: bytemuck::Pod + bytemuck::Zeroable + Copy + Clone {
     fn buffer_layout() -> wgpu::VertexBufferLayout<'static>;
 }
@@ -8,7 +5,6 @@ pub trait VertLayout: bytemuck::Pod + bytemuck::Zeroable + Copy + Clone {
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use crate::vert::Vert;
 
     #[repr(C)]
     #[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
