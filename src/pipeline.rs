@@ -246,10 +246,17 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         self.vert_buffer_index += 1;
     }
 
-    pub fn set_index_buffer<T: bytemuck::Pod>(&mut self, buffer_slice: BufferSlice<'rp, T>, format: wgpu::IndexFormat){
+    pub fn set_index_buffern<T: bytemuck::Pod>(&mut self, buffer_slice: BufferSlice<'rp, T>, format: wgpu::IndexFormat){
         self.render_pass.render_pass.set_index_buffer(buffer_slice.slice, format);
     }
 
+    pub fn set_index_buffer(&mut self, buffer_slice: BufferSlice<'rp, u32>){
+        self.render_pass.render_pass.set_index_buffer(buffer_slice.slice, wgpu::IndexFormat::Uint32);
+    }
+
+    pub fn set_index_buffer16(&mut self, buffer_slice: BufferSlice<'rp, u16>){
+        self.render_pass.render_pass.set_index_buffer(buffer_slice.slice, wgpu::IndexFormat::Uint16);
+    }
 
     pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>){
         self.render_pass.render_pass.draw(vertices, instances);

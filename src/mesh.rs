@@ -67,7 +67,7 @@ impl<V: VertBuffers> Drawable for NMesh<V>{
     }
     fn draw_indexed<'rp>(&'rp self, render_pass: &'_ mut pipeline::RenderPassPipeline<'rp, '_>, range: Range<u32>) {
         self.buffers.push_vertex_buffers_to(render_pass);
-        render_pass.set_index_buffer(self.idx_buffer.slice(..), wgpu::IndexFormat::Uint32);
+        render_pass.set_index_buffer(self.idx_buffer.slice(..));
 
         render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, range);
     }
@@ -108,7 +108,7 @@ impl<VB: VertBuffers, IB: VertBuffers> Drawable for NIMesh<VB, IB>{
         self.vert_buffers.push_vertex_buffers_to(render_pass);
         self.inst_buffers.push_vertex_buffers_to(render_pass);
 
-        render_pass.set_index_buffer(self.idx_buffer.slice(..), wgpu::IndexFormat::Uint32);
+        render_pass.set_index_buffer(self.idx_buffer.slice(..));
 
         render_pass.draw_indexed(0..self.idx_buffer.len() as u32, 0, range);
     }
