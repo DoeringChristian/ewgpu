@@ -11,7 +11,36 @@
 //! An example of how to render to a image:
 //!```rust
 //! use ewgpu::*;
-//! use ewgpu::mesh::*;
+//!
+//! #[repr(C)]
+//! #[make_vert]
+//! struct Vert2{
+//!     #[location = 0]
+//!     pub pos: [f32; 2],
+//!     #[location = 1]
+//!     pub uv: [f32; 2],
+//! }
+//!
+//! pub const QUAD_IDXS: [u32; 6] = [0, 1, 2, 2, 3, 0];
+//!
+//! pub const QUAD_VERTS: [Vert2; 4] = [
+//!     Vert2 {
+//!         pos: [-1.0, -1.0],
+//!         uv: [0.0, 1.0],
+//!     },
+//!     Vert2 {
+//!         pos: [1.0, -1.0],
+//!         uv: [1.0, 1.0],
+//!     },
+//!     Vert2 {
+//!         pos: [1.0, 1.0],
+//!         uv: [1.0, 0.0],
+//!     },
+//!     Vert2 {
+//!         pos: [-1.0, 1.0],
+//!         uv: [0.0, 0.0],
+//!     },
+//! ];
 //!
 //! #[repr(C)]
 //! #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -32,8 +61,16 @@
 //!     })
 //!     .build();
 //!
-//! let mesh = Mesh::<Vert2>::new(&gpu.device, &Vert2::QUAD_VERTS,
-//! &Vert2::QUAD_IDXS).unwrap();
+//! let indices = BufferBuilder::new()
+//!     .index()
+//!     .append_slice(&QUAD_IDXS)
+//!     .build(&gpu.device);
+//!
+//! let vertices = BufferBuilder::new()
+//!     .vertex()
+//!     .append_slice(&QUAD_VERTS)
+//!     .build(&gpu.device);
+//!
 //!
 //! let vshader = VertexShader::from_src(&gpu.device, "
 //! #version 460
@@ -83,7 +120,7 @@
 //! );
 //!
 //! let pipeline = RenderPipelineBuilder::new(&vshader, &fshader)
-//!     .push_drawable_layouts::<Mesh<Vert2>>()
+//!     .push_vert_layout(Vert2::buffer_layout())
 //!     .push_target_replace(wgpu::TextureFormat::Rgba8Unorm)
 //!     .set_layout(&layout)
 //!     .build(&gpu.device);
@@ -100,8 +137,9 @@
 //!     };
 //!
 //!     rpass_ppl.set_push_const(0, &consts);
-//!
-//!     mesh.draw(&mut rpass_ppl);
+//!     rpass_ppl.set_vertex_buffer(0, vertices.slice(..));
+//!     rpass_ppl.set_index_buffer(indices.slice(..));
+//!     rpass_ppl.draw_indexed(0..(indices.len() as u32), 0, 0..1);
 //! });
 //!
 //!```
@@ -116,8 +154,6 @@ pub extern crate ewgpu_macros;
 
 pub mod binding;
 pub mod buffer;
-pub mod framework;
-pub mod mesh;
 pub mod pipeline;
 pub mod render_target;
 pub mod texture;
@@ -133,7 +169,6 @@ mod utils;
 
 pub use self::binding::*;
 pub use self::buffer::*;
-pub use self::framework::*;
 //pub use self::mesh::*;
 pub use self::pipeline::*;
 pub use self::render_target::*;

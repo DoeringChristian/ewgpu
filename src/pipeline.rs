@@ -8,11 +8,6 @@ use core::num::NonZeroU32;
 const DEFAULT_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 pub const DEFAULT_ENTRY_POINT: &str = "main";
 
-pub trait RenderData{
-    fn pipeline_layout() -> PipelineLayout;
-    fn set_bind_groups(&self, render_pass_pipeline: &mut RenderPassPipeline);
-}
-
 ///
 /// A struct representing a FragmentState.
 ///
@@ -200,7 +195,6 @@ impl<'l> PipelineLayoutBuilder<'l>{
 pub struct RenderPassPipeline<'rp, 'rpr>{
     pub render_pass: &'rpr mut RenderPass<'rp>,
     pub pipeline: &'rp RenderPipeline,
-    vert_buffer_index: u32,
 }
 
 impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
@@ -229,21 +223,11 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         }
     }
 
-    pub fn set_vertex_buffer<T: bytemuck::Pod>(&mut self, index: u32, buffer_slice: BufferSlice<'rp, T>){
+    pub fn set_vertex_buffer<T: VertLayout>(&mut self, index: u32, buffer_slice: BufferSlice<'rp, T>){
         self.render_pass.render_pass.set_vertex_buffer(
             index,
             buffer_slice.slice
         );
-        // TODO: evaluate weather this is a good idea.
-        self.vert_buffer_index = index + 1;
-    }
-
-    pub fn push_vertex_buffer(&mut self, buffer_slice: wgpu::BufferSlice<'rp>){
-        self.render_pass.render_pass.set_vertex_buffer(
-            self.vert_buffer_index,
-            buffer_slice
-        );
-        self.vert_buffer_index += 1;
     }
 
     pub fn set_index_buffern<T: bytemuck::Pod>(&mut self, buffer_slice: BufferSlice<'rp, T>, format: wgpu::IndexFormat){
@@ -271,7 +255,6 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         Self{
             render_pass: self.render_pass,
             pipeline,
-            vert_buffer_index: 0,
         }
     }
 }
@@ -421,7 +404,6 @@ impl<'rp> RenderPass<'rp>{
         RenderPassPipeline{
             render_pass: self,
             pipeline,
-            vert_buffer_index: 0,
         }
     }
 
