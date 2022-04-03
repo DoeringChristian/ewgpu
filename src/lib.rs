@@ -63,13 +63,11 @@
 //!
 //! let indices = BufferBuilder::new()
 //!     .index()
-//!     .append_slice(&QUAD_IDXS)
-//!     .build(&gpu.device);
+//!     .build(&gpu.device, &QUAD_IDXS);
 //!
 //! let vertices = BufferBuilder::new()
 //!     .vertex()
-//!     .append_slice(&QUAD_VERTS)
-//!     .build(&gpu.device);
+//!     .build(&gpu.device, &QUAD_VERTS);
 //!
 //!
 //! let vshader = VertexShader::from_src(&gpu.device, "

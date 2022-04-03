@@ -7,10 +7,6 @@ pub trait CreateBindGroupLayout{
     fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc;
 }
 
-pub trait CreateBindGroup: CreateBindGroupLayout{
-    fn create_bind_group(&self, device: &wgpu::Device, layout: &BindGroupLayoutWithDesc, label: Option<&str>) -> wgpu::BindGroup;
-}
-
 pub trait GetBindGroupLayout{
     fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc;
 }

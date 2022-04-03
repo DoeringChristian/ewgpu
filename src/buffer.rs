@@ -10,8 +10,8 @@ use super::binding;
 
 /// 
 /// A wrapper for the wgpu::BufferSlice but with its data exposed.
+/// This can be used to either copy to another buffer or read/write from/to it.
 ///
-/// TODO: maybe imlement a BufferSliceMut
 pub struct BufferSlice<'bs, C: bytemuck::Pod>{
     buffer: &'bs Buffer<C>,
     pub(crate) slice: wgpu::BufferSlice<'bs>,
@@ -126,14 +126,12 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     ///
     /// let buffer1 = BufferBuilder::<u64>::new()
     ///                 .read().write().copy_src()
-    ///                 .append_slice(&[0, 1, 2, 3])
     ///                 .set_label(Some("buffer1"))
-    ///                 .build(&gpu.device);
+    ///                 .build(&gpu.device, &[0, 1, 2, 3]);
     /// let mut buffer2 = BufferBuilder::<u64>::new()
     ///                 .read().write().copy_dst()
-    ///                 .append_slice(&[0, 0, 0, 0])
     ///                 .set_label(Some("buffer2"))
-    ///                 .build(&gpu.device);
+    ///                 .build(&gpu.device, &[0, 0, 0, 0]);
     ///
     /// gpu.encode(|gpu, encoder|{
     ///     buffer1.slice(..).copy_to_buffer(&mut buffer2, 1, encoder);
@@ -170,114 +168,151 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
 /// in a misalignment.
 ///
 /// Example: 
-/// ```ignore 
+/// ```
+/// # use ewgpu::*;
+/// # let gpu = GPUContextBuilder::new()
+/// #   .set_features_util()
+/// #   .build();
+///
 /// let buffer = BufferBuilder::new()
 ///     .uniform().copy_dst()
-///     .append_slice([0, 1, 2, 3])
-///     .selt_label(Some("buffer"))
-///     .build(device);
+///     .set_label(Some("buffer"))
+///     .build(&gpu.device, &[0, 1, 2, 3]);
 ///
 /// ```
 ///
 pub struct BufferBuilder<'bb, C: bytemuck::Pod>{
-    data: Vec<C>,
     usages: wgpu::BufferUsages,
     label: wgpu::Label<'bb>,
+    _ty: PhantomData<C>,
 }
 
 impl<'bb, C: bytemuck::Pod> Default for BufferBuilder<'bb, C>{
     fn default() -> Self {
         Self{
-            data: Vec::new(),
             usages: wgpu::BufferUsages::empty(),
             label: None,
+            _ty: PhantomData,
         }
     }
 }
 
 impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
+    ///
+    /// Create a new BufferBuilder
+    /// wit emtpy buffer Usages and None as label.
+    ///
     pub fn new() -> Self{
         Self{
-            data: Vec::new(),
             usages: wgpu::BufferUsages::empty(),
             label: None,
+            _ty: PhantomData,
         }
     }
 
-    pub fn append_data(mut self, mut data: Vec<C>) -> Self{
-        self.data.append(&mut data);
-        self
-    }
-
-    pub fn append_slice(mut self, data: &[C]) -> Self{
-        self.data.extend_from_slice(data);
-        self
-    }
-
+    ///
+    /// Set the VERTEX usage.
+    ///
     #[inline]
     pub fn vertex(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::VERTEX;
         self
     }
+    ///
+    /// Set the INDEX usage.
+    ///
     #[inline]
     pub fn index(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::INDEX;
         self
     }
+    ///
+    /// Set the STORAGE usage.
+    ///
     #[inline]
     pub fn storage(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::STORAGE;
         self
     }
+    ///
+    /// Set the UNIFORM usage.
+    ///
     #[inline]
     pub fn uniform(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::UNIFORM;
         self
     }
+    ///
+    /// Set the COPY_DST usage.
+    ///
     #[inline]
     pub fn copy_dst(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::COPY_DST;
         self
     }
+    ///
+    /// Set the COPY_SRC usage.
+    ///
     #[inline]
     pub fn copy_src(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::COPY_SRC;
         self
     }
+    ///
+    /// Set the MAP_READ usage.
+    ///
     #[inline]
     pub fn read(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::MAP_READ;
         self
     }
+    ///
+    /// Set the MAP_WRITE usage.
+    ///
     #[inline]
     pub fn write(mut self) -> Self{
         self.usages |= wgpu::BufferUsages::MAP_WRITE;
         self
     }
 
+    ///
+    /// Set buffer usages for the buffer.
+    ///
     #[inline]
     pub fn set_usage(mut self, usage: wgpu::BufferUsages) -> Self{
         self.usages = usage;
         self
     }
 
+    ///
+    /// Set the label of the buffer.
+    ///
     #[inline]
     pub fn set_label(mut self, label: wgpu::Label<'bb>) -> Self{
         self.label = label;
         self
     }
 
-    pub fn build(&self, device: &wgpu::Device) -> Buffer<C>{
-        Buffer::<C>::new(device, self.usages, self.label, &self.data)
+    ///
+    /// Build a buffer with data.
+    ///
+    pub fn build(&self, device: &wgpu::Device, data: &[C]) -> Buffer<C>{
+        Buffer::<C>::new(
+            device, 
+            self.usages, 
+            self.label, 
+            data,
+        )
     }
 
+    ///
+    /// Build a buffer with length. Data in the buffer is undefined.
+    ///
     pub fn build_empty(&self, device: &wgpu::Device, len: usize) -> Buffer<C>{
         Buffer::<C>::new_empty(device, self.usages, self.label, len)
     }
 }
 
-///
-/// TODO: Implement some way of differentiating buffer usages at compile time.
 ///
 /// A typesafe wrapper for wgpu::Buffer.
 ///
@@ -396,16 +431,15 @@ impl<C: bytemuck::Pod> Buffer<C>{
     ///
     /// example: 
     /// ```rust
-    ///# use ewgpu::*;
+    /// # use ewgpu::*;
     /// # let gpu = GPUContextBuilder::new()
     /// #   .set_features_util()
     /// #   .build();
     ///
     /// let buffer = BufferBuilder::<u64>::new()
     ///     .read().write()
-    ///     .append_slice(&[0, 1, 2, 3])
     ///     .set_label(Some("buffer"))
-    ///     .build(&gpu.device);
+    ///     .build(&gpu.device, &[0, 1, 2, 3]);
     /// buffer.slice(0..).map_blocking_mut(&gpu.device)[0] = 8;
     /// assert_eq!(buffer.slice(..).map_blocking(&gpu.device).as_ref(), [8, 1, 2, 3]);
     /// ```
@@ -413,12 +447,14 @@ impl<C: bytemuck::Pod> Buffer<C>{
         let start_bound = bounds.start_bound();
         let end_bound = bounds.end_bound();
 
+        // Evaluate the bounds of the RangeBound.
         let start_bound = match start_bound{
             Bound::Unbounded => 0,
             Bound::Included(offset) => {(offset + 0).max(0)},
             Bound::Excluded(offset) => {(offset + 1).max(0)},
         };
 
+        // Evaluate the bounds of the RangeBound.
         let end_bound = match end_bound{
             Bound::Unbounded => {(self.len()) as wgpu::BufferAddress},
             Bound::Included(offset) => {(offset + 1).min(self.len() as u64)},
@@ -444,12 +480,22 @@ impl<C: bytemuck::Pod> Buffer<C>{
         }
     }
 
+    ///
+    /// Expands a Buffer to a given size.
+    /// This copies the content of the buffer to the new one.
+    /// If the buffer is in a BindGroup this has to be updated.
+    ///
     pub fn expand_to(&mut self, len: usize, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device){
         if len > self.len(){
             self.resize(len, encoder, device);
         }
     }
 
+    ///
+    /// Resizes a Buffer to a given size.
+    /// This copies the content of the buffer cutting the excess.
+    /// If the buffer is in a BindGroup this has to be updated.
+    ///
     pub fn resize(&mut self, len: usize, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device){
         // Need to allow manual_map because we cannot use map as it would return a ref to a value
         // in the closure.
@@ -463,12 +509,22 @@ impl<C: bytemuck::Pod> Buffer<C>{
         *self = tmp_buf;
     }
 
+    ///
+    /// Expands a Buffer to a given size and clears it.
+    /// This does not copy the content of the buffer.
+    /// If the buffer is in a BindGroup this has to be updated.
+    ///
     pub fn expand_to_clear(&mut self, len: usize, device: &wgpu::Device){
         if len > self.len(){
             self.resize_clear(len, device);
         }
     }
 
+    ///
+    /// Resizes a Buffer to a given size and clears it.
+    /// This does not copy the content of the buffer.
+    /// If the buffer is in a BindGroup this has to be updated.
+    ///
     pub fn resize_clear(&mut self, len: usize, device: &wgpu::Device){
         // Need to allow manual_map because we cannot use map as it would return a ref to a value
         // in the closure.
