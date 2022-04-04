@@ -8,13 +8,13 @@ use std::ops::{Deref, DerefMut};
 /// A struct mutably referencing a Uniform to edit its content and update it when UniformRef is
 /// droped.
 ///
-pub struct UniformRef<'ur, C: bytemuck::Pod>{
+pub struct UniformRefMut<'ur, C: bytemuck::Pod>{
     queue: &'ur wgpu::Queue,
     uniform: &'ur mut Uniform<C>,
 }
 
 
-impl<C: bytemuck::Pod> Deref for UniformRef<'_, C>{
+impl<C: bytemuck::Pod> Deref for UniformRefMut<'_, C>{
     type Target = C;
 
     fn deref(&self) -> &Self::Target {
@@ -22,13 +22,13 @@ impl<C: bytemuck::Pod> Deref for UniformRef<'_, C>{
     }
 }
 
-impl<C: bytemuck::Pod> DerefMut for UniformRef<'_, C>{
+impl<C: bytemuck::Pod> DerefMut for UniformRefMut<'_, C>{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.uniform.uniform_vec.content[0]
     }
 }
 
-impl<C: bytemuck::Pod> Drop for UniformRef<'_, C>{
+impl<C: bytemuck::Pod> Drop for UniformRefMut<'_, C>{
     fn drop(&mut self) {
         self.uniform.uniform_vec.update_int(self.queue);
     }
@@ -38,12 +38,12 @@ impl<C: bytemuck::Pod> Drop for UniformRef<'_, C>{
 /// A struct mutably referencing a UniformVec to edit its content and update it when UniformVecRef is
 /// droped.
 ///
-pub struct UniformVecRef<'ur, C: bytemuck::Pod>{
+pub struct UniformVecRefMut<'ur, C: bytemuck::Pod>{
     queue: &'ur mut wgpu::Queue,
     uniform_vec: &'ur mut UniformVec<C>,
 }
 
-impl<C: bytemuck::Pod> Deref for UniformVecRef<'_, C>{
+impl<C: bytemuck::Pod> Deref for UniformVecRefMut<'_, C>{
     type Target = [C];
 
     fn deref(&self) -> &Self::Target{
@@ -51,13 +51,13 @@ impl<C: bytemuck::Pod> Deref for UniformVecRef<'_, C>{
     }
 }
 
-impl<C: bytemuck::Pod> DerefMut for UniformVecRef<'_, C>{
+impl<C: bytemuck::Pod> DerefMut for UniformVecRefMut<'_, C>{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.uniform_vec.content
     }
 }
 
-impl<C: bytemuck::Pod> Drop for UniformVecRef<'_, C>{
+impl<C: bytemuck::Pod> Drop for UniformVecRefMut<'_, C>{
     fn drop(&mut self){
         self.uniform_vec.update_int(self.queue);
     }
@@ -82,19 +82,10 @@ impl<C: bytemuck::Pod> UniformVec<C>{
     }
 
     pub fn new(src: &[C], device: &wgpu::Device) -> Self{
-        let buffer = Buffer::new_dst_uniform(
-            device, 
-            Some(&format!("UniformBuffer: {}", Self::name())),
-            src,
-        );
-        /* content would be copied twice
-         *
         let buffer = BufferBuilder::new()
             .uniform().copy_dst()
             .set_label(Some(&format!("UniformBuffer: {}", Self::name())))
-            .append_slice(src)
-            .build(device);
-        */
+            .build(device, src);
 
         Self{
             buffer,
@@ -106,11 +97,16 @@ impl<C: bytemuck::Pod> UniformVec<C>{
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.content));
     }
 
-    pub fn borrow_ref<'ur>(&'ur mut self, queue: &'ur mut wgpu::Queue) -> UniformVecRef<'ur, C>{
-        UniformVecRef{
+    pub fn borrow_mut<'ur>(&'ur mut self, queue: &'ur mut wgpu::Queue) -> UniformVecRefMut<'ur, C>{
+        UniformVecRefMut{
             queue,
             uniform_vec: self,
         }
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize{
+        self.content.len()
     }
 }
 
@@ -142,8 +138,8 @@ impl<C: bytemuck::Pod> Uniform<C>{
         }
     }
 
-    pub fn borrow_ref<'ur>(&'ur mut self, queue: &'ur wgpu::Queue) -> UniformRef<'ur, C>{
-        UniformRef{
+    pub fn borrow_mut<'ur>(&'ur mut self, queue: &'ur wgpu::Queue) -> UniformRefMut<'ur, C>{
+        UniformRefMut{
             queue,
             uniform: self,
         }

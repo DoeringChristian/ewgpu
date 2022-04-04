@@ -11,6 +11,9 @@ pub trait GetBindGroupLayout{
     fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc;
 }
 
+///
+/// A trait implemented for structs that have a BindGroup.
+///
 pub trait GetBindGroup{
     fn get_bind_group(&self) -> &wgpu::BindGroup;
 }
@@ -130,6 +133,9 @@ impl<C: BindGroupContent> IntoBindGroup for C{
     }
 }
 
+///
+/// A trait implemented for structs that can be the content of a BindGroup.
+///
 pub trait BindGroupContent{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
     fn resources(&self) -> Vec<wgpu::BindingResource>;
