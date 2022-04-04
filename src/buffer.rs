@@ -1,7 +1,8 @@
 use wgpu::util::DeviceExt;
-use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds}};
+use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds, Range}};
 use std::mem::ManuallyDrop;
 use std::ops::Bound;
+use crate::utils::*;
 
 use super::binding;
 
@@ -14,17 +15,31 @@ use super::binding;
 ///
 pub struct BufferSlice<'bs, C: bytemuck::Pod>{
     buffer: &'bs Buffer<C>,
-    pub(crate) slice: wgpu::BufferSlice<'bs>,
-    offset: wgpu::BufferAddress,
-    len: wgpu::BufferAddress,
+    range: Range<usize>,
 }
 
+impl<'bs, C: bytemuck::Pod> From<BufferSlice<'bs, C>> for wgpu::BufferSlice<'bs>{
+    fn from(src: BufferSlice<'bs, C>) -> Self {
+        src.buffer.buffer.slice(src.range_addr())
+    }
+}
+
+
 impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
+    ///
+    /// Convert the range of elements (BufferSlice::range) into a range of bytes.
+    ///
+    #[inline]
+    fn range_addr(&self) -> Range<wgpu::BufferAddress>{
+        ((self.range.start * std::mem::size_of::<C>()) as u64)..((self.range.end * std::mem::size_of::<C>()) as u64)
+    }
+
     ///
     /// Map the slice whilst polling the device.
     ///
     pub async fn map_async_poll(self, device: &wgpu::Device) -> BufferView<'bs, C>{
-        let mapping = self.slice.map_async(wgpu::MapMode::Read);
+        let slice = self.buffer.buffer.slice(self.range_addr());
+        let mapping = slice.map_async(wgpu::MapMode::Read);
 
         device.poll(wgpu::Maintain::Wait);
 
@@ -32,7 +47,7 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
 
         BufferView{
             buffer: self.buffer,
-            buffer_view: ManuallyDrop::new(self.slice.get_mapped_range()),
+            buffer_view: ManuallyDrop::new(slice.get_mapped_range()),
         }
     }
 
@@ -41,13 +56,14 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     /// wgpu::Device::poll has to be called before this Future will complete.
     ///
     pub async fn map_async(self) -> BufferView<'bs, C>{
-        let mapping = self.slice.map_async(wgpu::MapMode::Read);
+        let slice = self.buffer.buffer.slice(self.range_addr());
+        let mapping = slice.map_async(wgpu::MapMode::Read);
 
         mapping.await.unwrap();
 
         BufferView{
             buffer: self.buffer,
-            buffer_view: ManuallyDrop::new(self.slice.get_mapped_range()),
+            buffer_view: ManuallyDrop::new(slice.get_mapped_range()),
         }
     }
 
@@ -65,47 +81,6 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     /// 
     pub fn map_blocking(self, device: &wgpu::Device) -> BufferView<'bs, C>{
         pollster::block_on(self.map_async_poll(device))
-    }
-
-    ///
-    /// Map the slice mutably whilst polling the device.
-    ///
-    ///
-    pub async fn map_async_poll_mut(self, device: &wgpu::Device) -> BufferViewMut<'bs, C>{
-        let mapping = self.slice.map_async(wgpu::MapMode::Write);
-
-        device.poll(wgpu::Maintain::Wait);
-
-        mapping.await.unwrap();
-
-        BufferViewMut{
-            buffer: self.buffer,
-            buffer_view: ManuallyDrop::new(self.slice.get_mapped_range_mut()),
-        }
-    }
-
-    ///
-    /// Map the slice asynchronously for writing to the buffer.
-    /// wgpu::Device::poll has to be called before this Future will complete.
-    ///
-    pub async fn map_async_mut(self) -> BufferViewMut<'bs, C>{
-        let mapping = self.slice.map_async(wgpu::MapMode::Write);
-
-        mapping.await.unwrap();
-
-        BufferViewMut{
-            buffer: self.buffer,
-            buffer_view: ManuallyDrop::new(self.slice.get_mapped_range_mut()),
-        }
-    }
-
-    ///
-    /// Map the slice mutably and block this thread untill maping is complete.
-    ///
-    /// slice.map_blocking_mut(device)[0] = 1;
-    ///
-    pub fn map_blocking_mut(self, device: &wgpu::Device) -> BufferViewMut<'bs, C>{
-        pollster::block_on(self.map_async_poll_mut(device))
     }
 
     ///
@@ -143,20 +118,84 @@ impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     /// ```
     ///
     pub fn copy_to_buffer(&self, dst: &mut Buffer<C>, offset: wgpu::BufferAddress, encoder: &mut wgpu::CommandEncoder){
-        let src_offset_bytes = self.offset * std::mem::size_of::<C>() as u64;
+        //let slice = self.buffer.buffer.slice(self.range_bytes);
+        let range_addr = self.range_addr();
+        let src_offset_bytes = range_addr.start as u64;
 
-        let offset_bytes = offset * std::mem::size_of::<C>() as u64;
+        let dst_offset_bytes = offset * std::mem::size_of::<C>() as u64;
 
-        let size_bytes = self.len * std::mem::size_of::<C>() as u64;
-        let size_bytes = size_bytes.min(dst.size() as u64 - offset_bytes);
+        let size_bytes = (range_addr.end - range_addr.start) as u64;
+        let size_bytes = size_bytes.min(dst.size() as u64 - dst_offset_bytes);
 
         encoder.copy_buffer_to_buffer(
             &self.buffer.buffer,
             src_offset_bytes,
             &dst.buffer,
-            offset_bytes,
+            dst_offset_bytes,
             size_bytes
         );
+    }
+}
+
+pub struct BufferSliceMut<'bs, C: bytemuck::Pod>{
+    buffer: &'bs mut Buffer<C>,
+    range: Range<usize>,
+}
+
+impl<'bs, C: bytemuck::Pod> BufferSliceMut<'bs, C>{
+    ///
+    /// Convert the range of elements (BufferSlice::range) into a range of bytes.
+    ///
+    #[inline]
+    fn range_addr(&self) -> Range<wgpu::BufferAddress>{
+        ((self.range.start * std::mem::size_of::<C>()) as u64)..((self.range.end * std::mem::size_of::<C>()) as u64)
+    }
+
+    ///
+    /// Map the slice mutably whilst polling the device.
+    ///
+    ///
+    pub async fn map_async_poll_mut(self, device: &wgpu::Device) -> BufferViewMut<'bs, C>{
+        let range_addr = self.range_addr();
+
+        let slice = self.buffer.buffer.slice(range_addr);
+        let mapping = slice.map_async(wgpu::MapMode::Write);
+
+        device.poll(wgpu::Maintain::Wait);
+
+        mapping.await.unwrap();
+
+        BufferViewMut{
+            buffer: self.buffer,
+            buffer_view: ManuallyDrop::new(slice.get_mapped_range_mut()),
+        }
+    }
+
+    ///
+    /// Map the slice asynchronously for writing to the buffer.
+    /// wgpu::Device::poll has to be called before this Future will complete.
+    ///
+    pub async fn map_async_mut(self) -> BufferViewMut<'bs, C>{
+        let range_addr = self.range_addr();
+
+        let slice = self.buffer.buffer.slice(range_addr);
+        let mapping = slice.map_async(wgpu::MapMode::Write);
+
+        mapping.await.unwrap();
+
+        BufferViewMut{
+            buffer: self.buffer,
+            buffer_view: ManuallyDrop::new(slice.get_mapped_range_mut()),
+        }
+    }
+
+    ///
+    /// Map the slice mutably and block this thread untill maping is complete.
+    ///
+    /// slice.map_blocking_mut(device)[0] = 1;
+    ///
+    pub fn map_blocking_mut(self, device: &wgpu::Device) -> BufferViewMut<'bs, C>{
+        pollster::block_on(self.map_async_poll_mut(device))
     }
 }
 
@@ -436,47 +475,46 @@ impl<C: bytemuck::Pod> Buffer<C>{
     /// #   .set_features_util()
     /// #   .build();
     ///
-    /// let buffer = BufferBuilder::<u64>::new()
+    /// let mut buffer = BufferBuilder::<u64>::new()
     ///     .read().write()
     ///     .set_label(Some("buffer"))
     ///     .build(&gpu.device, &[0, 1, 2, 3]);
-    /// buffer.slice(0..).map_blocking_mut(&gpu.device)[0] = 8;
-    /// assert_eq!(buffer.slice(..).map_blocking(&gpu.device).as_ref(), [8, 1, 2, 3]);
+    /// assert_eq!(buffer.slice(..).map_blocking(&gpu.device).as_ref(), [0, 1, 2, 3]);
     /// ```
-    pub fn slice<S: RangeBounds<wgpu::BufferAddress>>(&self, bounds: S) -> BufferSlice<C>{
-        let start_bound = bounds.start_bound();
-        let end_bound = bounds.end_bound();
-
-        // Evaluate the bounds of the RangeBound.
-        let start_bound = match start_bound{
-            Bound::Unbounded => 0,
-            Bound::Included(offset) => {(offset + 0).max(0)},
-            Bound::Excluded(offset) => {(offset + 1).max(0)},
-        };
-
-        // Evaluate the bounds of the RangeBound.
-        let end_bound = match end_bound{
-            Bound::Unbounded => {(self.len()) as wgpu::BufferAddress},
-            Bound::Included(offset) => {(offset + 1).min(self.len() as u64)},
-            Bound::Excluded(offset) => {(offset + 0).min(self.len() as u64)},
-        };
-
-        let start_bound = start_bound;
-        let end_bound = end_bound;
-
-        let len = end_bound - start_bound;
-
-        // Get a range in bytes for wgpu::Buffer::slice(range)
-        let range = (start_bound * std::mem::size_of::<C>() as u64)..(end_bound * std::mem::size_of::<C>() as u64);
-        // TODO: Evaluate weather it is better to align the values or to let wgpu panic if not
-
-        let slice = self.buffer.slice(range);
+    pub fn slice<S: RangeBounds<usize>>(&self, bounds: S) -> BufferSlice<C>{
+        let range = bounds.clamp(0..self.len());
 
         BufferSlice{
             buffer: self,
-            slice,
-            offset: start_bound,
-            len,
+            range,
+        }
+    }
+
+    ///
+    /// Get a mutable slice to the Buffer.
+    /// The bound is clamped by the size of the Buffer.
+    ///
+    ///
+    /// ```rust
+    /// # use ewgpu::*;
+    /// # let gpu = GPUContextBuilder::new()
+    /// #   .set_features_util()
+    /// #   .build();
+    ///
+    /// let mut buffer = BufferBuilder::<u64>::new()
+    ///     .read().write()
+    ///     .set_label(Some("buffer"))
+    ///     .build(&gpu.device, &[0, 1, 2, 3]);
+    /// buffer.slice_mut(0..).map_blocking_mut(&gpu.device)[0] = 8;
+    /// assert_eq!(buffer.slice(..).map_blocking(&gpu.device).as_ref(), [8, 1, 2, 3]);
+    /// ```
+    ///
+    pub fn slice_mut<S: RangeBounds<usize>>(&mut self, bounds: S) -> BufferSliceMut<C>{
+        let range = bounds.clamp(0..self.len());
+
+        BufferSliceMut{
+            buffer: self,
+            range,
         }
     }
 

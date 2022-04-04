@@ -161,8 +161,7 @@ pub mod push_constants;
 pub mod shader;
 pub mod context;
 pub mod drawable;
-
-mod utils;
+pub mod utils;
 
 
 pub use self::binding::*;

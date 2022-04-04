@@ -226,16 +226,16 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
     pub fn set_vertex_buffer<T: VertLayout>(&mut self, index: u32, buffer_slice: BufferSlice<'rp, T>){
         self.render_pass.render_pass.set_vertex_buffer(
             index,
-            buffer_slice.slice
+            buffer_slice.into()
         );
     }
 
     pub fn set_index_buffer(&mut self, buffer_slice: BufferSlice<'rp, u32>){
-        self.render_pass.render_pass.set_index_buffer(buffer_slice.slice, wgpu::IndexFormat::Uint32);
+        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint32);
     }
 
     pub fn set_index_buffer16(&mut self, buffer_slice: BufferSlice<'rp, u16>){
-        self.render_pass.render_pass.set_index_buffer(buffer_slice.slice, wgpu::IndexFormat::Uint16);
+        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint16);
     }
 
     pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>){
