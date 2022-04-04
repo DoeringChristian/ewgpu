@@ -1,5 +1,6 @@
 use image::GenericImageView;
 use crate::*;
+use crate::utils::RangeClamp;
 use std::fs;
 use std::ops::Bound;
 use std::ops::RangeBounds;
@@ -449,45 +450,9 @@ impl<'tb> TextureBuilder<'tb>{
 
 impl Texture{
     pub fn slice<S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice{
-        let range_x = {
-            let start_bound = match bound_x.start_bound(){
-                Bound::Unbounded => 0,
-                Bound::Included(x) => {x + 0},
-                Bound::Excluded(x) => {x + 1},
-            };
-            let end_bound = match bound_x.end_bound(){
-                Bound::Unbounded => self.size.width as u32,
-                Bound::Included(x) => {(x + 1).max(self.size.width)},
-                Bound::Excluded(x) => {(x + 0).max(self.size.width)},
-            };
-            start_bound..end_bound
-        };
-        let range_y = {
-            let start_bound = match bound_y.start_bound(){
-                Bound::Unbounded => 0,
-                Bound::Included(x) => {x + 0},
-                Bound::Excluded(x) => {x + 1},
-            };
-            let end_bound = match bound_y.end_bound(){
-                Bound::Unbounded => self.size.height as u32,
-                Bound::Included(x) => {(x + 1).max(self.size.height)},
-                Bound::Excluded(x) => {(x + 0).max(self.size.height)},
-            };
-            start_bound..end_bound
-        };
-        let range_z = {
-            let start_bound = match bound_z.start_bound(){
-                Bound::Unbounded => 0,
-                Bound::Included(x) => {x + 0},
-                Bound::Excluded(x) => {x + 1},
-            };
-            let end_bound = match bound_z.end_bound(){
-                Bound::Unbounded => self.size.depth_or_array_layers as u32,
-                Bound::Included(x) => {(x + 1).max(self.size.depth_or_array_layers)},
-                Bound::Excluded(x) => {(x + 0).max(self.size.depth_or_array_layers)},
-            };
-            start_bound..end_bound
-        };
+        let range_x = bound_x.clamp(0..self.size.width);
+        let range_y = bound_y.clamp(0..self.size.height);
+        let range_z = bound_z.clamp(0..self.size.depth_or_array_layers);
 
         let origin = wgpu::Origin3d{
             x: range_x.start,
