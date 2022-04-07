@@ -2,61 +2,6 @@
 use anyhow::*;
 use std::{ops::{Deref, DerefMut}, marker::PhantomData};
 
-pub trait CreateBindGroupLayout{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc;
-    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc;
-}
-
-pub trait GetBindGroupLayout{
-    fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc;
-}
-
-///
-/// A trait implemented for structs that have a BindGroup.
-///
-pub trait GetBindGroup{
-    fn get_bind_group(&self) -> &wgpu::BindGroup;
-}
-
-impl GetBindGroup for wgpu::BindGroup{
-    fn get_bind_group(&self) -> &wgpu::BindGroup {
-        self
-    }
-}
-
-pub struct BindGroupHandle<T: BindGroupContent>{
-    pub bind_group: wgpu::BindGroup,
-    _ty: PhantomData<T>,
-}
-
-impl<T: BindGroupContent> BindGroupHandle<T>{
-    pub fn new(content: &T, device: &wgpu::Device) -> Self{
-        let bind_group_layout = T::create_bind_group_layout(device, None); 
-
-        let bind_group = BindGroupBuilder::new(&bind_group_layout)
-            .push_resources(content.resources())
-            .build(device, None);
-
-        Self{
-            bind_group,
-            _ty: PhantomData,
-        }
-    }
-}
-
-impl<C: BindGroupContent> CreateBindGroupLayout for C{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc {
-        Self::create_bind_group_layout_vis(device, label, wgpu::ShaderStages::all())
-    }
-
-    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc {
-        BindGroupLayoutBuilder::new()
-            .push_entries(C::entries(visibility))
-            .create(device, label)
-    }
-}
-
-
 pub struct BindGroupLayoutWithDesc{
     pub layout: wgpu::BindGroupLayout,
     pub entries: Vec<wgpu::BindGroupLayoutEntry>,
@@ -78,90 +23,25 @@ impl BindGroupLayoutEntry{
     }
 }
 
-#[derive(Default)]
-pub struct BindGroupLayoutBuilder{
-    entries: Vec<BindGroupLayoutEntry>,
-}
-
-impl BindGroupLayoutBuilder{
-    pub fn new() -> Self{
-        Self{
-            entries: Vec::new(),
-        }
-    }
-
-    pub fn push_entries(mut self, mut entries: Vec<BindGroupLayoutEntry>) -> Self{
-        self.entries.append(&mut entries);
-        self
-    }
-
-    pub fn create(self, device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc{
-
-        let entries: Vec<wgpu::BindGroupLayoutEntry> = self.entries.iter().enumerate().map(|(i, x)| {
-            wgpu::BindGroupLayoutEntry{
-                binding: i as u32,
-                ty: x.ty,
-                count: x.count,
-                visibility: x.visibility,
-            }
-        }).collect();
-
-        BindGroupLayoutWithDesc{
-            layout: device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
-                entries: &entries,
-                label,
-            }),
-            entries,
-        }
-    }
-}
-
-pub struct BindGroupBuilder<'l>{
-    layout_with_desc: &'l BindGroupLayoutWithDesc,
+pub struct BindGroupBuilder<'l, C: BindGroupContent>{
+    layout: BindGroupLayoutWithDesc,
     entries: Vec<wgpu::BindGroupEntry<'l>>,
+    _ty: PhantomData<C>,
 }
 
-impl<'l> BindGroupBuilder<'l>{
-    pub fn new(layout_with_desc: &'l BindGroupLayoutWithDesc) -> Self{
-        BindGroupBuilder{
-            layout_with_desc,
-            entries: Vec::with_capacity(layout_with_desc.entries.len()),
-        }
-    }
-
-    pub fn push_resources(mut self, resources: Vec<wgpu::BindingResource<'l>>) -> Self{
-        for resource in resources{
-            self = self.resource(resource);
-        }
-        self
-    }
-
-    pub fn resource(mut self, resource: wgpu::BindingResource<'l>) -> Self{
-        assert_lt!(self.entries.len(), self.layout_with_desc.entries.len());
-        self.entries.push(wgpu::BindGroupEntry{
-            binding: self.layout_with_desc.entries[self.entries.len()].binding,
-            resource,
-        });
-        self
-    }
-
-    pub fn build(&self, device: &wgpu::Device, label: Option<&str>) -> wgpu::BindGroup{
-        assert_eq!(self.entries.len(), self.layout_with_desc.entries.len());
-        device.create_bind_group(&wgpu::BindGroupDescriptor{
-            label,
-            layout: &self.layout_with_desc.layout,
-            entries: &self.entries,
-        })
+impl<C: BindGroupContent> From<BindGroup<C>> for wgpu::BindGroup{
+    fn from(src: BindGroup<C>) -> Self {
+        src.bind_group
     }
 }
 
-pub trait IntoBindGroup: BindGroupContent + Sized{
-    fn into_bind_group(self, device: &wgpu::Device) -> BindGroup<Self>;
+pub trait GetBindGroup{
+    fn get_bind_group(&self) -> &wgpu::BindGroup;
 }
 
-impl<C: BindGroupContent> IntoBindGroup for C{
-    fn into_bind_group(self, device: &wgpu::Device) -> BindGroup<Self> {
-        BindGroup::new(self, device)
+impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
+    fn get_bind_group(&self) -> &wgpu::BindGroup {
+        &self.bind_group
     }
 }
 
@@ -171,8 +51,45 @@ impl<C: BindGroupContent> IntoBindGroup for C{
 pub trait BindGroupContent: Sized{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
     fn resources(&self) -> Vec<wgpu::BindingResource>;
-    fn bind_group_handle(&self, device: &wgpu::Device) -> BindGroupHandle<Self>{
-        BindGroupHandle::new(self, device)
+    fn create_bind_group(&self, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> BindGroup<Self>{
+        let layout = Self::create_bind_group_layout(device, None, visibility);
+        let resources = self.resources();
+
+        let entries: Vec<wgpu::BindGroupEntry> = resources.into_iter().enumerate().map(|(i, r)|{
+            wgpu::BindGroupEntry{
+                binding: layout.entries[i].binding,
+                resource: r,
+            }
+        }).collect();
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
+            label: None,
+            entries: &entries,
+            layout: &layout.layout,
+        });
+
+        BindGroup{
+            bind_group, 
+            _ty: PhantomData,
+        }
+    }
+    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc{
+        let entries = Self::entries(visibility);
+        let entries: Vec<wgpu::BindGroupLayoutEntry> = entries.iter().enumerate().map(|(i, x)| {
+            wgpu::BindGroupLayoutEntry{
+                binding: i as u32,
+                ty: x.ty,
+                count: x.count,
+                visibility: x.visibility,
+            }
+        }).collect();
+        BindGroupLayoutWithDesc{
+            layout: device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+                entries: &entries,
+                label,
+            }),
+            entries,
+        }
     }
 }
 
@@ -240,98 +157,8 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
 
 
 pub struct BindGroup<C: BindGroupContent>{
-    pub content: C,
     bind_group: wgpu::BindGroup,
-    bind_group_layout: BindGroupLayoutWithDesc,
-}
-
-impl<C: BindGroupContent> BindGroup<C>{
-    pub fn new(content: C, device: &wgpu::Device) -> Self{
-        let bind_group_layout = Self::create_bind_group_layout(device, None); 
-
-        let bind_group = BindGroupBuilder::new(&bind_group_layout)
-            .push_resources(content.resources())
-            .build(device, None);
-
-        Self{
-            content,
-            bind_group,
-            bind_group_layout,
-        }
-    }
-
-    ///
-    /// Has to be called whenever a buffer is changed for example when expand_to_clear is called on
-    /// it.
-    /// TODO: Change this requirement.
-    ///
-    pub fn update(&mut self, device: &wgpu::Device){
-        self.bind_group = BindGroupBuilder::new(&self.bind_group_layout)
-            .push_resources(self.content.resources())
-            .build(device, None);
-    }
-
-    pub fn new_vis(content: C, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Self{
-        let bind_group_layout = Self::create_bind_group_layout_vis(device, None, visibility);
-
-        let bind_group = BindGroupBuilder::new(&bind_group_layout)
-            .push_resources(content.resources())
-            .build(device, None);
-
-        Self{
-            content,
-            bind_group,
-            bind_group_layout,
-        }
-    }
-}
-
-impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C>{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc {
-        Self::create_bind_group_layout_vis(device, label, wgpu::ShaderStages::all())
-    }
-    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc {
-        BindGroupLayoutBuilder::new()
-            .push_entries(C::entries(visibility))
-            .create(device, label)
-    }
-}
-
-impl<C: BindGroupContent> Deref for BindGroup<C>{
-    type Target = C;
-
-    fn deref(&self) -> &Self::Target {
-        &self.content
-    }
-}
-
-impl<C: BindGroupContent> DerefMut for BindGroup<C>{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.content
-    }
-}
-
-impl<C: BindGroupContent> GetBindGroupLayout for BindGroup<C>{
-    fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc {
-        &self.bind_group_layout
-    }
-}
-
-impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
-    fn get_bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
-    }
-}
-
-impl From<BindGroup<super::Texture>> for imgui_wgpu::Texture{
-    fn from(bg_texture: BindGroup<super::Texture>) -> Self {
-        imgui_wgpu::Texture::from_raw_parts(
-            bg_texture.content.texture,
-            bg_texture.content.view,
-            bg_texture.bind_group,
-            bg_texture.content.size,
-        )
-    }
+    _ty: PhantomData<C>,
 }
 
 
@@ -528,8 +355,7 @@ mod test{
 
     use winit::{window::WindowBuilder, event_loop::EventLoop};
 
-    struct RenderData<'rd>{
-        first: &'rd BindGroupHandle<Buffer<f32>>,
+    struct RenderData{
     }
 
     #[test]

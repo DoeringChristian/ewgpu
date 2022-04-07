@@ -198,29 +198,15 @@ pub struct RenderPassPipeline<'rp, 'rpr>{
 }
 
 impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
-    pub fn set_bind_group<B: binding::GetBindGroup>(&mut self, index: u32, bind_group: &'rp B, offsets: &'rp [wgpu::DynamicOffset]){
-        self.render_pass.render_pass.set_bind_group(
-            index,
-            bind_group.get_bind_group(),
-            offsets
-        );
-    }
-
-    pub fn set_bind_groups(&mut self, bind_groups: &[&'rp wgpu::BindGroup]){
+    pub fn set_render_data<RD: 'rp + RenderData<'rp>>(&mut self, render_data: RD){
+        let bind_groups = render_data.bind_groups();
         for (i, bind_group) in bind_groups.iter().enumerate(){
             self.render_pass.render_pass.set_bind_group(
                 i as u32,
-                &bind_group,
-                &[]
+                bind_group,
+                &[],
             );
         }
-    }
-
-    pub fn set_push_const<C: PushConstant>(&mut self, index: usize, constant: &C){
-        self.render_pass.render_pass.set_push_constants(
-            self.pipeline.push_const_ranges[index].stages, 
-            self.pipeline.push_const_ranges[index].range.start,
-            bytemuck::bytes_of(constant));
     }
 
     pub fn set_vertex_buffer<T: VertLayout>(&mut self, index: u32, buffer_slice: BufferSlice<'rp, T>){
@@ -306,16 +292,6 @@ pub struct ComputePassPipeline<'cp, 'cpr>{
 }
 
 impl<'cp, 'cpr> ComputePassPipeline<'cp, 'cpr>{
-    pub fn set_bind_group<B: binding::GetBindGroup>(&mut self, index: u32, bind_group: &'cp B, offsets: &'cp [wgpu::DynamicOffset]){
-        self.cpass.cpass.set_bind_group(index, bind_group.get_bind_group(), offsets);
-    }
-
-    pub fn set_push_const<C: PushConstant>(&mut self, index: u32, constant: &C){
-        self.cpass.cpass.set_push_constants(
-            self.pipeline.push_const_ranges[index as usize].range.start,
-            bytemuck::bytes_of(constant));
-    }
-
     pub fn dispatch(&mut self, x: u32, y: u32, z: u32){
         self.cpass.cpass.dispatch(x, y, z);
     }

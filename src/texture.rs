@@ -438,14 +438,15 @@ impl<'tb> TextureBuilder<'tb>{
         }
     }
 
+    /*
     pub fn build_bind_group(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> BindGroup<Texture>{
         BindGroup::new(self.build(device, queue), device)
     }
 
     pub fn build_bind_group_vis(&mut self, visibility: wgpu::ShaderStages, device: &wgpu::Device, queue: &wgpu::Queue) -> BindGroup<Texture>{
-        BindGroup::new_vis(self.build(device, queue), device, visibility)
+        BindGroup::new(self.build(device, queue), device, visibility)
     }
-
+    */
 }
 
 impl Texture{
