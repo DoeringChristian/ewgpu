@@ -1,6 +1,6 @@
 #[allow(unused)]
 use anyhow::*;
-use std::ops::{Deref, DerefMut};
+use std::{ops::{Deref, DerefMut}, marker::PhantomData};
 
 pub trait CreateBindGroupLayout{
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc;
@@ -21,6 +21,38 @@ pub trait GetBindGroup{
 impl GetBindGroup for wgpu::BindGroup{
     fn get_bind_group(&self) -> &wgpu::BindGroup {
         self
+    }
+}
+
+pub struct BindGroupHandle<T: BindGroupContent>{
+    pub bind_group: wgpu::BindGroup,
+    _ty: PhantomData<T>,
+}
+
+impl<T: BindGroupContent> BindGroupHandle<T>{
+    pub fn new(content: &T, device: &wgpu::Device) -> Self{
+        let bind_group_layout = T::create_bind_group_layout(device, None); 
+
+        let bind_group = BindGroupBuilder::new(&bind_group_layout)
+            .push_resources(content.resources())
+            .build(device, None);
+
+        Self{
+            bind_group,
+            _ty: PhantomData,
+        }
+    }
+}
+
+impl<C: BindGroupContent> CreateBindGroupLayout for C{
+    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc {
+        Self::create_bind_group_layout_vis(device, label, wgpu::ShaderStages::all())
+    }
+
+    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc {
+        BindGroupLayoutBuilder::new()
+            .push_entries(C::entries(visibility))
+            .create(device, label)
     }
 }
 
@@ -136,9 +168,12 @@ impl<C: BindGroupContent> IntoBindGroup for C{
 ///
 /// A trait implemented for structs that can be the content of a BindGroup.
 ///
-pub trait BindGroupContent{
+pub trait BindGroupContent: Sized{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
     fn resources(&self) -> Vec<wgpu::BindingResource>;
+    fn bind_group_handle(&self, device: &wgpu::Device) -> BindGroupHandle<Self>{
+        BindGroupHandle::new(self, device)
+    }
 }
 
 // TODO: Derive macro for BindGroupContent.
@@ -454,5 +489,131 @@ pub mod wgsl{
             view_dimension: wgpu::TextureViewDimension::D2,
             multisampled: false,
         }
+    }
+}
+
+#[cfg(test)]
+mod test{
+    use crate::*;
+
+    #[repr(C)]
+    #[make_vert]
+    struct Vert2{
+        #[location = 0]
+        pub pos: [f32; 2],
+        #[location = 1]
+        pub uv: [f32; 2],
+    }
+
+    const QUAD_IDXS: [u32; 6] = [0, 1, 2, 2, 3, 0];
+
+    const QUAD_VERTS: [Vert2; 4] = [
+        Vert2 {
+            pos: [-1.0, -1.0],
+            uv: [0.0, 1.0],
+        },
+        Vert2 {
+            pos: [1.0, -1.0],
+            uv: [1.0, 1.0],
+        },
+        Vert2 {
+            pos: [1.0, 1.0],
+            uv: [1.0, 0.0],
+        },
+        Vert2 {
+            pos: [-1.0, 1.0],
+            uv: [0.0, 0.0],
+        },
+    ];
+
+    use winit::{window::WindowBuilder, event_loop::EventLoop};
+
+    struct RenderData<'rd>{
+        first: &'rd BindGroupHandle<Buffer<f32>>,
+    }
+
+    #[test]
+    fn test_bind_group(){
+
+        env_logger::init();
+        let event_loop = EventLoop::new();
+
+        let instance = wgpu::Instance::new(wgpu::Backends::all());
+
+        let mut gpu = GPUContextBuilder::new()
+            .set_features_util()
+            .build();
+
+        let inidces = BufferBuilder::new()
+            .index()
+            .build(&gpu.device, &QUAD_IDXS);
+
+        let vertices = BufferBuilder::new()
+            .vertex()
+            .build(&gpu.device, &QUAD_VERTS);
+
+
+        let vshader = VertexShader::from_src(&gpu.device, "
+        #version 460
+        #if VERTEX_SHADER
+
+        layout(location = 0) in vec2 i_pos;
+        layout(location = 1) in vec2 i_uv;
+
+        layout(location = 0) out vec2 f_pos;
+        layout(location = 1) out vec2 f_uv;
+
+        void main(){
+            f_pos = i_pos;
+            f_uv = i_uv;
+
+            gl_Position = vec4(i_pos, 0.0, 1.0);
+        }
+
+        #endif
+        ", None).unwrap();
+
+        let fshader = FragmentShader::from_src(&gpu.device, "
+        #version 460
+        #if FRAGMENT_SHADER
+
+        layout(location = 0) in vec2 f_pos;
+        layout(location = 1) in vec2 f_uv;
+
+        layout(location = 0) out vec4 o_color;
+
+        void main(){
+            o_color = vec4(1.0, 0., 0., 1.);
+        }
+
+        #endif
+        ", None).unwrap();
+
+        let layout = PipelineLayoutBuilder::new()
+            .push_bind_group(&Buffer::<Vert2>::create_bind_group_layout(&gpu.device, None))
+            .build(&gpu.device, None);
+
+        let layout = pipeline_layout!(&gpu.device,
+            bind_groups: {Buffer<f32>},
+            push_constants: {}
+        );
+
+        let pipeline = RenderPipelineBuilder::new(&vshader, &fshader)
+            .push_vert_layout(Vert2::buffer_layout())
+            .push_target_replace(wgpu::TextureFormat::Rgba8Unorm)
+            .set_layout(&layout)
+            .build(&gpu.device);
+
+        gpu.encode_img([1920, 1080], |gpu, dst, encoder|{
+            let mut rpass = RenderPassBuilder::new()
+                .push_color_attachment(dst.color_attachment_clear())
+                .begin(encoder, None);
+
+            let mut rpass_ppl = rpass.set_pipeline(&pipeline);
+
+            rpass_ppl.set_vertex_buffer(0, vertices.slice(..));
+            rpass_ppl.set_index_buffer(inidces.slice(..));
+            rpass_ppl.draw_indexed(0..(inidces.len() as u32), 0, 0..1);
+        });
     }
 }
