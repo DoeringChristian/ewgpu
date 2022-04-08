@@ -117,13 +117,13 @@ impl<'rp, RD: RenderData<'rp>> PipelineLayout<'rp, RD>{
     }
 }
 
-pub struct RenderPassPipeline<'rp, 'rpr, RD: RenderData<'rp>>{
-    pub render_pass: &'rpr mut RenderPass<'rp>,
-    pub pipeline: &'rp RenderPipeline,
+pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData<'rpp>>{
+    pub render_pass: &'rpr mut RenderPass<'rpp>,
+    pub pipeline: &'rpp RenderPipeline,
     _ty: PhantomData<RD>,
 }
 
-impl<'rp, 'rpr, RD: 'rp + RenderData<'rp>> RenderPassPipeline<'rp, 'rpr, RD>{
+impl<'rpp, 'rpr, RD: 'rpp + RenderData<'rpp>> RenderPassPipeline<'rpp, 'rpr, RD>{
     pub fn set_render_data(&mut self, render_data: RD){
         let bind_groups = render_data.bind_groups();
         for (i, bind_group) in bind_groups.iter().enumerate(){
@@ -135,18 +135,18 @@ impl<'rp, 'rpr, RD: 'rp + RenderData<'rp>> RenderPassPipeline<'rp, 'rpr, RD>{
         }
     }
 
-    pub fn set_vertex_buffer<T: VertLayout>(&mut self, index: u32, buffer_slice: BufferSlice<'rp, T>){
+    pub fn set_vertex_buffer<T: VertLayout>(&mut self, index: u32, buffer_slice: BufferSlice<'rpp, T>){
         self.render_pass.render_pass.set_vertex_buffer(
             index,
             buffer_slice.into()
         );
     }
 
-    pub fn set_index_buffer(&mut self, buffer_slice: BufferSlice<'rp, u32>){
+    pub fn set_index_buffer(&mut self, buffer_slice: BufferSlice<'rpp, u32>){
         self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint32);
     }
 
-    pub fn set_index_buffer16(&mut self, buffer_slice: BufferSlice<'rp, u16>){
+    pub fn set_index_buffer16(&mut self, buffer_slice: BufferSlice<'rpp, u16>){
         self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint16);
     }
 
@@ -165,7 +165,7 @@ impl<'rp, 'rpr, RD: 'rp + RenderData<'rp>> RenderPassPipeline<'rp, 'rpr, RD>{
         );
     }
 
-    pub fn set_pipeline(&'rpr mut self, pipeline: &'rp RenderPipeline) -> Self{
+    pub fn set_pipeline(&'rpr mut self, pipeline: &'rpp RenderPipeline) -> Self{
         self.render_pass.render_pass.set_pipeline(&pipeline.pipeline);
         Self{
             render_pass: self.render_pass,
