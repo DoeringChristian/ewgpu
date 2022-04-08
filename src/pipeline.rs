@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::str;
 use crate::*;
 
@@ -87,118 +88,43 @@ impl<'vs> VertexState<'vs>{
 ///
 pub struct RenderPipeline{
     pub pipeline: wgpu::RenderPipeline,
-    pub push_const_ranges: Vec<wgpu::PushConstantRange>
 }
 
-pub struct PipelineLayout{
+pub struct PipelineLayout<'rp, RD: RenderData<'rp>>{
     pub layout: wgpu::PipelineLayout,
-    pub push_const_ranges: Vec<wgpu::PushConstantRange>,
+    _rd: PhantomData<RD>,
+    _rp: PhantomData<&'rp()>,
 }
 
-impl PipelineLayout{
+impl<'rp, RD: RenderData<'rp>> PipelineLayout<'rp, RD>{
     ///
     /// Create a new pipeline layout from push_const_layouts and bind_group_layouts.
     ///
     /// Mostly for the pipeline_layout macro.
     ///
-    pub fn new(device: &wgpu::Device, bind_group_layouts: &[&wgpu::BindGroupLayout], push_const_layouts: &[PushConstantLayout], label: wgpu::Label) -> Self{
-
-        let mut offset = 0;
-        let push_const_ranges: Vec<wgpu::PushConstantRange> = push_const_layouts.iter()
-            .map(|x| {
-                // align to 4 bytes.
-                // TODO: write tests and use Align trait.
-                let size_aligned = (((x.size as i32 - 4)/4 + 1)*4) as u32;
-                let range = Range::<u32>{
-                    start: offset,
-                    end: offset + size_aligned,
-                };
-                offset = range.end;
-                wgpu::PushConstantRange{
-                    stages: x.stages,
-                    range,
-                }
-            }).collect();
-
+    pub fn new(device: &wgpu::Device, label: wgpu::Label) -> Self{
+        let bind_group_layouts = RD::bind_group_layouts(device);
+        let layout_refs: Vec<&wgpu::BindGroupLayout> = bind_group_layouts.iter().map(|x| &x.layout).collect();
         Self{
             layout: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
                 label,
-                push_constant_ranges: &push_const_ranges,
-                bind_group_layouts,
+                push_constant_ranges: &[],
+                bind_group_layouts: &layout_refs,
             }),
-            push_const_ranges,
+            _rd: PhantomData,
+            _rp: PhantomData,
         }
     }
 }
 
-// TODO: put bind_group_names in Arc
-#[derive(Default)]
-pub struct PipelineLayoutBuilder<'l>{
-    bind_group_layouts: Vec<&'l binding::BindGroupLayoutWithDesc>,
-    push_const_layouts: Vec<PushConstantLayout>,
-}
-
-impl<'l> PipelineLayoutBuilder<'l>{
-    pub fn new() -> Self{
-        Self{
-            bind_group_layouts: Vec::new(),
-            push_const_layouts: Vec::new(),
-        }
-    }
-
-    // TODO: simplify
-    pub fn push_bind_group(mut self, bind_group_layout: &'l binding::BindGroupLayoutWithDesc) -> Self{
-        self.bind_group_layouts.push(bind_group_layout);
-        self
-    }
-
-    pub fn push_const_layout(mut self, push_const_layout: PushConstantLayout) -> Self{
-        self.push_const_layouts.push(push_const_layout);
-        self
-    }
-
-    pub fn build(self, device: &wgpu::Device, label: Option<&str>) -> PipelineLayout{
-
-        let mut bind_group_layouts = Vec::with_capacity(self.bind_group_layouts.len());
-        for bind_group_layout_desc in self.bind_group_layouts{
-            bind_group_layouts.push(&bind_group_layout_desc.layout);
-        }
-
-        // Convert the push_const_layouts to push_const_ranges using alignment
-        let mut offset = 0;
-        let push_const_ranges: Vec<wgpu::PushConstantRange> = self.push_const_layouts.iter()
-            .map(|x| {
-                // align to 4 bytes.
-                let size_aligned = (((x.size as i32 - 4)/4 + 1)*4) as u32;
-                let range = Range::<u32>{
-                    start: offset,
-                    end: offset + size_aligned,
-                };
-                offset = range.end;
-                wgpu::PushConstantRange{
-                    stages: x.stages,
-                    range,
-                }
-            }).collect();
-
-        PipelineLayout{
-            layout: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
-                label,
-                bind_group_layouts: &bind_group_layouts,
-                push_constant_ranges: &push_const_ranges,
-            }),
-            push_const_ranges,
-        }
-    }
-}
-
-pub struct RenderPassPipeline<'rp, 'rpr>{
+pub struct RenderPassPipeline<'rp, 'rpr, RD: RenderData<'rp>>{
     pub render_pass: &'rpr mut RenderPass<'rp>,
     pub pipeline: &'rp RenderPipeline,
+    _ty: PhantomData<RD>,
 }
 
-impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
-    pub fn set_render_data<RD: 'rp + RenderData<'rp>>(&mut self, render_data: RD){
+impl<'rp, 'rpr, RD: 'rp + RenderData<'rp>> RenderPassPipeline<'rp, 'rpr, RD>{
+    pub fn set_render_data(&mut self, render_data: RD){
         let bind_groups = render_data.bind_groups();
         for (i, bind_group) in bind_groups.iter().enumerate(){
             self.render_pass.render_pass.set_bind_group(
@@ -244,6 +170,7 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         Self{
             render_pass: self.render_pass,
             pipeline,
+            _ty: PhantomData,
         }
     }
 }
@@ -314,21 +241,20 @@ impl<'cp, 'cpr> ComputePassPipeline<'cp, 'cpr>{
 ///
 pub struct ComputePipeline{
     pub pipeline: wgpu::ComputePipeline,
-    pub push_const_ranges: Vec<wgpu::PushConstantRange>,
 }
 
 ///
 /// A builder for a ComputePipeline
 ///
 ///
-pub struct ComputePipelineBuilder<'cpb>{
+pub struct ComputePipelineBuilder<'cpb, RD: RenderData<'cpb>>{
     label: wgpu::Label<'cpb>,
-    layout: Option<&'cpb PipelineLayout>,
+    layout: Option<&'cpb PipelineLayout<'cpb, RD>>,
     module: &'cpb wgpu::ShaderModule,
     entry_point: &'cpb str,
 }
 
-impl<'cpb> ComputePipelineBuilder<'cpb>{
+impl<'cpb, RD: RenderData<'cpb>> ComputePipelineBuilder<'cpb, RD>{
 
     pub fn new(module: &'cpb ComputeShader) -> Self{
         Self{
@@ -349,7 +275,7 @@ impl<'cpb> ComputePipelineBuilder<'cpb>{
         self
     }
 
-    pub fn set_layout(mut self, layout: &'cpb PipelineLayout) -> Self{
+    pub fn set_layout(mut self, layout: &'cpb PipelineLayout<'cpb, RD>) -> Self{
         self.layout = Some(layout);
         self
     }
@@ -363,7 +289,6 @@ impl<'cpb> ComputePipelineBuilder<'cpb>{
                 module: self.module,
                 entry_point: self.entry_point,
             }),
-            push_const_ranges: layout.push_const_ranges.clone(),
         }
     }
 }
@@ -378,11 +303,12 @@ pub struct RenderPass<'rp>{
 
 impl<'rp> RenderPass<'rp>{
 
-    pub fn set_pipeline(&mut self, pipeline: &'rp RenderPipeline) -> RenderPassPipeline<'rp, '_>{
+    pub fn set_pipeline<RD: RenderData<'rp>>(&mut self, pipeline: &'rp RenderPipeline) -> RenderPassPipeline<'rp, '_, RD>{
         self.render_pass.set_pipeline(&pipeline.pipeline);
         RenderPassPipeline{
             render_pass: self,
             pipeline,
+            _ty: PhantomData,
         }
     }
 
@@ -431,9 +357,9 @@ impl<'rp> RenderPassBuilder<'rp>{
 ///
 /// Pipeline layout has to be set.
 ///
-pub struct RenderPipelineBuilder<'rpb>{
+pub struct RenderPipelineBuilder<'rpb, RD: RenderData<'rpb>>{
     label: Option<&'rpb str>,
-    layout: Option<&'rpb PipelineLayout>,
+    layout: Option<&'rpb PipelineLayout<'rpb, RD>>,
     vertex: VertexState<'rpb>,
     fragment: FragmentState<'rpb>,
     primitive: wgpu::PrimitiveState,
@@ -442,7 +368,7 @@ pub struct RenderPipelineBuilder<'rpb>{
     multiview: Option<NonZeroU32>,
 }
 
-impl<'rpb> RenderPipelineBuilder<'rpb>{
+impl<'rpb, RD: RenderData<'rpb>> RenderPipelineBuilder<'rpb, RD>{
 
     pub fn new(vertex_shader: &'rpb VertexShader, fragment_shader: &'rpb FragmentShader) -> Self{
         let label = None;
@@ -577,11 +503,6 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
         self
     }
 
-    #[inline]
-    pub fn push_drawable_layouts<D: Drawable>(self) -> Self{
-        self.push_vert_layouts(D::create_vert_buffer_layouts())
-    }
-
     ///
     /// Pushes a RenderTarget to the fragment state.
     ///
@@ -605,7 +526,7 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
     }
 
     #[inline]
-    pub fn set_layout(mut self, layout: &'rpb PipelineLayout) -> Self{
+    pub fn set_layout(mut self, layout: &'rpb PipelineLayout<'rpb, RD>) -> Self{
         self.layout = Some(layout);
         self
     }
@@ -655,7 +576,6 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
         RenderPipeline{
             pipeline: render_pipeline,
-            push_const_ranges: layout.push_const_ranges.clone(),
         }
     }
 }

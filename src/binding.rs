@@ -37,6 +37,7 @@ impl<C: BindGroupContent> From<BindGroup<C>> for wgpu::BindGroup{
 
 pub trait GetBindGroup{
     fn get_bind_group(&self) -> &wgpu::BindGroup;
+    //fn create_bind_group_layout(device: &wgpu::Device, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc;
 }
 
 impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
@@ -159,6 +160,14 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
 pub struct BindGroup<C: BindGroupContent>{
     bind_group: wgpu::BindGroup,
     _ty: PhantomData<C>,
+}
+
+impl<C: BindGroupContent> Deref for BindGroup<C>{
+    type Target = wgpu::BindGroup;
+
+    fn deref(&self) -> &Self::Target {
+        &self.bind_group
+    }
 }
 
 

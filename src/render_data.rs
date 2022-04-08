@@ -2,20 +2,26 @@ use std::ops::Deref;
 
 use crate::*;
 
-pub trait RenderData<'rp>{
-    fn bind_groups(self) -> Vec<&'rp wgpu::BindGroup>;
+pub trait RenderData<'rd>{
+    fn bind_groups(self) -> Vec<&'rd wgpu::BindGroup>;
+    fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>;
 }
 
 macro_rules! render_data_for_tuple{
     ($($name:ident)+) => {
-        impl<'rp, $($name: GetBindGroup),+> RenderData<'rp> for ($(&'rp $name, )+){
-            fn bind_groups(self) -> Vec<&'rp wgpu::BindGroup>{
+        impl<'rd, $($name: BindGroupContent),+> RenderData<'rd> for ($(&'rd BindGroup<$name>, )+){
+            fn bind_groups(self) -> Vec<&'rd wgpu::BindGroup>{
                 let ($($name, )+) = self;
                 vec![$($name.get_bind_group()),+]
+            }
+            fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>{
+                vec![$($name::create_bind_group_layout(device, None, wgpu::ShaderStages::all())),+]
             }
         }
     }
 }
+
+
 
 render_data_for_tuple!{ A }
 render_data_for_tuple!{ A B }
