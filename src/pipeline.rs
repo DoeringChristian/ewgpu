@@ -86,19 +86,17 @@ impl<'vs> VertexState<'vs>{
 /// 
 /// A wrapper for wgpu::RenderPipeline with PushConstantRanges.
 ///
-pub struct RenderPipeline<'rp, RD: RenderData<'rp>>{
+pub struct RenderPipeline<RD: RenderData>{
     pub pipeline: wgpu::RenderPipeline,
     _rd: PhantomData<RD>,
-    _rp: PhantomData<&'rp()>,
 }
 
-pub struct PipelineLayout<'rp, RD: RenderData<'rp>>{
+pub struct PipelineLayout<RD: RenderData>{
     pub layout: wgpu::PipelineLayout,
     _rd: PhantomData<RD>,
-    _rp: PhantomData<&'rp()>,
 }
 
-impl<'rp, RD: RenderData<'rp>> PipelineLayout<'rp, RD>{
+impl<RD: RenderData> PipelineLayout<RD>{
     ///
     /// Create a new pipeline layout from push_const_layouts and bind_group_layouts.
     ///
@@ -114,18 +112,17 @@ impl<'rp, RD: RenderData<'rp>> PipelineLayout<'rp, RD>{
                 bind_group_layouts: &layout_refs,
             }),
             _rd: PhantomData,
-            _rp: PhantomData,
         }
     }
 }
 
-pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData<'rpp>>{
+pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData>{
     pub render_pass: &'rpr mut RenderPass<'rpp>,
-    pub pipeline: &'rpr RenderPipeline<'rpp, RD>,
+    pub pipeline: &'rpr RenderPipeline<RD>,
     _ty: PhantomData<RD>,
 }
 
-impl<'rpp, 'rpr, RD: 'rpp + RenderData<'rpp>> RenderPassPipeline<'rpp, 'rpr, RD>{
+impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
     pub fn set_render_data(self, render_data: RD) -> RenderPassPipelineData<'rpp, 'rpr, RD>{
         RenderPassPipelineData{
             render_pass_pipeline: self,
@@ -148,7 +145,7 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData<'rpp>> RenderPassPipeline<'rpp, 'rpr, RD>
         self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint16);
     }
 
-    pub fn set_pipeline(&'rpr mut self, pipeline: &'rpp RenderPipeline<'rpp, RD>) -> Self{
+    pub fn set_pipeline(&'rpr mut self, pipeline: &'rpp RenderPipeline<RD>) -> Self{
         self.render_pass.render_pass.set_pipeline(&pipeline.pipeline);
         Self{
             render_pass: self.render_pass,
@@ -156,7 +153,7 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData<'rpp>> RenderPassPipeline<'rpp, 'rpr, RD>
             _ty: PhantomData,
         }
     }
-    pub fn draw_indexed(&mut self, data: &'rpr RD, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
+    pub fn draw_indexed(&mut self, data: &'rpp RD, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
         let bind_groups = data.bind_groups();
         for (i, bind_group) in bind_groups.iter().enumerate(){
             self.render_pass.render_pass.set_bind_group(
@@ -173,12 +170,12 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData<'rpp>> RenderPassPipeline<'rpp, 'rpr, RD>
     }
 }
 
-pub struct RenderPassPipelineData<'rpp, 'rpr, RD: RenderData<'rpp>>{
+pub struct RenderPassPipelineData<'rpp, 'rpr, RD: RenderData>{
     pub render_pass_pipeline: RenderPassPipeline<'rpp, 'rpr, RD>,
     pub data: RD,
 }
 
-impl<'rpp, 'rpr, RD: RenderData<'rpp>> RenderPassPipelineData<'rpp, 'rpr, RD>{
+impl<'rpp, 'rpr, RD: RenderData> RenderPassPipelineData<'rpp, 'rpr, RD>{
 
     pub fn draw_indexed(&'rpp mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
         let bind_groups = self.data.bind_groups();
@@ -284,14 +281,14 @@ pub struct ComputePipeline{
 /// A builder for a ComputePipeline
 ///
 ///
-pub struct ComputePipelineBuilder<'cpb, RD: RenderData<'cpb>>{
+pub struct ComputePipelineBuilder<'cpb, RD: RenderData>{
     label: wgpu::Label<'cpb>,
-    layout: Option<&'cpb PipelineLayout<'cpb, RD>>,
+    layout: Option<&'cpb PipelineLayout<RD>>,
     module: &'cpb wgpu::ShaderModule,
     entry_point: &'cpb str,
 }
 
-impl<'cpb, RD: RenderData<'cpb>> ComputePipelineBuilder<'cpb, RD>{
+impl<'cpb, RD: RenderData> ComputePipelineBuilder<'cpb, RD>{
 
     pub fn new(module: &'cpb ComputeShader) -> Self{
         Self{
@@ -312,7 +309,7 @@ impl<'cpb, RD: RenderData<'cpb>> ComputePipelineBuilder<'cpb, RD>{
         self
     }
 
-    pub fn set_layout(mut self, layout: &'cpb PipelineLayout<'cpb, RD>) -> Self{
+    pub fn set_layout(mut self, layout: &'cpb PipelineLayout<RD>) -> Self{
         self.layout = Some(layout);
         self
     }
@@ -340,7 +337,7 @@ pub struct RenderPass<'rp>{
 
 impl<'rp> RenderPass<'rp>{
 
-    pub fn set_pipeline<RD: RenderData<'rp>>(&mut self, pipeline: &'rp RenderPipeline<'rp, RD>) -> RenderPassPipeline<'rp, '_, RD>{
+    pub fn set_pipeline<RD: RenderData>(&mut self, pipeline: &'rp RenderPipeline<RD>) -> RenderPassPipeline<'rp, '_, RD>{
         self.render_pass.set_pipeline(&pipeline.pipeline);
         RenderPassPipeline{
             render_pass: self,
@@ -394,9 +391,9 @@ impl<'rp> RenderPassBuilder<'rp>{
 ///
 /// Pipeline layout has to be set.
 ///
-pub struct RenderPipelineBuilder<'rpb, 'rd, RD: RenderData<'rd>>{
+pub struct RenderPipelineBuilder<'rpb, RD: RenderData>{
     label: Option<&'rpb str>,
-    layout: Option<&'rpb PipelineLayout<'rd, RD>>,
+    layout: Option<&'rpb PipelineLayout<RD>>,
     vertex: VertexState<'rpb>,
     fragment: FragmentState<'rpb>,
     primitive: wgpu::PrimitiveState,
@@ -405,7 +402,7 @@ pub struct RenderPipelineBuilder<'rpb, 'rd, RD: RenderData<'rd>>{
     multiview: Option<NonZeroU32>,
 }
 
-impl<'rpb, 'rd, RD: RenderData<'rd>> RenderPipelineBuilder<'rpb, 'rd, RD>{
+impl<'rpb, 'rd, RD: RenderData> RenderPipelineBuilder<'rpb, RD>{
 
     pub fn new(vertex_shader: &'rpb VertexShader, fragment_shader: &'rpb FragmentShader) -> Self{
         let label = None;
@@ -563,7 +560,7 @@ impl<'rpb, 'rd, RD: RenderData<'rd>> RenderPipelineBuilder<'rpb, 'rd, RD>{
     }
 
     #[inline]
-    pub fn set_layout(mut self, layout: &'rpb PipelineLayout<'rd, RD>) -> Self{
+    pub fn set_layout(mut self, layout: &'rpb PipelineLayout<RD>) -> Self{
         self.layout = Some(layout);
         self
     }
@@ -586,7 +583,7 @@ impl<'rpb, 'rd, RD: RenderData<'rd>> RenderPipelineBuilder<'rpb, 'rd, RD>{
         self
     }
 
-    pub fn build(self, device: &wgpu::Device) -> RenderPipeline<'rd, RD>{
+    pub fn build(self, device: &wgpu::Device) -> RenderPipeline<RD>{
 
         let layout = self.layout.expect("no layout provided");
 
@@ -614,7 +611,6 @@ impl<'rpb, 'rd, RD: RenderData<'rd>> RenderPipelineBuilder<'rpb, 'rd, RD>{
         RenderPipeline{
             pipeline: render_pipeline,
             _rd: PhantomData,
-            _rp: PhantomData,
         }
     }
 }
