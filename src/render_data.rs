@@ -2,7 +2,17 @@ use std::ops::Deref;
 
 use crate::*;
 
-pub trait RenderData{
+pub trait PipelineData{
+
+}
+
+pub trait ComputeData: PipelineData{
+    fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>;
+    fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>;
+}
+
+
+pub trait RenderData: PipelineData{
     fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>;
     fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>;
     fn vert_buffer_slices<'d>(&'d self) -> Vec<wgpu::BufferSlice<'d>>{

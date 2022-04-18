@@ -91,9 +91,9 @@ pub struct RenderPipeline<RD: RenderData>{
     _rd: PhantomData<RD>,
 }
 
-pub struct PipelineLayout<RD: RenderData>{
+pub struct PipelineLayout<PD: PipelineData>{
     pub layout: wgpu::PipelineLayout,
-    _rd: PhantomData<RD>,
+    _rd: PhantomData<PD>,
 }
 
 impl<RD: RenderData> PipelineLayout<RD>{
@@ -177,21 +177,23 @@ pub struct DispatchIndirect{
 ///
 /// Wrapper for wgpu::ComputePass
 ///
-pub struct ComputePass<'cp>{
+pub struct ComputePass<'cp, CD: ComputeData>{
     pub cpass: wgpu::ComputePass<'cp>,
+    _ty: PhantomData<CD>,
 }
 
-impl<'cp> ComputePass<'cp>{
+impl<'cp, CD: ComputeData> ComputePass<'cp, CD>{
     pub fn new(encoder: &'cp mut wgpu::CommandEncoder, label: Option<&str>) -> Self{
         let cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor{
             label,
         });
         Self{
             cpass,
+            _ty: PhantomData,
         }
     }
 
-    pub fn set_pipeline(&mut self, pipeline: &'cp ComputePipeline) -> ComputePassPipeline<'cp, '_>{
+    pub fn set_pipeline(&mut self, pipeline: &'cp ComputePipeline) -> ComputePassPipeline<'cp, '_, CD>{
         self.cpass.set_pipeline(&pipeline.pipeline);
         ComputePassPipeline{
             cpass: self,
@@ -204,12 +206,25 @@ impl<'cp> ComputePass<'cp>{
 ///
 /// A ComputePass with pipeline needed for push_const offsets.
 ///
-pub struct ComputePassPipeline<'cp, 'cpr>{
-    pub cpass: &'cpr mut ComputePass<'cp>,
+pub struct ComputePassPipeline<'cp, 'cpr, CD: ComputeData>{
+    pub cpass: &'cpr mut ComputePass<'cp, CD>,
     pub pipeline: &'cp ComputePipeline,
 }
 
-impl<'cp, 'cpr> ComputePassPipeline<'cp, 'cpr>{
+impl<'cp, 'cpr, CD: 'cp + ComputeData> ComputePassPipeline<'cp, 'cpr, CD>{
+
+    pub fn set_compute_data(self, data: &'cp CD) -> Self{
+        let bind_groups = data.bind_groups();
+        for (i, bind_group) in bind_groups.iter().enumerate(){
+            self.cpass.cpass.set_bind_group(
+                i as u32,
+                bind_group,
+                &[],
+            )
+        }
+        self
+    }
+
     pub fn dispatch(&mut self, x: u32, y: u32, z: u32){
         self.cpass.cpass.dispatch(x, y, z);
     }
@@ -238,14 +253,14 @@ pub struct ComputePipeline{
 /// A builder for a ComputePipeline
 ///
 ///
-pub struct ComputePipelineBuilder<'cpb, RD: RenderData>{
+pub struct ComputePipelineBuilder<'cpb, CD: ComputeData>{
     label: wgpu::Label<'cpb>,
-    layout: Option<&'cpb PipelineLayout<RD>>,
+    layout: Option<&'cpb PipelineLayout<CD>>,
     module: &'cpb wgpu::ShaderModule,
     entry_point: &'cpb str,
 }
 
-impl<'cpb, RD: RenderData> ComputePipelineBuilder<'cpb, RD>{
+impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
 
     pub fn new(module: &'cpb ComputeShader) -> Self{
         Self{
@@ -266,7 +281,7 @@ impl<'cpb, RD: RenderData> ComputePipelineBuilder<'cpb, RD>{
         self
     }
 
-    pub fn set_layout(mut self, layout: &'cpb PipelineLayout<RD>) -> Self{
+    pub fn set_layout(mut self, layout: &'cpb PipelineLayout<CD>) -> Self{
         self.layout = Some(layout);
         self
     }
