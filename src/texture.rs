@@ -2,7 +2,6 @@ use image::GenericImageView;
 use crate::*;
 use crate::utils::RangeClamp;
 use std::fs;
-use std::ops::Bound;
 use std::ops::RangeBounds;
 
 pub trait IntoExtent3D{
@@ -515,6 +514,7 @@ impl ColorAttachment for Texture{
     }
 }
 
+#[cfg(feature = "imgui")]
 impl ColorAttachment for imgui_wgpu::Texture{
     fn color_attachment_clear(&self) -> wgpu::RenderPassColorAttachment {
         self.view().color_attachment_clear()

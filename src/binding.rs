@@ -288,6 +288,7 @@ impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
     }
 }
 
+#[cfg(feature = "imgui")]
 impl From<BindGroup<super::Texture>> for imgui_wgpu::Texture{
     fn from(bg_texture: BindGroup<super::Texture>) -> Self {
         imgui_wgpu::Texture::from_raw_parts(
