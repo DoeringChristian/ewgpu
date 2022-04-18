@@ -97,7 +97,7 @@ pub trait BindGroupContent: Sized{
             entries,
         }
     }
-    fn into_bound(self, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Bound<Self>{
+    fn into_bound(self, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> BindGroup<Self>{
         let layout = Self::create_bind_group_layout(device, None, visibility);
         let resources = self.resources();
 
@@ -113,7 +113,7 @@ pub trait BindGroupContent: Sized{
             entries: &entries,
             layout: &layout.layout,
         });
-        Bound{
+        BindGroup{
             bind_group,
             content: self
         }
@@ -198,22 +198,22 @@ impl<C: BindGroupContent> Deref for BindGroup<C>{
 }
 */
 
-pub struct Bound<C: BindGroupContent>{
+pub struct BindGroup<C: BindGroupContent>{
     bind_group: wgpu::BindGroup,
     content: C,
 }
 
-impl<C: BindGroupContent> Bound<C>{
+impl<C: BindGroupContent> BindGroup<C>{
 
 }
 
-impl<C: BindGroupContent> GetBindGroup for Bound<C>{
+impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
     fn get_bind_group(&self) -> &wgpu::BindGroup{
         &self.bind_group
     }
 }
 
-impl<C: BindGroupContent> Deref for Bound<C>{
+impl<C: BindGroupContent> Deref for BindGroup<C>{
     type Target = C;
 
     fn deref(&self) -> &Self::Target {
@@ -221,7 +221,7 @@ impl<C: BindGroupContent> Deref for Bound<C>{
     }
 }
 
-impl<C: BindGroupContent> DerefMut for Bound<C>{
+impl<C: BindGroupContent> DerefMut for BindGroup<C>{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.content
     }
