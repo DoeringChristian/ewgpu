@@ -29,22 +29,25 @@ pub struct BindGroupBuilder<'l, C: BindGroupContent>{
     _ty: PhantomData<C>,
 }
 
+/*
 impl<C: BindGroupContent> From<BindGroup<C>> for wgpu::BindGroup{
     fn from(src: BindGroup<C>) -> Self {
         src.bind_group
     }
 }
+*/
 
 pub trait GetBindGroup{
     fn get_bind_group(&self) -> &wgpu::BindGroup;
-    //fn create_bind_group_layout(device: &wgpu::Device, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc;
 }
 
+/*
 impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
     fn get_bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
     }
 }
+*/
 
 ///
 /// A trait implemented for structs that can be the content of a BindGroup.
@@ -52,6 +55,7 @@ impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
 pub trait BindGroupContent: Sized{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
     fn resources(&self) -> Vec<wgpu::BindingResource>;
+    /*
     fn create_bind_group(&self, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> BindGroup<Self>{
         let layout = Self::create_bind_group_layout(device, None, visibility);
         let resources = self.resources();
@@ -74,6 +78,7 @@ pub trait BindGroupContent: Sized{
             _ty: PhantomData,
         }
     }
+    */
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc{
         let entries = Self::entries(visibility);
         let entries: Vec<wgpu::BindGroupLayoutEntry> = entries.iter().enumerate().map(|(i, x)| {
@@ -178,6 +183,7 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
 }
 
 
+/*
 pub struct BindGroup<C: BindGroupContent>{
     bind_group: wgpu::BindGroup,
     _ty: PhantomData<C>,
@@ -190,6 +196,7 @@ impl<C: BindGroupContent> Deref for BindGroup<C>{
         &self.bind_group
     }
 }
+*/
 
 pub struct Bound<C: BindGroupContent>{
     bind_group: wgpu::BindGroup,

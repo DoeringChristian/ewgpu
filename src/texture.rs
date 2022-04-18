@@ -500,7 +500,7 @@ impl BindGroupContent for Texture{
     }
 }
 
-pub type BindGroupTexture = BindGroup<Texture>;
+pub type BindGroupTexture = Bound<Texture>;
 
 impl ColorAttachment for Texture{
     fn color_attachment_clear(&self) -> wgpu::RenderPassColorAttachment {
