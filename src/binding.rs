@@ -92,6 +92,27 @@ pub trait BindGroupContent: Sized{
             entries,
         }
     }
+    fn into_bound(self, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Bound<Self>{
+        let layout = Self::create_bind_group_layout(device, None, visibility);
+        let resources = self.resources();
+
+        let entries: Vec<wgpu::BindGroupEntry> = resources.into_iter().enumerate().map(|(i, r)|{
+            wgpu::BindGroupEntry{
+                binding: layout.entries[i].binding,
+                resource: r,
+            }
+        }).collect();
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
+            label: None,
+            entries: &entries,
+            layout: &layout.layout,
+        });
+        Bound{
+            bind_group,
+            content: self
+        }
+    }
 }
 
 // TODO: Derive macro for BindGroupContent.
@@ -167,6 +188,35 @@ impl<C: BindGroupContent> Deref for BindGroup<C>{
 
     fn deref(&self) -> &Self::Target {
         &self.bind_group
+    }
+}
+
+pub struct Bound<C: BindGroupContent>{
+    bind_group: wgpu::BindGroup,
+    content: C,
+}
+
+impl<C: BindGroupContent> Bound<C>{
+
+}
+
+impl<C: BindGroupContent> GetBindGroup for Bound<C>{
+    fn get_bind_group(&self) -> &wgpu::BindGroup{
+        &self.bind_group
+    }
+}
+
+impl<C: BindGroupContent> Deref for Bound<C>{
+    type Target = C;
+
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
+}
+
+impl<C: BindGroupContent> DerefMut for Bound<C>{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.content
     }
 }
 
