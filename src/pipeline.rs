@@ -170,24 +170,6 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
             instances.start..instances.end
         );
     }
-
-    /*
-    pub fn draw_indexed(&mut self, data: &'rpp RD, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
-        let bind_groups = data.bind_groups();
-        for (i, bind_group) in bind_groups.iter().enumerate(){
-            self.render_pass.render_pass.set_bind_group(
-                i as u32,
-                bind_group,
-                &[],
-            );
-        }
-        self.render_pass.render_pass.draw_indexed(
-            indices.start..indices.end, 
-            base_vertex, 
-            instances.start..instances.end
-        );
-    }
-    */
 }
 
 #[repr(C)]

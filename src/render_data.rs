@@ -9,6 +9,7 @@ pub trait RenderData{
 
 macro_rules! render_data_for_tuple{
     ($($name:ident)+) => {
+        #[allow(non_snake_case)]
         impl<$($name: BindGroupContent),+> RenderData for ($(BindGroup<$name>, )+){
             fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>{
                 let ($($name, )+) = self;
@@ -20,7 +21,6 @@ macro_rules! render_data_for_tuple{
         }
     }
 }
-
 
 
 render_data_for_tuple!{ A }
