@@ -5,8 +5,13 @@ use crate::*;
 pub trait RenderData{
     fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>;
     fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>;
+    fn vert_buffer_slices<'d>(&'d self) -> Vec<wgpu::BufferSlice<'d>>{
+        vec![]
+    }
+    fn idx_buffer_slice<'d>(&'d self) -> (wgpu::IndexFormat, wgpu::BufferSlice<'d>);
 }
 
+/*
 macro_rules! render_data_for_tuple{
     ($($name:ident)+) => {
         #[allow(non_snake_case)]
@@ -63,3 +68,4 @@ render_data_for_tuple_bound!{ A B C D E F G H I }
 render_data_for_tuple_bound!{ A B C D E F G H I J }
 render_data_for_tuple_bound!{ A B C D E F G H I J K }
 render_data_for_tuple_bound!{ A B C D E F G H I J K L }
+*/

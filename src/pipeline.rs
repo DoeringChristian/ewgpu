@@ -142,24 +142,18 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
                 &[],
             );
         }
-        self
-    }
-
-    pub fn set_vertex_buffer<T: VertLayout>(self, index: u32, buffer_slice: BufferSlice<'rpp, T>) -> Self{
-        self.render_pass.render_pass.set_vertex_buffer(
-            index,
-            buffer_slice.into()
+        let vert_buffer_slices = data.vert_buffer_slices();
+        for (i, slice) in vert_buffer_slices.into_iter().enumerate(){
+            self.render_pass.render_pass.set_vertex_buffer(
+                i as u32,
+                slice,
+            )
+        }
+        let (format, slice) = data.idx_buffer_slice();
+        self.render_pass.render_pass.set_index_buffer(
+            slice,
+            format
         );
-        self
-    }
-
-    pub fn set_index_buffer(self, buffer_slice: BufferSlice<'rpp, u32>) -> Self{
-        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint32);
-        self
-    }
-
-    pub fn set_index_buffer16(self, buffer_slice: BufferSlice<'rpp, u16>) -> Self{
-        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint16);
         self
     }
 

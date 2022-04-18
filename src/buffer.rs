@@ -24,6 +24,11 @@ impl<'bs, C: bytemuck::Pod> From<BufferSlice<'bs, C>> for wgpu::BufferSlice<'bs>
 }
 
 impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
+
+    pub fn slice(&self) -> wgpu::BufferSlice{
+        self.buffer.buffer.slice(self.range_addr())
+    }
+
     ///
     /// Convert the range of elements (BufferSlice::range) into a range of bytes.
     ///
