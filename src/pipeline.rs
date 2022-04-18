@@ -123,10 +123,14 @@ pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData>{
 }
 
 impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
-    pub fn set_render_data(self, render_data: RD) -> RenderPassPipelineData<'rpp, 'rpr, RD>{
-        RenderPassPipelineData{
-            render_pass_pipeline: self,
-            data: render_data,
+    pub fn set_render_data(&mut self, data: &'rpp RD){
+        let bind_groups = data.bind_groups();
+        for (i, bind_group) in bind_groups.iter().enumerate(){
+            self.render_pass.render_pass.set_bind_group(
+                i as u32,
+                bind_group,
+                &[],
+            );
         }
     }
 
@@ -153,6 +157,16 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
             _ty: PhantomData,
         }
     }
+
+    pub fn draw_indexed(&mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
+        self.render_pass.render_pass.draw_indexed(
+            indices.start..indices.end, 
+            base_vertex, 
+            instances.start..instances.end
+        );
+    }
+
+    /*
     pub fn draw_indexed(&mut self, data: &'rpp RD, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
         let bind_groups = data.bind_groups();
         for (i, bind_group) in bind_groups.iter().enumerate(){
@@ -168,45 +182,7 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
             instances.start..instances.end
         );
     }
-}
-
-pub struct RenderPassPipelineData<'rpp, 'rpr, RD: RenderData>{
-    pub render_pass_pipeline: RenderPassPipeline<'rpp, 'rpr, RD>,
-    pub data: RD,
-}
-
-impl<'rpp, 'rpr, RD: RenderData> RenderPassPipelineData<'rpp, 'rpr, RD>{
-
-    pub fn draw_indexed(&'rpp mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
-        let bind_groups = self.data.bind_groups();
-        for (i, bind_group) in bind_groups.iter().enumerate(){
-            self.render_pass_pipeline.render_pass.render_pass.set_bind_group(
-                i as u32,
-                bind_group,
-                &[],
-            );
-        }
-        self.render_pass_pipeline.render_pass.render_pass.draw_indexed(
-            indices.start..indices.end, 
-            base_vertex, 
-            instances.start..instances.end
-        );
-    }
-
-    pub fn draw(&'rpp mut self, vertices: Range<u32>, instances: Range<u32>){
-        let bind_groups = self.data.bind_groups();
-        for (i, bind_group) in bind_groups.iter().enumerate(){
-            self.render_pass_pipeline.render_pass.render_pass.set_bind_group(
-                i as u32,
-                bind_group,
-                &[],
-            );
-        }
-        self.render_pass_pipeline.render_pass.render_pass.draw(
-            vertices.start..vertices.end,
-            instances.start..instances.end
-        );
-    }
+    */
 }
 
 #[repr(C)]
