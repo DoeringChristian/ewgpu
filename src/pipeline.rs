@@ -123,31 +123,6 @@ pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData>{
 }
 
 impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
-    pub fn set_render_data(&mut self, data: &'rpp RD){
-        let bind_groups = data.bind_groups();
-        for (i, bind_group) in bind_groups.iter().enumerate(){
-            self.render_pass.render_pass.set_bind_group(
-                i as u32,
-                bind_group,
-                &[],
-            );
-        }
-    }
-
-    pub fn set_vertex_buffer<T: VertLayout>(&mut self, index: u32, buffer_slice: BufferSlice<'rpp, T>){
-        self.render_pass.render_pass.set_vertex_buffer(
-            index,
-            buffer_slice.into()
-        );
-    }
-
-    pub fn set_index_buffer(&mut self, buffer_slice: BufferSlice<'rpp, u32>){
-        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint32);
-    }
-
-    pub fn set_index_buffer16(&mut self, buffer_slice: BufferSlice<'rpp, u16>){
-        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint16);
-    }
 
     pub fn set_pipeline(&'rpr mut self, pipeline: &'rpp RenderPipeline<RD>) -> Self{
         self.render_pass.render_pass.set_pipeline(&pipeline.pipeline);
@@ -156,6 +131,36 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData> RenderPassPipeline<'rpp, 'rpr, RD>{
             pipeline,
             _ty: PhantomData,
         }
+    }
+
+    pub fn set_render_data(self, data: &'rpp RD) -> Self{
+        let bind_groups = data.bind_groups();
+        for (i, bind_group) in bind_groups.iter().enumerate(){
+            self.render_pass.render_pass.set_bind_group(
+                i as u32,
+                bind_group,
+                &[],
+            );
+        }
+        self
+    }
+
+    pub fn set_vertex_buffer<T: VertLayout>(self, index: u32, buffer_slice: BufferSlice<'rpp, T>) -> Self{
+        self.render_pass.render_pass.set_vertex_buffer(
+            index,
+            buffer_slice.into()
+        );
+        self
+    }
+
+    pub fn set_index_buffer(self, buffer_slice: BufferSlice<'rpp, u32>) -> Self{
+        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint32);
+        self
+    }
+
+    pub fn set_index_buffer16(self, buffer_slice: BufferSlice<'rpp, u16>) -> Self{
+        self.render_pass.render_pass.set_index_buffer(buffer_slice.into(), wgpu::IndexFormat::Uint16);
+        self
     }
 
     pub fn draw_indexed(&mut self, indices: Range<u32>, base_vertex: i32, instances: Range<u32>){
