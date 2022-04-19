@@ -40,6 +40,38 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 }
             }).collect();
 
+        let bind_group_visibilities: Vec<proc_macro2::TokenStream> = bind_group_iter
+            .clone()
+            .map(|x|{
+                let attr = x.attrs.iter().find(|x|{
+                    x.path.is_ident("bind_group")
+                }).unwrap();
+
+                let vis = attr.parse_meta().map(|m|{
+                    match m{
+                        syn::Meta::NameValue(n) => {
+                            if let syn::Lit::Str(i) = n.lit{
+                                let content: syn::Ident = i.parse().unwrap();
+                                quote!{
+                                    #content
+                                }
+                            }
+                            else{
+                                panic!("Invalid literal provided");
+                            }
+                        },
+                        _ => quote!{all()},
+                    }
+                }).unwrap_or_else(|_|{
+                    quote!{
+                        all()
+                    }
+                });
+                quote!{
+                    wgpu::ShaderStages::#vis
+                }
+            }).collect();
+
         let vertex_slices_iter = fields.iter().filter(|x|{
             x.attrs.iter().find(|a|{
                 a.path.is_ident("vertex")
@@ -95,7 +127,7 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 fn bind_group_layouts(device: &wgpu::Device) -> Vec<ewgpu::BindGroupLayoutWithDesc>{
                     vec![
                         #(
-                            <#bind_group_paths>::create_bind_group_layout(device, None, wgpu::ShaderStages::all()),
+                            <#bind_group_paths>::create_bind_group_layout(device, None, #bind_group_visibilities),
                         )*
                     ]
                 }
