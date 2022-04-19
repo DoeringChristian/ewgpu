@@ -204,7 +204,9 @@ pub struct BindGroup<C: BindGroupContent>{
 }
 
 impl<C: BindGroupContent> BindGroup<C>{
-
+    pub fn create_bind_group_layout(device: &wgpu::Device, label: wgpu::Label, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc{
+        C::create_bind_group_layout(device, label, visibility)
+    }
 }
 
 impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{

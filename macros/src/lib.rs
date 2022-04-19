@@ -3,10 +3,12 @@ use proc_macro::{self, TokenStream};
 mod vertex;
 mod bind_group_content;
 mod pipeline_layout;
+mod render_data;
 
 use vertex::*;
 use bind_group_content::*;
 use pipeline_layout::*;
+use render_data::*;
 
 ///
 /// An attribute macro for deriving Copy, Clone, bytemuck::Zeroable, bytemuck::Pod, Vert
@@ -127,5 +129,11 @@ pub fn derive_bind_group_content(tokens: TokenStream) -> TokenStream{
 #[proc_macro]
 pub fn pipeline_layout(tokens: TokenStream) -> TokenStream{
     generate_pipeline_layout(tokens)
+}
+#[proc_macro_derive(RenderData, attributes(bind_group, vertex, index))]
+pub fn derive_render_data(tokens: TokenStream) -> TokenStream{
+    let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
+
+    generate_render_data(ast).into()
 }
 

@@ -6,7 +6,21 @@ use crate::utils::*;
 use super::binding;
 
 
-// TODO: find a way to implement diffrent types of buffers.
+pub trait IndexBufferFormat{
+    fn index_buffer_format() -> wgpu::IndexFormat;
+}
+
+impl<'bs> IndexBufferFormat for BufferSlice<'bs, u32>{
+    fn index_buffer_format() -> wgpu::IndexFormat {
+        wgpu::IndexFormat::Uint32
+    }
+}
+
+impl<'bs> IndexBufferFormat for BufferSlice<'bs, u16>{
+    fn index_buffer_format() -> wgpu::IndexFormat {
+        wgpu::IndexFormat::Uint16
+    }
+}
 
 /// 
 /// A wrapper for the wgpu::BufferSlice but with its data exposed.
