@@ -557,7 +557,22 @@ impl<'rpb, 'rd, RD: RenderData> RenderPipelineBuilder<'rpb, RD>{
 
     pub fn build(self, device: &wgpu::Device) -> RenderPipeline<RD>{
 
-        let layout = self.layout.expect("no layout provided");
+        let layout_tmp;
+
+        let layout = match &self.layout{
+            Some(layout) => &layout.layout,
+            None => {
+
+                let bind_group_layouts = RD::bind_group_layouts(device);
+                let layout_refs: Vec<&wgpu::BindGroupLayout> = bind_group_layouts.iter().map(|x| &x.layout).collect();
+                layout_tmp = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
+                    label: None,
+                    push_constant_ranges: &[],
+                    bind_group_layouts: &layout_refs,
+                });
+                &layout_tmp
+            }
+        };
 
         let fragment = wgpu::FragmentState{
             module: self.fragment.shader,
@@ -567,7 +582,7 @@ impl<'rpb, 'rd, RD: RenderData> RenderPipelineBuilder<'rpb, RD>{
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
             label: self.label,
-            layout: Some(&layout.layout),
+            layout: Some(&layout),
             vertex: wgpu::VertexState{
                 module: self.vertex.shader,
                 entry_point: self.vertex.entry_point,
