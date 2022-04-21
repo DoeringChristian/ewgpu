@@ -79,6 +79,15 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 }
             }).collect();
 
+        let vertex_slice_paths: Vec<proc_macro2::TokenStream> = vertex_slices_iter
+            .clone()
+            .map(|x|{
+                let path = reduce_to_path(&x.ty);
+                quote!{
+                    #path
+                }
+            }).collect();
+
         let index_slice_iter = fields.iter().filter(|x|{
             x.attrs.iter().find(|a|{
                 a.path.is_ident("index")
@@ -124,6 +133,12 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                     ]
                 }
 
+                fn vert_layout() -> Vec<wgpu::VertexBufferLayout<'static>>{
+                    vec![
+                        #(<#vertex_slice_paths>::buffer_slice_vert_layout(),)*
+                    ]
+                }
+
                 fn vert_buffer_slices<'d>(&'d self) -> Vec<wgpu::BufferSlice<'d>>{
                     vec![
                         #(self.#vertex_slices_idents.slice(),)*
@@ -133,6 +148,7 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 fn idx_buffer_slice<'d>(&'d self) -> (wgpu::IndexFormat, wgpu::BufferSlice<'d>) {
                     (<#index_slice_path>::index_buffer_format(), self.#index_slice_ident.slice())
                 }
+
 
             }
         };

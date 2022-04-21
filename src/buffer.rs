@@ -1,10 +1,19 @@
 use wgpu::util::DeviceExt;
 use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds, Range}};
 use std::mem::ManuallyDrop;
-use crate::utils::*;
+use crate::{utils::*, VertLayout};
 
 use super::binding;
 
+pub trait BufferSliceVertLayout{
+    fn buffer_slice_vert_layout() -> wgpu::VertexBufferLayout<'static>;
+}
+
+impl<'bs, V: VertLayout> BufferSliceVertLayout for BufferSlice<'bs, V>{
+    fn buffer_slice_vert_layout() -> wgpu::VertexBufferLayout<'static> {
+        V::buffer_layout()
+    }
+}
 
 pub trait IndexBufferFormat{
     fn index_buffer_format() -> wgpu::IndexFormat;

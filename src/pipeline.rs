@@ -555,7 +555,7 @@ impl<'rpb, 'rd, RD: RenderData> RenderPipelineBuilder<'rpb, RD>{
         self
     }
 
-    pub fn build(self, device: &wgpu::Device) -> RenderPipeline<RD>{
+    pub fn build(mut self, device: &wgpu::Device) -> RenderPipeline<RD>{
 
         let layout_tmp;
 
@@ -573,6 +573,8 @@ impl<'rpb, 'rd, RD: RenderData> RenderPipelineBuilder<'rpb, RD>{
                 &layout_tmp
             }
         };
+
+        self.vertex.vertex_buffer_layouts = RD::vert_layout();
 
         let fragment = wgpu::FragmentState{
             module: self.fragment.shader,

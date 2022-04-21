@@ -18,6 +18,7 @@ pub trait RenderData: PipelineData{
     fn vert_buffer_slices<'d>(&'d self) -> Vec<wgpu::BufferSlice<'d>>{
         vec![]
     }
+    fn vert_layout() -> Vec<wgpu::VertexBufferLayout<'static>>;
     fn idx_buffer_slice<'d>(&'d self) -> (wgpu::IndexFormat, wgpu::BufferSlice<'d>);
 }
 
