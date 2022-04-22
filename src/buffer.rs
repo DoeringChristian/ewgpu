@@ -5,6 +5,10 @@ use crate::{utils::*, VertLayout};
 
 use super::binding;
 
+///
+/// A trait with a function returning a wgpu::VertexBufferLayout for any buffer_slice that has a 
+/// content of that implements VertLayout.
+///
 pub trait BufferSliceVertLayout{
     fn buffer_slice_vert_layout() -> wgpu::VertexBufferLayout<'static>;
 }
@@ -15,6 +19,10 @@ impl<'bs, V: VertLayout> BufferSliceVertLayout for BufferSlice<'bs, V>{
     }
 }
 
+///
+/// A trait with a function returning the wgpu::IndexFormat for a BufferSlice with content type u32
+/// and u16
+///
 pub trait IndexBufferFormat{
     fn index_buffer_format() -> wgpu::IndexFormat;
 }

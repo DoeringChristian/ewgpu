@@ -128,7 +128,7 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 fn bind_group_layouts(device: &wgpu::Device) -> Vec<ewgpu::BindGroupLayoutWithDesc>{
                     vec![
                         #(
-                            <#bind_group_paths>::create_bind_group_layout(device, None, #bind_group_visibilities),
+                            <#bind_group_paths>::create_bind_group_layout(device, None),
                         )*
                     ]
                 }

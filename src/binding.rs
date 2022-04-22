@@ -23,31 +23,9 @@ impl BindGroupLayoutEntry{
     }
 }
 
-pub struct BindGroupBuilder<'l, C: BindGroupContent>{
-    layout: BindGroupLayoutWithDesc,
-    entries: Vec<wgpu::BindGroupEntry<'l>>,
-    _ty: PhantomData<C>,
-}
-
-/*
-impl<C: BindGroupContent> From<BindGroup<C>> for wgpu::BindGroup{
-    fn from(src: BindGroup<C>) -> Self {
-        src.bind_group
-    }
-}
-*/
-
 pub trait GetBindGroup{
     fn get_bind_group(&self) -> &wgpu::BindGroup;
 }
-
-/*
-impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
-    fn get_bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
-    }
-}
-*/
 
 ///
 /// A trait implemented for structs that can be the content of a BindGroup.
@@ -55,30 +33,6 @@ impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
 pub trait BindGroupContent: Sized{
     fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
     fn resources(&self) -> Vec<wgpu::BindingResource>;
-    /*
-    fn create_bind_group(&self, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> BindGroup<Self>{
-        let layout = Self::create_bind_group_layout(device, None, visibility);
-        let resources = self.resources();
-
-        let entries: Vec<wgpu::BindGroupEntry> = resources.into_iter().enumerate().map(|(i, r)|{
-            wgpu::BindGroupEntry{
-                binding: layout.entries[i].binding,
-                resource: r,
-            }
-        }).collect();
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
-            label: None,
-            entries: &entries,
-            layout: &layout.layout,
-        });
-
-        BindGroup{
-            bind_group, 
-            _ty: PhantomData,
-        }
-    }
-    */
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc{
         let entries = Self::entries(visibility);
         let entries: Vec<wgpu::BindGroupLayoutEntry> = entries.iter().enumerate().map(|(i, x)| {
@@ -97,8 +51,8 @@ pub trait BindGroupContent: Sized{
             entries,
         }
     }
-    fn into_bound(self, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> BindGroup<Self>{
-        let layout = Self::create_bind_group_layout(device, None, visibility);
+    fn into_bind_group<const S: u32>(self, device: &wgpu::Device) -> BindGroup<S, Self>{
+        let layout = Self::create_bind_group_layout(device, None, wgpu::ShaderStages::from_bits_truncate(S));
         let resources = self.resources();
 
         let entries: Vec<wgpu::BindGroupEntry> = resources.into_iter().enumerate().map(|(i, r)|{
@@ -119,8 +73,6 @@ pub trait BindGroupContent: Sized{
         }
     }
 }
-
-// TODO: Derive macro for BindGroupContent.
 
 macro_rules! bind_group_content_for_tuple{
     ($($name:ident)+) => {
@@ -148,8 +100,6 @@ macro_rules! bind_group_content_for_tuple{
         }
     }
 }
-
-// TODO: add derive macro for structs
 bind_group_content_for_tuple!{ A }
 bind_group_content_for_tuple!{ A B }
 bind_group_content_for_tuple!{ A B C }
@@ -182,40 +132,37 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
     }
 }
 
+#[allow(non_snake_case)]
+pub mod ShaderStages{
+    pub const NONE: u32 = 0;
+    pub const VERTEX: u32 = 1 << 0;
+    pub const FRAGMENT: u32 = 1 << 1;
+    pub const COMPUTE: u32 = 1 << 2;
 
-/*
-pub struct BindGroup<C: BindGroupContent>{
-    bind_group: wgpu::BindGroup,
-    _ty: PhantomData<C>,
+    pub const VERTEX_FRAGMENT: u32 = VERTEX | FRAGMENT;
+    pub const ALL: u32 = 0x07;
 }
 
-impl<C: BindGroupContent> Deref for BindGroup<C>{
-    type Target = wgpu::BindGroup;
+pub type BindGroupAll<C> = BindGroup<0x07, C>;
 
-    fn deref(&self) -> &Self::Target {
-        &self.bind_group
-    }
-}
-*/
-
-pub struct BindGroup<C: BindGroupContent>{
+pub struct BindGroup<const S: u32, C: BindGroupContent>{
     bind_group: wgpu::BindGroup,
     content: C,
 }
 
-impl<C: BindGroupContent> BindGroup<C>{
-    pub fn create_bind_group_layout(device: &wgpu::Device, label: wgpu::Label, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc{
-        C::create_bind_group_layout(device, label, visibility)
+impl<const S: u32, C: BindGroupContent> BindGroup<S, C>{
+    pub fn create_bind_group_layout(device: &wgpu::Device, label: wgpu::Label) -> BindGroupLayoutWithDesc{
+        C::create_bind_group_layout(device, label, wgpu::ShaderStages::from_bits_truncate(S))
     }
 }
 
-impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
+impl<const S: u32, C: BindGroupContent> GetBindGroup for BindGroup<S, C>{
     fn get_bind_group(&self) -> &wgpu::BindGroup{
         &self.bind_group
     }
 }
 
-impl<C: BindGroupContent> Deref for BindGroup<C>{
+impl<const S: u32, C: BindGroupContent> Deref for BindGroup<S, C>{
     type Target = C;
 
     fn deref(&self) -> &Self::Target {
@@ -223,7 +170,7 @@ impl<C: BindGroupContent> Deref for BindGroup<C>{
     }
 }
 
-impl<C: BindGroupContent> DerefMut for BindGroup<C>{
+impl<const S: u32, C: BindGroupContent> DerefMut for BindGroup<S, C>{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.content
     }
