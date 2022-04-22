@@ -51,6 +51,9 @@ pub trait BindGroupContent: Sized{
             entries,
         }
     }
+    ///
+    /// Shader stage S can be inferred from render_data.
+    ///
     fn into_bind_group<const S: u32>(self, device: &wgpu::Device) -> BindGroup<S, Self>{
         let layout = Self::create_bind_group_layout(device, None, wgpu::ShaderStages::from_bits_truncate(S));
         let resources = self.resources();
@@ -140,10 +143,15 @@ pub mod ShaderStages{
     pub const COMPUTE: u32 = 1 << 2;
 
     pub const VERTEX_FRAGMENT: u32 = VERTEX | FRAGMENT;
-    pub const ALL: u32 = 0x07;
+    pub const ALL: u32 = VERTEX | FRAGMENT | COMPUTE;
 }
 
-pub type BindGroupAll<C> = BindGroup<0x07, C>;
+pub type BindGroupNone<C> = BindGroup<{ShaderStages::NONE}, C>;
+pub type BindGroupAll<C> = BindGroup<{ShaderStages::ALL}, C>;
+pub type BindGroupVertex<C> = BindGroup<{ShaderStages::VERTEX}, C>;
+pub type BindGroupFragment<C> = BindGroup<{ShaderStages::FRAGMENT}, C>;
+pub type BindGroupCompute<C> = BindGroup<{ShaderStages::COMPUTE}, C>;
+pub type BindGroupVertexFragment<C> = BindGroup<{ShaderStages::VERTEX_FRAGMENT}, C>;
 
 pub struct BindGroup<const S: u32, C: BindGroupContent>{
     bind_group: wgpu::BindGroup,

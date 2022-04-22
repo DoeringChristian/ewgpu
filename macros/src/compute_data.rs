@@ -32,39 +32,6 @@ pub fn generate_compute_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 }
             }).collect();
 
-        let bind_group_visibilities: Vec<proc_macro2::TokenStream> = bind_group_iter
-            .clone()
-            .map(|x|{
-                let attr = x.attrs.iter().find(|x|{
-                    x.path.is_ident("bind_group")
-                }).unwrap();
-
-                let vis = attr.parse_meta().map(|m|{
-                    match m{
-                        syn::Meta::NameValue(n) => {
-                            if let syn::Lit::Str(i) = n.lit{
-                                let content: syn::Ident = i.parse().unwrap();
-                                quote!{
-                                    #content
-                                }
-                            }
-                            else{
-                                panic!("Invalid literal provided");
-                            }
-                        },
-                        _ => quote!{all()},
-                    }
-                }).unwrap_or_else(|_|{
-                    quote!{
-                        all()
-                    }
-                });
-                quote!{
-                    wgpu::ShaderStages::#vis
-                }
-            }).collect();
-
-
         let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
         let output = quote!{
             impl #impl_generics PipelineData for #ident #ty_generics #where_clause{
