@@ -51,6 +51,14 @@ pub trait ColorAttachmentData<'cad>{
     fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>>;
 }
 
+impl<'cad, const N: usize> ColorAttachmentData<'cad> for [wgpu::RenderPassColorAttachment<'cad>; N]{
+    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
+        let mut v = Vec::with_capacity(N);
+        v.extend_from_slice(&self);
+        v
+    }
+}
+
 impl<'cad> ColorAttachmentData<'cad> for (wgpu::RenderPassColorAttachment<'cad>, ){
     fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
         vec![self.0]
