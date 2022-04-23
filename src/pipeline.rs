@@ -234,6 +234,12 @@ impl<'cp, 'cpr, CD: 'cp + ComputeData> ComputePassPipeline<'cp, 'cpr, CD>{
                 &[],
             )
         }
+        let push_constants = data.push_consts();
+        for (i, (push_constant, stage)) in push_constants.iter().enumerate(){
+            self.cpass.cpass.set_push_constants(
+                self.pipeline.push_constant_ranges[i].range.start, 
+                &push_constant);
+        }
         self
     }
 
@@ -259,6 +265,7 @@ impl<'cp, 'cpr, CD: 'cp + ComputeData> ComputePassPipeline<'cp, 'cpr, CD>{
 ///
 pub struct ComputePipeline{
     pub pipeline: wgpu::ComputePipeline,
+    push_constant_ranges: Vec<wgpu::PushConstantRange>,
 }
 
 ///
@@ -267,7 +274,6 @@ pub struct ComputePipeline{
 ///
 pub struct ComputePipelineBuilder<'cpb, CD: ComputeData>{
     label: wgpu::Label<'cpb>,
-    //layout: Option<&'cpb PipelineLayout<CD>>,
     module: &'cpb wgpu::ShaderModule,
     entry_point: &'cpb str,
     _cd: PhantomData<CD>,
@@ -278,7 +284,6 @@ impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
     pub fn new(module: &'cpb ComputeShader) -> Self{
         Self{
             label: None,
-            //layout: None,
             module,
             entry_point: "main",
             _cd: PhantomData,
@@ -295,23 +300,41 @@ impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
         self
     }
 
-    /*
-    pub fn set_layout(mut self, layout: &'cpb PipelineLayout<CD>) -> Self{
-        self.layout = Some(layout);
-        self
-    }
-    */
-
     pub fn build(&mut self, device: &wgpu::Device) -> ComputePipeline{
-        //let layout = self.layout.expect("no layout provided");
+        let mut offset = 0;
+        let push_constant_ranges = CD::push_const_layouts();
+        let push_constant_ranges: Vec<wgpu::PushConstantRange> = push_constant_ranges.iter()
+            .map(|x|{
+                let size_aligned = (((x.size as i32 - 4)/4 + 1)*4) as u32;
+                let range = Range::<u32>{
+                    start: offset,
+                    end: offset + size_aligned,
+                };
+                offset = range.end;
+                wgpu::PushConstantRange{
+                    stages: x.stages,
+                    range,
+                }
+            }).collect();
+
+        let layout = {
+                let bind_group_layouts = CD::bind_group_layouts(device);
+                let layout_refs: Vec<&wgpu::BindGroupLayout> = bind_group_layouts.iter().map(|x| &x.layout).collect();
+
+                device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
+                    label: None,
+                    push_constant_ranges: &push_constant_ranges,
+                    bind_group_layouts: &layout_refs,
+                })
+        };
         ComputePipeline{
             pipeline: device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor{
                 label: self.label,
-                //layout: Some(&layout.layout),
-                layout: None,
+                layout: Some(&layout),
                 module: self.module,
                 entry_point: self.entry_point,
             }),
+            push_constant_ranges,
         }
     }
 }
@@ -588,8 +611,6 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
     }
 
     pub fn build(mut self, device: &wgpu::Device) -> RenderPipeline<'cad, RD, CAD>{
-
-
         let mut offset = 0;
         let push_constant_ranges = RD::push_const_layouts();
         let push_constant_ranges: Vec<wgpu::PushConstantRange> = push_constant_ranges.iter()

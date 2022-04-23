@@ -9,6 +9,12 @@ pub trait PipelineData{
 pub trait ComputeData: PipelineData{
     fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>;
     fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>;
+    fn push_const_layouts() -> Vec<PushConstantLayout>{
+        vec![]
+    }
+    fn push_consts<'d>(&'d self) -> Vec<(&'d[u8], wgpu::ShaderStages)>{
+        vec![]
+    }
 }
 
 

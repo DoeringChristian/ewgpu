@@ -141,7 +141,7 @@ pub fn derive_render_data(tokens: TokenStream) -> TokenStream{
     generate_render_data(ast).into()
 }
 
-#[proc_macro_derive(ComputeData, attributes(bind_group))]
+#[proc_macro_derive(ComputeData, attributes(bind_group, push_constant))]
 pub fn derive_compute_data(tokens: TokenStream) -> TokenStream{
     let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
 
