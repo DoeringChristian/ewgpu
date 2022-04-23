@@ -32,6 +32,30 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
                 }
             }).collect();
 
+        let push_const_iter = fields.iter().filter(|x|{
+            x.attrs.iter().find(|a|{
+                a.path.is_ident("push_constant")
+            }).is_some()
+        });
+
+        let push_const_paths: Vec<proc_macro2::TokenStream> = push_const_iter
+            .clone()
+            .map(|x|{
+                let path = reduce_to_path(&x.ty);
+                quote!{
+                    #path
+                }
+            }).collect();
+
+        let push_const_idents: Vec<proc_macro2::TokenStream> = push_const_iter
+            .clone()
+            .map(|x|{
+                let ident = &x.ident;
+                quote!{
+                    #ident
+                }
+            }).collect();
+
         let vertex_slices_iter = fields.iter().filter(|x|{
             x.attrs.iter().find(|a|{
                 a.path.is_ident("vertex")
@@ -115,6 +139,18 @@ pub fn generate_render_data(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
 
                 fn idx_buffer_slice<'d>(&'d self) -> (wgpu::IndexFormat, wgpu::BufferSlice<'d>) {
                     (<#index_slice_path>::index_buffer_format(), self.#index_slice_ident.slice())
+                }
+
+                fn push_const_layouts() -> Vec<ewgpu::PushConstantLayout>{
+                    vec![
+                        #(<#push_const_paths>::push_const_layout(),)*
+                    ]
+                }
+
+                fn push_consts<'d>(&'d self) -> Vec<(&'d[u8], wgpu::ShaderStages)>{
+                    vec![
+                        #(self.#push_const_idents.push_const_slice(),)*
+                    ]
                 }
 
 

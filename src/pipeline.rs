@@ -88,11 +88,13 @@ impl<'vs> VertexState<'vs>{
 ///
 pub struct RenderPipeline<'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>>{
     pub pipeline: wgpu::RenderPipeline,
+    push_constant_ranges: Vec<wgpu::PushConstantRange>,
     _rd: PhantomData<RD>,
     _cad: PhantomData<CAD>,
     _cadr: PhantomData<&'cad ()>,
 }
 
+/*
 pub struct PipelineLayout<PD: PipelineData>{
     pub layout: wgpu::PipelineLayout,
     _rd: PhantomData<PD>,
@@ -117,6 +119,7 @@ impl<RD: RenderData> PipelineLayout<RD>{
         }
     }
 }
+*/
 
 pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData, CAD: ColorAttachmentData<'rpp>>{
     pub render_pass: &'rpr mut RenderPass<'rpp, CAD>,
@@ -156,6 +159,13 @@ impl<'rpp, 'rpr, RD: 'rpp + RenderData, CAD: 'rpp + ColorAttachmentData<'rpp>> R
             slice,
             format
         );
+        let push_constants = data.push_consts();
+        for (i, (push_constant, stage)) in push_constants.iter().enumerate(){
+            self.render_pass.render_pass.set_push_constants(
+                *stage, 
+                self.pipeline.push_constant_ranges[i].range.start, 
+                &push_constant);
+        }
         self
     }
 
@@ -257,9 +267,10 @@ pub struct ComputePipeline{
 ///
 pub struct ComputePipelineBuilder<'cpb, CD: ComputeData>{
     label: wgpu::Label<'cpb>,
-    layout: Option<&'cpb PipelineLayout<CD>>,
+    //layout: Option<&'cpb PipelineLayout<CD>>,
     module: &'cpb wgpu::ShaderModule,
     entry_point: &'cpb str,
+    _cd: PhantomData<CD>,
 }
 
 impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
@@ -267,9 +278,10 @@ impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
     pub fn new(module: &'cpb ComputeShader) -> Self{
         Self{
             label: None,
-            layout: None,
+            //layout: None,
             module,
             entry_point: "main",
+            _cd: PhantomData,
         }
     }
 
@@ -283,17 +295,20 @@ impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
         self
     }
 
+    /*
     pub fn set_layout(mut self, layout: &'cpb PipelineLayout<CD>) -> Self{
         self.layout = Some(layout);
         self
     }
+    */
 
     pub fn build(&mut self, device: &wgpu::Device) -> ComputePipeline{
-        let layout = self.layout.expect("no layout provided");
+        //let layout = self.layout.expect("no layout provided");
         ComputePipeline{
             pipeline: device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor{
                 label: self.label,
-                layout: Some(&layout.layout),
+                //layout: Some(&layout.layout),
+                layout: None,
                 module: self.module,
                 entry_point: self.entry_point,
             }),
@@ -374,7 +389,7 @@ impl<'rp> RenderPassBuilder<'rp>{
 ///
 pub struct RenderPipelineBuilder<'rpb, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>>{
     label: Option<&'rpb str>,
-    layout: Option<&'rpb PipelineLayout<RD>>,
+    //layout: Option<&'rpb PipelineLayout<RD>>,
     vertex: VertexState<'rpb>,
     fragment: FragmentState<'rpb>,
     primitive: wgpu::PrimitiveState,
@@ -383,13 +398,14 @@ pub struct RenderPipelineBuilder<'rpb, 'cad, RD: RenderData, CAD: ColorAttachmen
     multiview: Option<NonZeroU32>,
     _cad: PhantomData<CAD>,
     _cadr: PhantomData<&'cad ()>,
+    _rd: PhantomData<RD>,
 }
 
 impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipelineBuilder<'rpb, 'cad, RD, CAD>{
 
     pub fn new(vertex_shader: &'rpb VertexShader, fragment_shader: &'rpb FragmentShader) -> Self{
         let label = None;
-        let layout = None;
+        //let layout = None;
         let primitive = wgpu::PrimitiveState{
             topology: wgpu::PrimitiveTopology::TriangleList,
             strip_index_format: None,
@@ -420,7 +436,7 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
 
         Self{
             label,
-            layout,
+            //layout,
             vertex,
             fragment,
             primitive,
@@ -429,6 +445,7 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
             multiview,
             _cadr: PhantomData,
             _cad: PhantomData,
+            _rd: PhantomData,
         }
     }
 
@@ -544,11 +561,13 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
         self
     }
 
+    /*
     #[inline]
     pub fn set_layout(mut self, layout: &'rpb PipelineLayout<RD>) -> Self{
         self.layout = Some(layout);
         self
     }
+    */
 
     #[inline]
     pub fn set_label(mut self, label: wgpu::Label<'rpb>) -> Self{
@@ -570,21 +589,32 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
 
     pub fn build(mut self, device: &wgpu::Device) -> RenderPipeline<'cad, RD, CAD>{
 
-        let layout_tmp;
 
-        let layout = match &self.layout{
-            Some(layout) => &layout.layout,
-            None => {
+        let mut offset = 0;
+        let push_constant_ranges = RD::push_const_layouts();
+        let push_constant_ranges: Vec<wgpu::PushConstantRange> = push_constant_ranges.iter()
+            .map(|x|{
+                let size_aligned = (((x.size as i32 - 4)/4 + 1)*4) as u32;
+                let range = Range::<u32>{
+                    start: offset,
+                    end: offset + size_aligned,
+                };
+                offset = range.end;
+                wgpu::PushConstantRange{
+                    stages: x.stages,
+                    range,
+                }
+            }).collect();
 
+        let layout = {
                 let bind_group_layouts = RD::bind_group_layouts(device);
                 let layout_refs: Vec<&wgpu::BindGroupLayout> = bind_group_layouts.iter().map(|x| &x.layout).collect();
-                layout_tmp = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
+
+                device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
                     label: None,
-                    push_constant_ranges: &[],
+                    push_constant_ranges: &push_constant_ranges,
                     bind_group_layouts: &layout_refs,
-                });
-                &layout_tmp
-            }
+                })
         };
 
         self.vertex.vertex_buffer_layouts = RD::vert_layout();
@@ -612,6 +642,7 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
 
         RenderPipeline{
             pipeline: render_pipeline,
+            push_constant_ranges,
             _rd: PhantomData,
             _cad: PhantomData,
             _cadr: PhantomData,

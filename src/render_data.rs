@@ -23,6 +23,12 @@ pub trait RenderData: PipelineData{
     }
     fn vert_layout() -> Vec<wgpu::VertexBufferLayout<'static>>;
     fn idx_buffer_slice<'d>(&'d self) -> (wgpu::IndexFormat, wgpu::BufferSlice<'d>);
+    fn push_const_layouts() -> Vec<PushConstantLayout>{
+        vec![]
+    }
+    fn push_consts<'d>(&'d self) -> Vec<(&'d[u8], wgpu::ShaderStages)>{
+        vec![]
+    }
 }
 
 ///

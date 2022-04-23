@@ -134,7 +134,7 @@ pub fn pipeline_layout(tokens: TokenStream) -> TokenStream{
     generate_pipeline_layout(tokens)
 }
 
-#[proc_macro_derive(RenderData, attributes(bind_group, vertex, index))]
+#[proc_macro_derive(RenderData, attributes(bind_group, push_constant, vertex, index))]
 pub fn derive_render_data(tokens: TokenStream) -> TokenStream{
     let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
 
