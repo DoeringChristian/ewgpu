@@ -6,6 +6,84 @@ pub trait PipelineData{
 
 }
 
+///
+/// A Trait implemented with #[derive(ComputeData)].
+///
+/// ```rust
+/// use ewgpu::*;
+///
+/// #[derive(ComputeData)]
+/// struct ExampleComputeData{
+///    #[bind_group]
+///    src: &'rd BoundAll<Buffer<u32>>,
+///    #[bind_group]
+///    dst: &'rd BoundAll<Buffer<u32>>,
+///    #[push_constant]
+///    pc01: PushConstantCompute<u32>,
+/// };
+///
+/// let mut gpu = GPUContextBuilder::new()
+///     .set_features_util()
+///     .set_limits(wgpu::Limits{
+///         max_push_constant_size: 128,
+///         ..Default::default()
+///     })
+///     .build();
+///
+/// let cshader = ComputeShader::from_src(&gpu.device, "
+/// #version 460
+/// #if COMPUTE_SHADER
+/// 
+/// layout(set = 0, binding = 0) buffer InBuffer{
+///     uint in_buf[];
+/// };
+/// layout(set = 1, binding = 0) buffer OutBuffer{
+///     uint out_buf[];
+/// };
+/// layout(push_constant) uniform PushConstant{
+///     uint a;
+/// };
+/// 
+/// void main(){
+///     uint i = gl_GlobalInvocationID.x;
+///     out_buf[i] = in_buf[i] + a;
+/// }
+/// 
+/// #endif
+/// ", None).unwrap();
+///
+/// let pipeline = ComputePipelineBuilder::<ExampleComputeData>::new(&cshader)
+///     .build(&gpu.device);
+///
+/// let in_buffer = BufferBuilder::new()
+///     .storage()
+///     .build(&gpu.device, &[1 as u32])
+///     .into_bound(&gpu.device);
+/// let out_buffer = BufferBuilder::new()
+///     .storage().read()
+///     .build(&gpu.device, &[1 as u32])
+///     .into_bound(&gpu.device);
+///
+/// gpu.encode(|gpu, encoder|{
+///     let mut cpass = ComputePass::new(encoder, None);
+///
+///     let comp_data = TestComputeData{
+///         src: &in_buffer,
+///         dst: &out_buffer,
+///         pc01: PushConstant::new(1),
+///     };
+///
+///     cpass.set_pipeline(&pipeline)
+///         .set_compute_data(&comp_data)
+///         .dispatch(1, 1, 1);
+///
+///     assert_eq!(out_buffer.slice(..).map_blocking(&gpu.device).as_ref(), &[2]);
+///     
+/// })
+///
+///
+/// ```
+///
 pub trait ComputeData: PipelineData{
     fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>;
     fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>;
