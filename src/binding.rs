@@ -54,7 +54,7 @@ pub trait BindGroupContent: Sized{
     ///
     /// Shader stage S can be inferred from render_data.
     ///
-    fn into_bind_group<const S: u32>(self, device: &wgpu::Device) -> BindGroup<S, Self>{
+    fn create_bind_group<const S: u32>(&self, device: &wgpu::Device) -> BindGroup<S, Self>{
         let layout = Self::create_bind_group_layout(device, None, wgpu::ShaderStages::from_bits_truncate(S));
         let resources = self.resources();
 
@@ -72,7 +72,14 @@ pub trait BindGroupContent: Sized{
         });
         BindGroup{
             bind_group,
-            content: self
+            _ty: PhantomData,
+        }
+    }
+
+    fn into_bound<const S: u32>(self, device: &wgpu::Device) -> Bound<S, Self>{
+        Bound{
+            bind_group: Self::create_bind_group(&self, device),
+            content: self,
         }
     }
 }
@@ -146,16 +153,19 @@ pub mod ShaderStages{
     pub const ALL: u32 = VERTEX | FRAGMENT | COMPUTE;
 }
 
-pub type BindGroupNone<C> = BindGroup<{ShaderStages::NONE}, C>;
-pub type BindGroupAll<C> = BindGroup<{ShaderStages::ALL}, C>;
-pub type BindGroupVertex<C> = BindGroup<{ShaderStages::VERTEX}, C>;
-pub type BindGroupFragment<C> = BindGroup<{ShaderStages::FRAGMENT}, C>;
-pub type BindGroupCompute<C> = BindGroup<{ShaderStages::COMPUTE}, C>;
+pub type BindGroupNone<C>           = BindGroup<{ShaderStages::NONE}, C>;
+pub type BindGroupAll<C>            = BindGroup<{ShaderStages::ALL}, C>;
+pub type BindGroupVertex<C>         = BindGroup<{ShaderStages::VERTEX}, C>;
+pub type BindGroupFragment<C>       = BindGroup<{ShaderStages::FRAGMENT}, C>;
+pub type BindGroupCompute<C>        = BindGroup<{ShaderStages::COMPUTE}, C>;
 pub type BindGroupVertexFragment<C> = BindGroup<{ShaderStages::VERTEX_FRAGMENT}, C>;
 
+///
+/// Wrapper for a wgpu::BindGroup
+///
 pub struct BindGroup<const S: u32, C: BindGroupContent>{
     bind_group: wgpu::BindGroup,
-    content: C,
+    _ty: PhantomData<C>,
 }
 
 impl<const S: u32, C: BindGroupContent> BindGroup<S, C>{
@@ -170,7 +180,34 @@ impl<const S: u32, C: BindGroupContent> GetBindGroup for BindGroup<S, C>{
     }
 }
 
-impl<const S: u32, C: BindGroupContent> Deref for BindGroup<S, C>{
+pub type BoundNone<C>           = Bound<{ShaderStages::NONE}, C>;
+pub type BoundAll<C>            = Bound<{ShaderStages::ALL}, C>;
+pub type BoundVertex<C>         = Bound<{ShaderStages::VERTEX}, C>;
+pub type BoundFragment<C>       = Bound<{ShaderStages::FRAGMENT}, C>;
+pub type BoundCompute<C>        = Bound<{ShaderStages::COMPUTE}, C>;
+pub type BoundVertexFragment<C> = Bound<{ShaderStages::VERTEX_FRAGMENT}, C>;
+
+///
+/// Wraps the content with a bind group.
+///
+pub struct Bound<const S: u32, C: BindGroupContent>{
+    bind_group: BindGroup<S, C>,
+    content: C,
+}
+
+impl<const S: u32, C: BindGroupContent> Bound<S, C>{
+    pub fn create_bind_group_layout(device: &wgpu::Device, label: wgpu::Label) -> BindGroupLayoutWithDesc{
+        C::create_bind_group_layout(device, label, wgpu::ShaderStages::from_bits_truncate(S))
+    }
+}
+
+impl<const S: u32, C: BindGroupContent> GetBindGroup for Bound<S, C>{
+    fn get_bind_group(&self) -> &wgpu::BindGroup{
+        &self.bind_group.get_bind_group()
+    }
+}
+
+impl<const S: u32, C: BindGroupContent> Deref for Bound<S, C>{
     type Target = C;
 
     fn deref(&self) -> &Self::Target {
@@ -178,7 +215,7 @@ impl<const S: u32, C: BindGroupContent> Deref for BindGroup<S, C>{
     }
 }
 
-impl<const S: u32, C: BindGroupContent> DerefMut for BindGroup<S, C>{
+impl<const S: u32, C: BindGroupContent> DerefMut for Bound<S, C>{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.content
     }
