@@ -12,6 +12,9 @@ pub trait ComputeData: PipelineData{
 }
 
 
+///
+///
+///
 pub trait RenderData: PipelineData{
     fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>;
     fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>;
@@ -22,61 +25,36 @@ pub trait RenderData: PipelineData{
     fn idx_buffer_slice<'d>(&'d self) -> (wgpu::IndexFormat, wgpu::BufferSlice<'d>);
 }
 
-/*
-macro_rules! render_data_for_tuple{
-    ($($name:ident)+) => {
-        #[allow(non_snake_case)]
-        impl<'rd, $($name: BindGroupContent),+> RenderData for ($(&'rd BindGroup<$name>, )+){
-            fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>{
-                let ($($name, )+) = self;
-                vec![$($name.get_bind_group()),+]
-            }
-            fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>{
-                vec![$($name::create_bind_group_layout(device, None, wgpu::ShaderStages::all())),+]
-            }
-        }
+///
+/// A trait with a function returning a wgpu::VertexBufferLayout for any buffer_slice that has a 
+/// content of that implements VertLayout.
+///
+pub trait BufferSliceVertLayout{
+    fn buffer_slice_vert_layout() -> wgpu::VertexBufferLayout<'static>;
+}
+
+impl<'bs, V: VertLayout> BufferSliceVertLayout for BufferSlice<'bs, V>{
+    fn buffer_slice_vert_layout() -> wgpu::VertexBufferLayout<'static> {
+        V::buffer_layout()
     }
 }
 
+///
+/// A trait with a function returning the wgpu::IndexFormat for a BufferSlice with content type u32
+/// and u16
+///
+pub trait IndexBufferFormat{
+    fn index_buffer_format() -> wgpu::IndexFormat;
+}
 
-render_data_for_tuple!{ A }
-render_data_for_tuple!{ A B }
-render_data_for_tuple!{ A B C }
-render_data_for_tuple!{ A B C D }
-render_data_for_tuple!{ A B C D E }
-render_data_for_tuple!{ A B C D E F }
-render_data_for_tuple!{ A B C D E F G }
-render_data_for_tuple!{ A B C D E F G H }
-render_data_for_tuple!{ A B C D E F G H I }
-render_data_for_tuple!{ A B C D E F G H I J }
-render_data_for_tuple!{ A B C D E F G H I J K }
-render_data_for_tuple!{ A B C D E F G H I J K L }
-
-macro_rules! render_data_for_tuple_bound{
-    ($($name:ident)+) => {
-        #[allow(non_snake_case)]
-        impl<'rd, $($name: BindGroupContent),+> RenderData for ($(&'rd Bound<$name>, )+){
-            fn bind_groups<'d>(&'d self) -> Vec<&'d wgpu::BindGroup>{
-                let ($($name, )+) = self;
-                vec![$($name.get_bind_group()),+]
-            }
-            fn bind_group_layouts(device: &wgpu::Device) -> Vec<BindGroupLayoutWithDesc>{
-                vec![$($name::create_bind_group_layout(device, None, wgpu::ShaderStages::all())),+]
-            }
-        }
+impl<'bs> IndexBufferFormat for BufferSlice<'bs, u32>{
+    fn index_buffer_format() -> wgpu::IndexFormat {
+        wgpu::IndexFormat::Uint32
     }
 }
 
-render_data_for_tuple_bound!{ A }
-render_data_for_tuple_bound!{ A B }
-render_data_for_tuple_bound!{ A B C }
-render_data_for_tuple_bound!{ A B C D }
-render_data_for_tuple_bound!{ A B C D E }
-render_data_for_tuple_bound!{ A B C D E F }
-render_data_for_tuple_bound!{ A B C D E F G }
-render_data_for_tuple_bound!{ A B C D E F G H }
-render_data_for_tuple_bound!{ A B C D E F G H I }
-render_data_for_tuple_bound!{ A B C D E F G H I J }
-render_data_for_tuple_bound!{ A B C D E F G H I J K }
-render_data_for_tuple_bound!{ A B C D E F G H I J K L }
-*/
+impl<'bs> IndexBufferFormat for BufferSlice<'bs, u16>{
+    fn index_buffer_format() -> wgpu::IndexFormat {
+        wgpu::IndexFormat::Uint16
+    }
+}

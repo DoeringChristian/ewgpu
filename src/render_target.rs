@@ -47,3 +47,13 @@ impl ColorAttachment for wgpu::TextureView{
     }
 }
 
+pub trait ColorAttachmentData<'cad>{
+    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>>;
+}
+
+impl<'cad> ColorAttachmentData<'cad> for (wgpu::RenderPassColorAttachment<'cad>, ){
+    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
+        vec![self.0]
+    }
+}
+
