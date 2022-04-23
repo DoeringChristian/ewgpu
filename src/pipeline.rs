@@ -320,7 +320,7 @@ impl<'rp, CAD: ColorAttachmentData<'rp>> RenderPass<'rp, CAD>{
             _ty: PhantomData,
         }
     }
-    pub fn new(encoder: &'rp mut wgpu::CommandEncoder, color_attachements: CAD, label: Option<&'rp str>) -> Self{
+    pub fn new(encoder: &'rp mut wgpu::CommandEncoder, color_attachements: CAD, depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>, label: Option<&'rp str>) -> Self{
         let color_attachements = color_attachements.color_attachments();
         Self{
             render_pass: encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
