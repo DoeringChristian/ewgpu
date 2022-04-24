@@ -187,7 +187,8 @@ impl<'uic> UpdatedImguiContext<'uic>{
 
         f(imgui_render_context, winit_context, encoder);
 
-        let mut rpass = RenderPass::new(encoder, (dst.color_attachment_clear(), ), None, None);
+        let dst = [dst.color_attachment_clear()];
+        let mut rpass = RenderPass::new(encoder, &dst, None, None);
 
         imgui.renderer.render(ui.render(), &winit_context.queue, &winit_context.device, &mut rpass.render_pass)
             .expect("Rendering Failed");

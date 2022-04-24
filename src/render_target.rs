@@ -47,89 +47,14 @@ impl ColorAttachment for wgpu::TextureView{
     }
 }
 
-pub trait ColorAttachmentData<'cad>{
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>>;
+pub trait ColorAttachmentData{
+    fn color_attachments<'c>(&'c self) -> Vec<wgpu::RenderPassColorAttachment<'c>>;
 }
 
-impl<'cad, const N: usize> ColorAttachmentData<'cad> for [wgpu::RenderPassColorAttachment<'cad>; N]{
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
+impl<'cad, const N: usize> ColorAttachmentData for [wgpu::RenderPassColorAttachment<'cad>; N]{
+    fn color_attachments<'c>(&'c self) -> Vec<wgpu::RenderPassColorAttachment<'c>> {
         let mut v = Vec::with_capacity(N);
-        v.extend_from_slice(&self);
+        v.extend_from_slice(self);
         v
-    }
-}
-
-impl<'cad> ColorAttachmentData<'cad> for (wgpu::RenderPassColorAttachment<'cad>, ){
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
-        vec![self.0]
-    }
-}
-impl<'cad> ColorAttachmentData<'cad> for 
-(
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>
-){
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
-        vec![self.0, self.1]
-    }
-}
-impl<'cad> ColorAttachmentData<'cad> for 
-(
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>,
-    wgpu::RenderPassColorAttachment<'cad>,
-){
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
-        vec![self.0, self.1, self.2]
-    }
-}
-impl<'cad> ColorAttachmentData<'cad> for 
-(
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>,
-    wgpu::RenderPassColorAttachment<'cad>,
-){
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
-        vec![self.0, self.1, self.2, self.3]
-    }
-}
-impl<'cad> ColorAttachmentData<'cad> for 
-(
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>,
-){
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
-        vec![self.0, self.1, self.2, self.3, self.4]
-    }
-}
-impl<'cad> ColorAttachmentData<'cad> for 
-(
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>,
-){
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
-        vec![self.0, self.1, self.2, self.3, self.4, self.5]
-    }
-}
-impl<'cad> ColorAttachmentData<'cad> for 
-(
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>, 
-    wgpu::RenderPassColorAttachment<'cad>,
-){
-    fn color_attachments(self) -> Vec<wgpu::RenderPassColorAttachment<'cad>> {
-        vec![self.0, self.1, self.2, self.3, self.4, self.6]
     }
 }

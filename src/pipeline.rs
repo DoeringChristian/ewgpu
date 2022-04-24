@@ -86,12 +86,11 @@ impl<'vs> VertexState<'vs>{
 /// 
 /// A wrapper for wgpu::RenderPipeline with PushConstantRanges.
 ///
-pub struct RenderPipeline<'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>>{
+pub struct RenderPipeline<RD: RenderData, CAD: ColorAttachmentData>{
     pub pipeline: wgpu::RenderPipeline,
     push_constant_ranges: Vec<wgpu::PushConstantRange>,
     _rd: PhantomData<RD>,
     _cad: PhantomData<CAD>,
-    _cadr: PhantomData<&'cad ()>,
 }
 
 /*
@@ -121,15 +120,15 @@ impl<RD: RenderData> PipelineLayout<RD>{
 }
 */
 
-pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData, CAD: ColorAttachmentData<'rpp>>{
+pub struct RenderPassPipeline<'rpp, 'rpr, RD: RenderData, CAD: ColorAttachmentData>{
     pub render_pass: &'rpr mut RenderPass<'rpp, CAD>,
-    pub pipeline: &'rpr RenderPipeline<'rpp, RD, CAD>,
+    pub pipeline: &'rpr RenderPipeline<RD, CAD>,
     _ty: PhantomData<RD>,
 }
 
-impl<'rpp, 'rpr, RD: 'rpp + RenderData, CAD: 'rpp + ColorAttachmentData<'rpp>> RenderPassPipeline<'rpp, 'rpr, RD, CAD>{
+impl<'rpp, 'rpr, RD: 'rpp + RenderData, CAD: 'rpp + ColorAttachmentData> RenderPassPipeline<'rpp, 'rpr, RD, CAD>{
 
-    pub fn set_pipeline(&'rpr mut self, pipeline: &'rpp RenderPipeline<'rpp, RD, CAD>) -> Self{
+    pub fn set_pipeline(&'rpr mut self, pipeline: &'rpp RenderPipeline<RD, CAD>) -> Self{
         self.render_pass.render_pass.set_pipeline(&pipeline.pipeline);
         Self{
             render_pass: self.render_pass,
@@ -343,14 +342,14 @@ impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
 ///
 /// A wrapper for wgpu::RenderPass
 ///
-pub struct RenderPass<'rp, CAD: ColorAttachmentData<'rp>>{
+pub struct RenderPass<'rp, CAD: ColorAttachmentData>{
     pub render_pass: wgpu::RenderPass<'rp>,
     _ty: PhantomData<CAD>,
 }
 
-impl<'rp, CAD: ColorAttachmentData<'rp>> RenderPass<'rp, CAD>{
+impl<'rp, CAD: 'rp + ColorAttachmentData> RenderPass<'rp, CAD>{
 
-    pub fn set_pipeline<RD: RenderData>(&mut self, pipeline: &'rp RenderPipeline<'rp, RD, CAD>) -> RenderPassPipeline<'rp, '_, RD, CAD>{
+    pub fn set_pipeline<RD: RenderData>(&mut self, pipeline: &'rp RenderPipeline<RD, CAD>) -> RenderPassPipeline<'rp, '_, RD, CAD>{
         self.render_pass.set_pipeline(&pipeline.pipeline);
         RenderPassPipeline{
             render_pass: self,
@@ -358,7 +357,7 @@ impl<'rp, CAD: ColorAttachmentData<'rp>> RenderPass<'rp, CAD>{
             _ty: PhantomData,
         }
     }
-    pub fn new(encoder: &'rp mut wgpu::CommandEncoder, color_attachements: CAD, depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>, label: Option<&'rp str>) -> Self{
+    pub fn new(encoder: &'rp mut wgpu::CommandEncoder, color_attachements: &'rp CAD, depth_stencil_attachment: Option<wgpu::RenderPassDepthStencilAttachment>, label: Option<&'rp str>) -> Self{
         let color_attachements = color_attachements.color_attachments();
         Self{
             render_pass: encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
@@ -392,7 +391,7 @@ impl<'rp> RenderPassBuilder<'rp>{
     }
 
     // TODO: add depth_stencil_attachment
-    pub fn begin<CAD: ColorAttachmentData<'rp>>(self, encoder: &'rp mut wgpu::CommandEncoder, color_attachements: CAD, label: Option<&'rp str>) -> RenderPass<'rp, CAD>{
+    pub fn begin<CAD: 'rp + ColorAttachmentData>(self, encoder: &'rp mut wgpu::CommandEncoder, color_attachements: CAD, label: Option<&'rp str>) -> RenderPass<'rp, CAD>{
         let color_attachements = color_attachements.color_attachments();
         RenderPass{
             render_pass: encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
@@ -410,7 +409,7 @@ impl<'rp> RenderPassBuilder<'rp>{
 ///
 /// Pipeline layout has to be set.
 ///
-pub struct RenderPipelineBuilder<'rpb, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>>{
+pub struct RenderPipelineBuilder<'rpb, RD: RenderData, CAD: ColorAttachmentData>{
     label: Option<&'rpb str>,
     //layout: Option<&'rpb PipelineLayout<RD>>,
     vertex: VertexState<'rpb>,
@@ -420,11 +419,10 @@ pub struct RenderPipelineBuilder<'rpb, 'cad, RD: RenderData, CAD: ColorAttachmen
     multisample: wgpu::MultisampleState,
     multiview: Option<NonZeroU32>,
     _cad: PhantomData<CAD>,
-    _cadr: PhantomData<&'cad ()>,
     _rd: PhantomData<RD>,
 }
 
-impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipelineBuilder<'rpb, 'cad, RD, CAD>{
+impl<'rpb, 'rd, RD: RenderData, CAD: ColorAttachmentData> RenderPipelineBuilder<'rpb, RD, CAD>{
 
     pub fn new(vertex_shader: &'rpb VertexShader, fragment_shader: &'rpb FragmentShader) -> Self{
         let label = None;
@@ -466,7 +464,6 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
             depth_stencil,
             multisample,
             multiview,
-            _cadr: PhantomData,
             _cad: PhantomData,
             _rd: PhantomData,
         }
@@ -610,7 +607,7 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
         self
     }
 
-    pub fn build(mut self, device: &wgpu::Device) -> RenderPipeline<'cad, RD, CAD>{
+    pub fn build(mut self, device: &wgpu::Device) -> RenderPipeline<RD, CAD>{
         let mut offset = 0;
         let push_constant_ranges = RD::push_const_layouts();
         let push_constant_ranges: Vec<wgpu::PushConstantRange> = push_constant_ranges.iter()
@@ -666,13 +663,8 @@ impl<'rpb, 'rd, 'cad, RD: RenderData, CAD: ColorAttachmentData<'cad>> RenderPipe
             push_constant_ranges,
             _rd: PhantomData,
             _cad: PhantomData,
-            _cadr: PhantomData,
         }
     }
 }
 
 
-
-
-// TODO:
-// Counting RenderPass
