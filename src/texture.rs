@@ -516,6 +516,7 @@ impl ColorAttachment for Texture{
     }
 }
 
+#[cfg(feature = "imugi")]
 impl ColorAttachment for imgui_wgpu::Texture{
     fn color_attachment_clear(&self) -> wgpu::RenderPassColorAttachment {
         self.view().color_attachment_clear()
