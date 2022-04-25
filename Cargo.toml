@@ -37,9 +37,14 @@ imgui-wgpu = {version = "0.19.0", optional = true}
 imgui-winit-support = {version = "0.8.2", default-features = false, features = ["winit-26"], optional = true}
 num-traits = "0.2.14"
 
+epi = {version = "0.16", optional = true}
+egui = {version = "0.16", optional = true}
+egui_wgpu_backend = {version = "0.16", optional = true}
+egui_winit_platform = {version = "0.13", optional = true}
+
 ewgpu_macros = {version = "0.1.0", path = "./macros"}
 
 [features]
-default = ["imgui"]
+default = ["imgui", "egui"]
 imgui = ["dep:imgui", "dep:imgui-wgpu", "dep:imgui-winit-support"]
-
+egui = ["dep:epi", "dep:egui", "dep:egui_wgpu_backend", "dep:egui_winit_platform"]

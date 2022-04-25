@@ -58,3 +58,8 @@ impl<'cad, const N: usize> ColorAttachmentData for [wgpu::RenderPassColorAttachm
         v
     }
 }
+
+// TODO: Constant texture format.
+pub struct RPassColorAttachment<'c, const F: u32>{
+    attachment: wgpu::RenderPassColorAttachment<'c>,
+}
