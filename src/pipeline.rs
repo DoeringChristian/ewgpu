@@ -344,6 +344,7 @@ impl<'cpb, CD: ComputeData> ComputePipelineBuilder<'cpb, CD>{
 ///
 pub struct RenderPass<'rp, CAD: ColorAttachmentData>{
     pub render_pass: wgpu::RenderPass<'rp>,
+    color_attachements: Vec<wgpu::RenderPassColorAttachment<'rp>>,
     _ty: PhantomData<CAD>,
 }
 
@@ -365,6 +366,7 @@ impl<'rp, CAD: 'rp + ColorAttachmentData> RenderPass<'rp, CAD>{
                 color_attachments: &color_attachements,
                 depth_stencil_attachment: None,
             }),
+            color_attachements,
             _ty: PhantomData,
         }
     }
@@ -390,10 +392,12 @@ impl<'rp> RenderPassBuilder<'rp>{
         self
     }
 
+    /*
     // TODO: add depth_stencil_attachment
     pub fn begin<CAD: 'rp + ColorAttachmentData>(self, encoder: &'rp mut wgpu::CommandEncoder, color_attachements: CAD, label: Option<&'rp str>) -> RenderPass<'rp, CAD>{
-        let color_attachements = color_attachements.color_attachments();
+        self.color_attachements = color_attachements.color_attachments();
         RenderPass{
+            color_attachements,
             render_pass: encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
                 label,
                 color_attachments: &color_attachements,
@@ -402,6 +406,7 @@ impl<'rp> RenderPassBuilder<'rp>{
             _ty: PhantomData,
         }
     }
+    */
 }
 
 ///
