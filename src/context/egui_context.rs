@@ -1,9 +1,7 @@
 use egui::FontDefinitions;
-use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
+use egui_wgpu_backend::RenderPass;
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use crate::*;
-use winit::event::*;
-use std::ops::{Deref, DerefMut};
 use epi::*;
 
 pub struct EguiContext{

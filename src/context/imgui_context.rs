@@ -1,8 +1,11 @@
 
 use imgui_winit_support::WinitPlatform;
 use std::ops::{Deref, DerefMut};
-use crate::*;
 use winit::event::*;
+use crate::winit_context::*;
+use crate::ColorAttachment;
+use crate::pipeline::*;
+
 
 pub struct ImguiRenderContext<'irc, 'ui>{
     pub platform: &'irc WinitPlatform,

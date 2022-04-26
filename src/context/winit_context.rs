@@ -1,5 +1,5 @@
 
-use crate::*;
+use crate::gpu_context::*;
 use winit::{
     event::*,
     event_loop::ControlFlow,
