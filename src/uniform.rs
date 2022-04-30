@@ -1,4 +1,4 @@
-use super::binding::BindGroup;
+use super::binding::Bound;
 use super::binding::CreateBindGroupLayout;
 use super::buffer::*;
 use super::binding;
@@ -164,25 +164,28 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
 /// A uniform inside a BindGroup
 ///
 pub struct UniformBindGroup<C: bytemuck::Pod>{
-    bind_group: binding::BindGroup<Uniform<C>>,
+    bind_group: binding::Bound<Uniform<C>>,
 }
 
+/*
 impl <C: bytemuck::Pod> UniformBindGroup<C>{
     pub fn new(device: &wgpu::Device, src: C) -> Self{
         Self{
-            bind_group: binding::BindGroup::new(Uniform::new(src, device), device)
+            bind_group: Uniform::new(src, device).into_bound()
+            //bind_group: binding::Bound::new(Uniform::new(src, device), device)
         }
     }
 }
+*/
 
 impl<C: bytemuck::Pod> binding::GetBindGroup for UniformBindGroup<C>{
-    fn get_bind_group(&self) -> &wgpu::BindGroup {
-        self.bind_group.get_bind_group()
+    fn bind_group(&self) -> &wgpu::BindGroup {
+        self.bind_group.bind_group()
     }
 }
 
 impl<C: bytemuck::Pod> Deref for UniformBindGroup<C>{
-    type Target = binding::BindGroup<Uniform<C>>;
+    type Target = binding::Bound<Uniform<C>>;
 
     fn deref(&self) -> &Self::Target {
         &self.bind_group
@@ -196,10 +199,7 @@ impl<C: bytemuck::Pod> DerefMut for UniformBindGroup<C>{
 }
 
 impl<C: bytemuck::Pod> CreateBindGroupLayout for UniformBindGroup<C>{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> binding::BindGroupLayoutWithDesc {
-        BindGroup::<Uniform<C>>::create_bind_group_layout(device, label)
-    }
-    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> crate::BindGroupLayoutWithDesc {
-        BindGroup::<Uniform<C>>::create_bind_group_layout_vis(device, label, visibility)
+    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> crate::BindGroupLayoutWithDesc {
+        Bound::<Uniform<C>>::create_bind_group_layout(device, label, visibility)
     }
 }

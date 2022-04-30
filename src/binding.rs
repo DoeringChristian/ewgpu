@@ -1,44 +1,46 @@
 #[allow(unused)]
 use anyhow::*;
-use std::ops::{Deref, DerefMut};
+use std::{ops::{Deref, DerefMut}, marker::PhantomData};
 
-pub trait CreateBindGroupLayout{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc;
-    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc;
+pub trait CreateBindGroupLayout {
+    fn create_bind_group_layout(
+        device: &wgpu::Device,
+        label: Option<&str>,
+        visibility: wgpu::ShaderStages,
+    ) -> BindGroupLayoutWithDesc;
 }
 
-pub trait GetBindGroupLayout{
-    fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc;
+pub trait GetBindGroupLayout {
+    fn bind_group_layout(&self) -> &BindGroupLayoutWithDesc;
 }
 
 ///
 /// A trait implemented for structs that have a BindGroup.
 ///
-pub trait GetBindGroup{
-    fn get_bind_group(&self) -> &wgpu::BindGroup;
+pub trait GetBindGroup {
+    fn bind_group(&self) -> &wgpu::BindGroup;
 }
 
-impl GetBindGroup for wgpu::BindGroup{
-    fn get_bind_group(&self) -> &wgpu::BindGroup {
+impl GetBindGroup for wgpu::BindGroup {
+    fn bind_group(&self) -> &wgpu::BindGroup {
         self
     }
 }
 
-
-pub struct BindGroupLayoutWithDesc{
+pub struct BindGroupLayoutWithDesc {
     pub layout: wgpu::BindGroupLayout,
     pub entries: Vec<wgpu::BindGroupLayoutEntry>,
 }
 
-pub struct BindGroupLayoutEntry{
+pub struct BindGroupLayoutEntry {
     pub visibility: wgpu::ShaderStages,
     pub ty: wgpu::BindingType,
     pub count: Option<std::num::NonZeroU32>,
 }
 
-impl BindGroupLayoutEntry{
-    pub fn new(visibility: wgpu::ShaderStages, ty: wgpu::BindingType) -> Self{
-        Self{
+impl BindGroupLayoutEntry {
+    pub fn new(visibility: wgpu::ShaderStages, ty: wgpu::BindingType) -> Self {
+        Self {
             visibility,
             ty,
             count: None,
@@ -46,99 +48,68 @@ impl BindGroupLayoutEntry{
     }
 }
 
-#[derive(Default)]
-pub struct BindGroupLayoutBuilder{
-    entries: Vec<BindGroupLayoutEntry>,
-}
-
-impl BindGroupLayoutBuilder{
-    pub fn new() -> Self{
-        Self{
-            entries: Vec::new(),
+///
+/// A trait implemented for structs that can be the content of a BindGroup.
+///
+pub trait BindGroupContent: Sized {
+    fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
+    fn resources(&self) -> Vec<wgpu::BindingResource>;
+    fn into_bound(self, visibility: wgpu::ShaderStages, device: &wgpu::Device) -> Bound<Self> {
+        Bound{
+            bind_group: Self::create_bind_group(&self, visibility, device),
+            content: self,
         }
     }
+    fn create_bind_group(&self, visibility: wgpu::ShaderStages, device: &wgpu::Device) -> BindGroup<Self>{
+        let layout =
+            Self::bind_group_layout(device, None, visibility);
+        let resources = self.resources();
 
-    pub fn push_entries(mut self, mut entries: Vec<BindGroupLayoutEntry>) -> Self{
-        self.entries.append(&mut entries);
-        self
+        let entries: Vec<wgpu::BindGroupEntry> = resources
+            .into_iter()
+            .enumerate()
+            .map(|(i, r)| wgpu::BindGroupEntry {
+                binding: layout.entries[i].binding,
+                resource: r,
+            })
+            .collect();
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            entries: &entries,
+            layout: &layout.layout,
+        });
+        BindGroup{
+            bind_group_layout: layout,
+            bind_group,
+            visibility,
+            _ty: PhantomData,
+        }
     }
-
-    pub fn create(self, device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc{
-
-        let entries: Vec<wgpu::BindGroupLayoutEntry> = self.entries.iter().enumerate().map(|(i, x)| {
-            wgpu::BindGroupLayoutEntry{
+    fn bind_group_layout(
+        device: &wgpu::Device,
+        label: wgpu::Label,
+        visibility: wgpu::ShaderStages,
+    ) -> BindGroupLayoutWithDesc {
+        let entries: Vec<wgpu::BindGroupLayoutEntry> = Self::entries(visibility)
+            .iter()
+            .enumerate()
+            .map(|(i, x)| wgpu::BindGroupLayoutEntry {
                 binding: i as u32,
                 ty: x.ty,
                 count: x.count,
                 visibility: x.visibility,
-            }
-        }).collect();
+            })
+            .collect();
 
-        BindGroupLayoutWithDesc{
-            layout: device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+        BindGroupLayoutWithDesc {
+            layout: device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &entries,
                 label,
             }),
             entries,
         }
     }
-}
-
-pub struct BindGroupBuilder<'l>{
-    layout_with_desc: &'l BindGroupLayoutWithDesc,
-    entries: Vec<wgpu::BindGroupEntry<'l>>,
-}
-
-impl<'l> BindGroupBuilder<'l>{
-    pub fn new(layout_with_desc: &'l BindGroupLayoutWithDesc) -> Self{
-        BindGroupBuilder{
-            layout_with_desc,
-            entries: Vec::with_capacity(layout_with_desc.entries.len()),
-        }
-    }
-
-    pub fn push_resources(mut self, resources: Vec<wgpu::BindingResource<'l>>) -> Self{
-        for resource in resources{
-            self = self.resource(resource);
-        }
-        self
-    }
-
-    pub fn resource(mut self, resource: wgpu::BindingResource<'l>) -> Self{
-        assert_lt!(self.entries.len(), self.layout_with_desc.entries.len());
-        self.entries.push(wgpu::BindGroupEntry{
-            binding: self.layout_with_desc.entries[self.entries.len()].binding,
-            resource,
-        });
-        self
-    }
-
-    pub fn build(&self, device: &wgpu::Device, label: Option<&str>) -> wgpu::BindGroup{
-        assert_eq!(self.entries.len(), self.layout_with_desc.entries.len());
-        device.create_bind_group(&wgpu::BindGroupDescriptor{
-            label,
-            layout: &self.layout_with_desc.layout,
-            entries: &self.entries,
-        })
-    }
-}
-
-pub trait IntoBindGroup: BindGroupContent + Sized{
-    fn into_bind_group(self, device: &wgpu::Device) -> BindGroup<Self>;
-}
-
-impl<C: BindGroupContent> IntoBindGroup for C{
-    fn into_bind_group(self, device: &wgpu::Device) -> BindGroup<Self> {
-        BindGroup::new(self, device)
-    }
-}
-
-///
-/// A trait implemented for structs that can be the content of a BindGroup.
-///
-pub trait BindGroupContent{
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
-    fn resources(&self) -> Vec<wgpu::BindingResource>;
 }
 
 // TODO: Derive macro for BindGroupContent.
@@ -171,24 +142,23 @@ macro_rules! bind_group_content_for_tuple{
 }
 
 // TODO: add derive macro for structs
-bind_group_content_for_tuple!{ A }
-bind_group_content_for_tuple!{ A B }
-bind_group_content_for_tuple!{ A B C }
-bind_group_content_for_tuple!{ A B C D }
-bind_group_content_for_tuple!{ A B C D E }
-bind_group_content_for_tuple!{ A B C D E F }
-bind_group_content_for_tuple!{ A B C D E F G }
-bind_group_content_for_tuple!{ A B C D E F G H }
-bind_group_content_for_tuple!{ A B C D E F G H I }
-bind_group_content_for_tuple!{ A B C D E F G H I J }
-bind_group_content_for_tuple!{ A B C D E F G H I J K }
-bind_group_content_for_tuple!{ A B C D E F G H I J K L }
+bind_group_content_for_tuple! { A }
+bind_group_content_for_tuple! { A B }
+bind_group_content_for_tuple! { A B C }
+bind_group_content_for_tuple! { A B C D }
+bind_group_content_for_tuple! { A B C D E }
+bind_group_content_for_tuple! { A B C D E F }
+bind_group_content_for_tuple! { A B C D E F G }
+bind_group_content_for_tuple! { A B C D E F G H }
+bind_group_content_for_tuple! { A B C D E F G H I }
+bind_group_content_for_tuple! { A B C D E F G H I J }
+bind_group_content_for_tuple! { A B C D E F G H I J K }
+bind_group_content_for_tuple! { A B C D E F G H I J K L }
 
-
-impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>{
+impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N] {
+    fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry> {
         let mut ret = Vec::with_capacity(N);
-        for _i in 0..N{
+        for _i in 0..N {
             ret.append(&mut C::entries(visibility));
         }
         ret
@@ -196,73 +166,40 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N]{
 
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         let mut ret = Vec::with_capacity(N);
-        for content in self{
+        for content in self {
             ret.append(&mut content.resources());
         }
         ret
     }
 }
 
-
-pub struct BindGroup<C: BindGroupContent>{
+pub struct Bound<C: BindGroupContent>{
     pub content: C,
-    bind_group: wgpu::BindGroup,
-    bind_group_layout: BindGroupLayoutWithDesc,
+    bind_group: BindGroup<C>,
 }
 
-impl<C: BindGroupContent> BindGroup<C>{
-    pub fn new(content: C, device: &wgpu::Device) -> Self{
-        let bind_group_layout = Self::create_bind_group_layout(device, None); 
-
-        let bind_group = BindGroupBuilder::new(&bind_group_layout)
-            .push_resources(content.resources())
-            .build(device, None);
-
-        Self{
-            content,
-            bind_group,
-            bind_group_layout,
-        }
-    }
-
+impl<C: BindGroupContent> Bound<C> {
     ///
     /// Has to be called whenever a buffer is changed for example when expand_to_clear is called on
     /// it.
     /// TODO: Change this requirement.
     ///
-    pub fn update(&mut self, device: &wgpu::Device){
-        self.bind_group = BindGroupBuilder::new(&self.bind_group_layout)
-            .push_resources(self.content.resources())
-            .build(device, None);
-    }
-
-    pub fn new_vis(content: C, device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Self{
-        let bind_group_layout = Self::create_bind_group_layout_vis(device, None, visibility);
-
-        let bind_group = BindGroupBuilder::new(&bind_group_layout)
-            .push_resources(content.resources())
-            .build(device, None);
-
-        Self{
-            content,
-            bind_group,
-            bind_group_layout,
-        }
+    pub fn update(&mut self, device: &wgpu::Device) {
+        self.bind_group.update(&self.content, device);
     }
 }
 
-impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C>{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> BindGroupLayoutWithDesc {
-        Self::create_bind_group_layout_vis(device, label, wgpu::ShaderStages::all())
-    }
-    fn create_bind_group_layout_vis(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> BindGroupLayoutWithDesc {
-        BindGroupLayoutBuilder::new()
-            .push_entries(C::entries(visibility))
-            .create(device, label)
+impl<C: BindGroupContent> CreateBindGroupLayout for Bound<C> {
+    fn create_bind_group_layout(
+        device: &wgpu::Device,
+        label: Option<&str>,
+        visibility: wgpu::ShaderStages,
+    ) -> BindGroupLayoutWithDesc {
+        C::bind_group_layout(device, label, visibility)
     }
 }
 
-impl<C: BindGroupContent> Deref for BindGroup<C>{
+impl<C: BindGroupContent> Deref for Bound<C> {
     type Target = C;
 
     fn deref(&self) -> &Self::Target {
@@ -270,39 +207,87 @@ impl<C: BindGroupContent> Deref for BindGroup<C>{
     }
 }
 
-impl<C: BindGroupContent> DerefMut for BindGroup<C>{
+impl<C: BindGroupContent> DerefMut for Bound<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.content
     }
 }
 
-impl<C: BindGroupContent> GetBindGroupLayout for BindGroup<C>{
-    fn get_bind_group_layout(&self) -> &BindGroupLayoutWithDesc {
-        &self.bind_group_layout
+impl<C: BindGroupContent> GetBindGroupLayout for Bound<C> {
+    fn bind_group_layout(&self) -> &BindGroupLayoutWithDesc {
+        &self.bind_group.bind_group_layout()
     }
 }
 
-impl<C: BindGroupContent> GetBindGroup for BindGroup<C>{
-    fn get_bind_group(&self) -> &wgpu::BindGroup {
+impl<C: BindGroupContent> GetBindGroup for Bound<C> {
+    fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
     }
 }
 
 #[cfg(feature = "imgui")]
-impl From<BindGroup<super::Texture>> for imgui_wgpu::Texture{
-    fn from(bg_texture: BindGroup<super::Texture>) -> Self {
+impl From<Bound<super::Texture>> for imgui_wgpu::Texture {
+    fn from(bg_texture: Bound<super::Texture>) -> Self {
         imgui_wgpu::Texture::from_raw_parts(
             bg_texture.content.texture,
             bg_texture.content.view,
-            bg_texture.bind_group,
+            bg_texture.bind_group.bind_group,
             bg_texture.content.size,
         )
     }
 }
 
+pub struct BindGroup<C: BindGroupContent>{
+    _ty: PhantomData<C>,
+    bind_group: wgpu::BindGroup,
+    bind_group_layout: BindGroupLayoutWithDesc,
+    visibility: wgpu::ShaderStages,
+}
+
+impl<C: BindGroupContent> BindGroup<C>{
+    pub fn update(&mut self, conent: &C, device: &wgpu::Device) {
+        *self = conent.create_bind_group(self.visibility, device)
+    }
+}
+
+impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C> {
+    fn create_bind_group_layout(
+        device: &wgpu::Device,
+        label: Option<&str>,
+        visibility: wgpu::ShaderStages,
+    ) -> BindGroupLayoutWithDesc {
+        C::bind_group_layout(device, label, visibility)
+    }
+}
+
+impl<C: BindGroupContent> Deref for BindGroup<C> {
+    type Target = wgpu::BindGroup;
+
+    fn deref(&self) -> &Self::Target {
+        &self.bind_group
+    }
+}
+
+impl<C: BindGroupContent> DerefMut for BindGroup<C> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.bind_group
+    }
+}
+
+impl<C: BindGroupContent> GetBindGroupLayout for BindGroup<C> {
+    fn bind_group_layout(&self) -> &BindGroupLayoutWithDesc {
+        &self.bind_group_layout
+    }
+}
+
+impl<C: BindGroupContent> GetBindGroup for BindGroup<C> {
+    fn bind_group(&self) -> &wgpu::BindGroup {
+        &self.bind_group
+    }
+}
 
 #[allow(dead_code)]
-mod glsl{
+mod glsl {
     pub fn buffer(read_only: bool) -> wgpu::BindingType {
         wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Storage { read_only },
@@ -320,10 +305,9 @@ mod glsl{
     }
 
     pub fn sampler(filtering: bool) -> wgpu::BindingType {
-        if filtering{
+        if filtering {
             wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
-        }
-        else{
+        } else {
             wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering)
         }
     }
@@ -401,7 +385,10 @@ mod glsl{
     }
 
     #[allow(non_snake_case)]
-    pub fn image2D(format: wgpu::TextureFormat, access: wgpu::StorageTextureAccess) -> wgpu::BindingType {
+    pub fn image2D(
+        format: wgpu::TextureFormat,
+        access: wgpu::StorageTextureAccess,
+    ) -> wgpu::BindingType {
         wgpu::BindingType::StorageTexture {
             access,
             view_dimension: wgpu::TextureViewDimension::D2,
@@ -410,7 +397,10 @@ mod glsl{
     }
 
     #[allow(non_snake_case)]
-    pub fn image2DArray(format: wgpu::TextureFormat, access: wgpu::StorageTextureAccess) -> wgpu::BindingType {
+    pub fn image2DArray(
+        format: wgpu::TextureFormat,
+        access: wgpu::StorageTextureAccess,
+    ) -> wgpu::BindingType {
         wgpu::BindingType::StorageTexture {
             access,
             view_dimension: wgpu::TextureViewDimension::D2Array,
@@ -419,7 +409,10 @@ mod glsl{
     }
 
     #[allow(non_snake_case)]
-    pub fn image3D(format: wgpu::TextureFormat, access: wgpu::StorageTextureAccess) -> wgpu::BindingType {
+    pub fn image3D(
+        format: wgpu::TextureFormat,
+        access: wgpu::StorageTextureAccess,
+    ) -> wgpu::BindingType {
         wgpu::BindingType::StorageTexture {
             access,
             view_dimension: wgpu::TextureViewDimension::D3,
@@ -428,7 +421,7 @@ mod glsl{
     }
 }
 
-pub mod wgsl{
+pub mod wgsl {
     pub fn buffer(read_only: bool) -> wgpu::BindingType {
         wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Storage { read_only },
@@ -437,21 +430,21 @@ pub mod wgsl{
         }
     }
 
-    pub fn uniform() -> wgpu::BindingType{
-        wgpu::BindingType::Buffer{
+    pub fn uniform() -> wgpu::BindingType {
+        wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Uniform,
             has_dynamic_offset: false,
             min_binding_size: None,
         }
     }
 
-    pub fn sampler() -> wgpu::BindingType{
+    pub fn sampler() -> wgpu::BindingType {
         wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
     }
 
-    pub fn texture_2d() -> wgpu::BindingType{
-        wgpu::BindingType::Texture{
-            sample_type: wgpu::TextureSampleType::Float{ filterable: true },
+    pub fn texture_2d() -> wgpu::BindingType {
+        wgpu::BindingType::Texture {
+            sample_type: wgpu::TextureSampleType::Float { filterable: true },
             view_dimension: wgpu::TextureViewDimension::D2,
             multisampled: false,
         }

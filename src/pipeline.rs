@@ -201,7 +201,7 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
     pub fn set_bind_group<B: binding::GetBindGroup>(&mut self, index: u32, bind_group: &'rp B, offsets: &'rp [wgpu::DynamicOffset]){
         self.render_pass.render_pass.set_bind_group(
             index,
-            bind_group.get_bind_group(),
+            bind_group.bind_group(),
             offsets
         );
     }
@@ -307,7 +307,7 @@ pub struct ComputePassPipeline<'cp, 'cpr>{
 
 impl<'cp, 'cpr> ComputePassPipeline<'cp, 'cpr>{
     pub fn set_bind_group<B: binding::GetBindGroup>(&mut self, index: u32, bind_group: &'cp B, offsets: &'cp [wgpu::DynamicOffset]){
-        self.cpass.cpass.set_bind_group(index, bind_group.get_bind_group(), offsets);
+        self.cpass.cpass.set_bind_group(index, bind_group.bind_group(), offsets);
     }
 
     pub fn set_push_const<C: PushConstant>(&mut self, index: u32, constant: &C){

@@ -437,12 +437,8 @@ impl<'tb> TextureBuilder<'tb>{
         }
     }
 
-    pub fn build_bind_group(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> BindGroup<Texture>{
-        BindGroup::new(self.build(device, queue), device)
-    }
-
-    pub fn build_bind_group_vis(&mut self, visibility: wgpu::ShaderStages, device: &wgpu::Device, queue: &wgpu::Queue) -> BindGroup<Texture>{
-        BindGroup::new_vis(self.build(device, queue), device, visibility)
+    pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, visibility: wgpu::ShaderStages) -> Bound<Texture>{
+        self.build(device, queue).into_bound(visibility, device)
     }
 
 }
@@ -498,7 +494,7 @@ impl BindGroupContent for Texture{
     }
 }
 
-pub type BindGroupTexture = BindGroup<Texture>;
+pub type BindGroupTexture = Bound<Texture>;
 
 impl ColorAttachment for Texture{
     fn color_attachment_clear(&self) -> wgpu::RenderPassColorAttachment {

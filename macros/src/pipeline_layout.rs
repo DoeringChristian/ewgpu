@@ -24,7 +24,7 @@ impl Slot{
             Some(vis) => quote!(#vis),
             None => quote!(wgpu::ShaderStages::all()),
         };
-        quote!{&<#ty>::create_bind_group_layout_vis(#device, #name, #vis).layout,}
+        quote!{&<#ty>::bind_group_layout(#device, #name, #vis).layout,}
     }
 
     fn quote_push_const(&self) -> proc_macro2::TokenStream{
