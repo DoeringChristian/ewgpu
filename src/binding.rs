@@ -62,7 +62,7 @@ pub trait BindGroupContent: Sized {
     }
     fn create_bind_group(&self, visibility: wgpu::ShaderStages, device: &wgpu::Device) -> BindGroup<Self>{
         let layout =
-            Self::bind_group_layout(device, None, visibility);
+            Self::create_bind_group_layout(device, None, visibility);
         let resources = self.resources();
 
         let entries: Vec<wgpu::BindGroupEntry> = resources
@@ -86,7 +86,7 @@ pub trait BindGroupContent: Sized {
             _ty: PhantomData,
         }
     }
-    fn bind_group_layout(
+    fn create_bind_group_layout(
         device: &wgpu::Device,
         label: wgpu::Label,
         visibility: wgpu::ShaderStages,
@@ -195,7 +195,7 @@ impl<C: BindGroupContent> CreateBindGroupLayout for Bound<C> {
         label: Option<&str>,
         visibility: wgpu::ShaderStages,
     ) -> BindGroupLayoutWithDesc {
-        C::bind_group_layout(device, label, visibility)
+        C::create_bind_group_layout(device, label, visibility)
     }
 }
 
@@ -256,7 +256,7 @@ impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C> {
         label: Option<&str>,
         visibility: wgpu::ShaderStages,
     ) -> BindGroupLayoutWithDesc {
-        C::bind_group_layout(device, label, visibility)
+        C::create_bind_group_layout(device, label, visibility)
     }
 }
 
