@@ -5,7 +5,6 @@ use crate::utils::*;
 
 use super::binding;
 
-
 // TODO: find a way to implement diffrent types of buffers.
 
 /// 
@@ -677,3 +676,21 @@ impl<'mbr, C: bytemuck::Pod> Drop for BufferViewMut<'mbr, C>{
     }
 }
 
+pub trait IndexFormat{
+    fn index_format() -> wgpu::IndexFormat;
+    fn get_index_format(&self) -> wgpu::IndexFormat{
+        Self::index_format()
+    }
+}
+
+impl IndexFormat for Buffer<u32>{
+    fn index_format() -> wgpu::IndexFormat {
+        wgpu::IndexFormat::Uint32
+    }
+}
+
+impl IndexFormat for Buffer<u16>{
+    fn index_format() -> wgpu::IndexFormat {
+        wgpu::IndexFormat::Uint16
+    }
+}

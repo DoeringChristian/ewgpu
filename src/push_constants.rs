@@ -11,6 +11,9 @@ pub struct PushConstantLayout{
 
 pub trait PushConstant: bytemuck::Pod{
     fn push_const_layout(stages: wgpu::ShaderStages) -> PushConstantLayout;
+    fn as_slice8(&self) -> &[u8]{
+        bytemuck::bytes_of(self)
+    }
 }
 
 impl<T: bytemuck::Pod> PushConstant for T{
