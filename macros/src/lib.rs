@@ -117,7 +117,7 @@ pub fn derive_vert(tokens: TokenStream) -> TokenStream{
 /// }
 /// ```
 ///
-#[proc_macro_derive(BindGroupContent)]
+#[proc_macro_derive(BindGroupContent, attributes(visibility))]
 pub fn derive_bind_group_content(tokens: TokenStream) -> TokenStream{
     let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
 

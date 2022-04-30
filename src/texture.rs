@@ -437,8 +437,8 @@ impl<'tb> TextureBuilder<'tb>{
         }
     }
 
-    pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, visibility: wgpu::ShaderStages) -> Bound<Texture>{
-        self.build(device, queue).into_bound(visibility, device)
+    pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Bound<Texture>{
+        self.build(device, queue).into_bound(device)
     }
 
 }
@@ -471,15 +471,15 @@ impl Texture{
 
 // TODO: decide on weather to use struct initialisation or function initialisation.
 impl BindGroupContent for Texture{
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
+    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
         vec!{
             BindGroupLayoutEntry{
-                visibility,
+                visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
                 ty: binding::wgsl::texture_2d(),
                 count: None,
             },
             BindGroupLayoutEntry{
-                visibility,
+                visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
                 ty: binding::wgsl::sampler(),
                 count: None,
             }

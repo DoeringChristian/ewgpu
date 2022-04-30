@@ -36,6 +36,7 @@ imgui = {version = "0.8.2", optional = true}
 imgui-wgpu = {version = "0.19.0", optional = true}
 imgui-winit-support = {version = "0.8.2", optional = true, default-features = false, features = ["winit-26"]}
 num-traits = "0.2.14"
+crevice = "0.8.0"
 
 epi = {version = "0.16", optional = true}
 egui = {version = "0.16", optional = true}

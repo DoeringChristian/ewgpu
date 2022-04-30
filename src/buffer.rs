@@ -349,6 +349,8 @@ impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
     }
 }
 
+// TODO: std140 and std430
+
 ///
 /// A typesafe wrapper for wgpu::Buffer.
 ///
@@ -578,9 +580,9 @@ impl<C: bytemuck::Pod> Buffer<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for Buffer<C>{
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
+    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
         vec!{
-            binding::BindGroupLayoutEntry::new(visibility, binding::wgsl::buffer(false))
+            binding::BindGroupLayoutEntry::new(visibility.unwrap_or(wgpu::ShaderStages::all()), binding::wgsl::buffer(false))
         }
     }
 

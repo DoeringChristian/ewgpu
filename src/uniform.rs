@@ -111,9 +111,9 @@ impl<C: bytemuck::Pod> UniformVec<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for UniformVec<C>{
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
+    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
         vec!{
-            binding::BindGroupLayoutEntry::new(visibility, binding::wgsl::uniform()),
+            binding::BindGroupLayoutEntry::new(visibility.unwrap_or(wgpu::ShaderStages::all()), binding::wgsl::uniform()),
         }
     }
 
@@ -147,9 +147,9 @@ impl<C: bytemuck::Pod> Uniform<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<binding::BindGroupLayoutEntry>{
+    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
         vec!{
-            binding::BindGroupLayoutEntry::new(visibility, binding::wgsl::uniform())
+            binding::BindGroupLayoutEntry::new(visibility.unwrap_or(wgpu::ShaderStages::all()), binding::wgsl::uniform())
         }
     }
 
@@ -199,7 +199,7 @@ impl<C: bytemuck::Pod> DerefMut for UniformBindGroup<C>{
 }
 
 impl<C: bytemuck::Pod> CreateBindGroupLayout for UniformBindGroup<C>{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>, visibility: wgpu::ShaderStages) -> crate::BindGroupLayoutWithDesc {
-        Bound::<Uniform<C>>::create_bind_group_layout(device, label, visibility)
+    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> crate::BindGroupLayoutWithDesc {
+        Bound::<Uniform<C>>::create_bind_group_layout(device, label)
     }
 }

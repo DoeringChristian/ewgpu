@@ -6,7 +6,6 @@ pub trait CreateBindGroupLayout {
     fn create_bind_group_layout(
         device: &wgpu::Device,
         label: Option<&str>,
-        visibility: wgpu::ShaderStages,
     ) -> BindGroupLayoutWithDesc;
 }
 
@@ -52,17 +51,17 @@ impl BindGroupLayoutEntry {
 /// A trait implemented for structs that can be the content of a BindGroup.
 ///
 pub trait BindGroupContent: Sized {
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>;
+    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<BindGroupLayoutEntry>;
     fn resources(&self) -> Vec<wgpu::BindingResource>;
-    fn into_bound(self, visibility: wgpu::ShaderStages, device: &wgpu::Device) -> Bound<Self> {
+    fn into_bound(self, device: &wgpu::Device) -> Bound<Self> {
         Bound{
-            bind_group: Self::create_bind_group(&self, visibility, device),
+            bind_group: Self::create_bind_group(&self, device),
             content: self,
         }
     }
-    fn create_bind_group(&self, visibility: wgpu::ShaderStages, device: &wgpu::Device) -> BindGroup<Self>{
+    fn create_bind_group(&self, device: &wgpu::Device) -> BindGroup<Self>{
         let layout =
-            Self::create_bind_group_layout(device, None, visibility);
+            Self::create_bind_group_layout(device, None);
         let resources = self.resources();
 
         let entries: Vec<wgpu::BindGroupEntry> = resources
@@ -82,16 +81,14 @@ pub trait BindGroupContent: Sized {
         BindGroup{
             bind_group_layout: layout,
             bind_group,
-            visibility,
             _ty: PhantomData,
         }
     }
     fn create_bind_group_layout(
         device: &wgpu::Device,
         label: wgpu::Label,
-        visibility: wgpu::ShaderStages,
     ) -> BindGroupLayoutWithDesc {
-        let entries: Vec<wgpu::BindGroupLayoutEntry> = Self::entries(visibility)
+        let entries: Vec<wgpu::BindGroupLayoutEntry> = Self::entries(None)
             .iter()
             .enumerate()
             .map(|(i, x)| wgpu::BindGroupLayoutEntry {
@@ -118,7 +115,7 @@ macro_rules! bind_group_content_for_tuple{
     ($($name:ident)+) => {
         #[allow(non_snake_case)]
         impl<$($name: BindGroupContent),+> BindGroupContent for ($($name, )+){
-            fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry>{
+            fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<BindGroupLayoutEntry>{
                 let mut ret = Vec::new();
                 {
                     $(
@@ -156,7 +153,7 @@ bind_group_content_for_tuple! { A B C D E F G H I J K }
 bind_group_content_for_tuple! { A B C D E F G H I J K L }
 
 impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N] {
-    fn entries(visibility: wgpu::ShaderStages) -> Vec<BindGroupLayoutEntry> {
+    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<BindGroupLayoutEntry> {
         let mut ret = Vec::with_capacity(N);
         for _i in 0..N {
             ret.append(&mut C::entries(visibility));
@@ -193,9 +190,8 @@ impl<C: BindGroupContent> CreateBindGroupLayout for Bound<C> {
     fn create_bind_group_layout(
         device: &wgpu::Device,
         label: Option<&str>,
-        visibility: wgpu::ShaderStages,
     ) -> BindGroupLayoutWithDesc {
-        C::create_bind_group_layout(device, label, visibility)
+        C::create_bind_group_layout(device, label)
     }
 }
 
@@ -241,12 +237,11 @@ pub struct BindGroup<C: BindGroupContent>{
     _ty: PhantomData<C>,
     bind_group: wgpu::BindGroup,
     bind_group_layout: BindGroupLayoutWithDesc,
-    visibility: wgpu::ShaderStages,
 }
 
 impl<C: BindGroupContent> BindGroup<C>{
     pub fn update(&mut self, conent: &C, device: &wgpu::Device) {
-        *self = conent.create_bind_group(self.visibility, device)
+        *self = conent.create_bind_group(device)
     }
 }
 
@@ -254,9 +249,8 @@ impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C> {
     fn create_bind_group_layout(
         device: &wgpu::Device,
         label: Option<&str>,
-        visibility: wgpu::ShaderStages,
     ) -> BindGroupLayoutWithDesc {
-        C::create_bind_group_layout(device, label, visibility)
+        C::create_bind_group_layout(device, label)
     }
 }
 
