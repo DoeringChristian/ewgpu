@@ -253,6 +253,14 @@ impl<'rp, 'rpr> RenderPassPipeline<'rp, 'rpr>{
         );
     }
 
+    pub fn set_viewport(&mut self, x: Range<f32>, y: Range<f32>, depth: Range<f32>){
+        self.render_pass.render_pass.set_viewport(
+            x.start, y.start,
+            x.end - x.start, y.end - y.start, 
+            depth.start, depth.end
+        );
+    }
+
     pub fn set_pipeline(&'rpr mut self, pipeline: &'rp RenderPipeline) -> Self{
         self.render_pass.render_pass.set_pipeline(&pipeline.pipeline);
         Self{
