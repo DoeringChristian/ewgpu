@@ -51,6 +51,11 @@ impl BindGroupLayoutEntry {
 /// A trait implemented for structs that can be the content of a BindGroup.
 ///
 pub trait BindGroupContent: Sized {
+    ///
+    /// Returns a vector of entries for this BindGroupContent. Used to create layout.
+    /// The visibility option is a visibility override if all elements in a struct should have some
+    /// visibility.
+    ///
     fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<BindGroupLayoutEntry>;
     fn resources(&self) -> Vec<wgpu::BindingResource>;
     fn into_bound(self, device: &wgpu::Device) -> Bound<Self> {

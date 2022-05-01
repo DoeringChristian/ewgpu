@@ -2,30 +2,17 @@ use super::binding::Bound;
 use super::binding::CreateBindGroupLayout;
 use super::buffer::*;
 use super::binding;
-use std::ops::{Deref, DerefMut};
+use super::binding::BindGroupContent;
 
 ///
 /// A struct mutably referencing a Uniform to edit its content and update it when UniformRef is
 /// droped.
 ///
+#[derive(DerefMut)]
 pub struct UniformRefMut<'ur, C: bytemuck::Pod>{
     queue: &'ur wgpu::Queue,
+    #[target]
     uniform: &'ur mut Uniform<C>,
-}
-
-
-impl<C: bytemuck::Pod> Deref for UniformRefMut<'_, C>{
-    type Target = C;
-
-    fn deref(&self) -> &Self::Target {
-        &self.uniform.uniform_vec.content[0]
-    }
-}
-
-impl<C: bytemuck::Pod> DerefMut for UniformRefMut<'_, C>{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.uniform.uniform_vec.content[0]
-    }
 }
 
 impl<C: bytemuck::Pod> Drop for UniformRefMut<'_, C>{
@@ -38,23 +25,11 @@ impl<C: bytemuck::Pod> Drop for UniformRefMut<'_, C>{
 /// A struct mutably referencing a UniformVec to edit its content and update it when UniformVecRef is
 /// droped.
 ///
+#[derive(DerefMut)]
 pub struct UniformVecRefMut<'ur, C: bytemuck::Pod>{
     queue: &'ur mut wgpu::Queue,
+    #[target]
     uniform_vec: &'ur mut UniformVec<C>,
-}
-
-impl<C: bytemuck::Pod> Deref for UniformVecRefMut<'_, C>{
-    type Target = [C];
-
-    fn deref(&self) -> &Self::Target{
-        &self.uniform_vec.content
-    }
-}
-
-impl<C: bytemuck::Pod> DerefMut for UniformVecRefMut<'_, C>{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.uniform_vec.content
-    }
 }
 
 impl<C: bytemuck::Pod> Drop for UniformVecRefMut<'_, C>{
@@ -146,7 +121,7 @@ impl<C: bytemuck::Pod> Uniform<C>{
     }
 }
 
-impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
+impl<C: bytemuck::Pod> BindGroupContent for Uniform<C>{
     fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
         vec!{
             binding::BindGroupLayoutEntry::new(visibility.unwrap_or(wgpu::ShaderStages::all()), binding::wgsl::uniform())
@@ -163,42 +138,26 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for Uniform<C>{
 ///
 /// A uniform inside a BindGroup
 ///
-pub struct UniformBindGroup<C: bytemuck::Pod>{
+#[derive(DerefMut)]
+pub struct BoundUniform<C: bytemuck::Pod>{
     bind_group: binding::Bound<Uniform<C>>,
 }
 
-/*
-impl <C: bytemuck::Pod> UniformBindGroup<C>{
+impl <C: bytemuck::Pod> BoundUniform<C>{
     pub fn new(device: &wgpu::Device, src: C) -> Self{
         Self{
-            bind_group: Uniform::new(src, device).into_bound()
-            //bind_group: binding::Bound::new(Uniform::new(src, device), device)
+            bind_group: Uniform::new(src, device).into_bound(device)
         }
     }
 }
-*/
 
-impl<C: bytemuck::Pod> binding::GetBindGroup for UniformBindGroup<C>{
+impl<C: bytemuck::Pod> binding::GetBindGroup for BoundUniform<C>{
     fn bind_group(&self) -> &wgpu::BindGroup {
         self.bind_group.bind_group()
     }
 }
 
-impl<C: bytemuck::Pod> Deref for UniformBindGroup<C>{
-    type Target = binding::Bound<Uniform<C>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.bind_group
-    }
-}
-
-impl<C: bytemuck::Pod> DerefMut for UniformBindGroup<C>{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.bind_group
-    }
-}
-
-impl<C: bytemuck::Pod> CreateBindGroupLayout for UniformBindGroup<C>{
+impl<C: bytemuck::Pod> CreateBindGroupLayout for BoundUniform<C>{
     fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> crate::BindGroupLayoutWithDesc {
         Bound::<Uniform<C>>::create_bind_group_layout(device, label)
     }

@@ -94,7 +94,7 @@ impl WireframeRenderer{
             bind_groups: {
                 line: BindGroup::<(Buffer<u32>, Buffer<WireframeVert>)> => wgpu::ShaderStages::all(),
                 mesh: BindGroup::<(Buffer<u32>, Buffer<WireframeMeshVert>)> => wgpu::ShaderStages::all(),
-                width: UniformBindGroup::<WidthUniform> => wgpu::ShaderStages::all(),
+                width: BoundUniform::<WidthUniform> => wgpu::ShaderStages::all(),
             },
             push_constants: {
                 Camera => wgpu::ShaderStages::COMPUTE,

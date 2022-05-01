@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str;
 use crate::*;
