@@ -1,3 +1,4 @@
+use ewgpu_macros::DerefMut;
 use wgpu::util::DeviceExt;
 use std::{marker::PhantomData, ops::{Deref, DerefMut, RangeBounds, Range}};
 use std::mem::ManuallyDrop;
@@ -355,7 +356,9 @@ impl<'bb, C: bytemuck::Pod> BufferBuilder<'bb, C>{
 /// A typesafe wrapper for wgpu::Buffer.
 ///
 #[allow(unused)]
+#[derive(DerefMut)]
 pub struct Buffer<C: bytemuck::Pod>{
+    #[target]
     pub buffer: wgpu::Buffer,
     len: usize,
     usage: wgpu::BufferUsages,
@@ -590,20 +593,6 @@ impl<C: bytemuck::Pod> binding::BindGroupContent for Buffer<C>{
         vec!{
             self.as_entire_binding(),
         }
-    }
-}
-
-impl<C: bytemuck::Pod> Deref for Buffer<C>{
-    type Target = wgpu::Buffer;
-
-    fn deref(&self) -> &Self::Target {
-        &self.buffer
-    }
-}
-
-impl<C: bytemuck::Pod> DerefMut for Buffer<C>{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.buffer
     }
 }
 

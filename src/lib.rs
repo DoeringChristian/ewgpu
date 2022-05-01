@@ -146,6 +146,7 @@
 #[macro_use]
 extern crate more_asserts;
 
+#[macro_use]
 pub extern crate ewgpu_macros;
 
 //extern crate nalgebra_glm as glm;
@@ -160,7 +161,6 @@ pub mod vert;
 pub mod push_constants;
 pub mod shader;
 pub mod context;
-pub mod drawable;
 pub mod utils;
 
 
@@ -176,5 +176,4 @@ pub use self::push_constants::*;
 pub use self::shader::*;
 pub use crate::ewgpu_macros::*;
 pub use context::*;
-pub use crate::drawable::*;
 

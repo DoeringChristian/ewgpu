@@ -3,10 +3,12 @@ use proc_macro::{self, TokenStream};
 mod vertex;
 mod bind_group_content;
 mod pipeline_layout;
+mod deref;
 
 use vertex::*;
 use bind_group_content::*;
 use pipeline_layout::*;
+use deref::*;
 
 ///
 /// An attribute macro for deriving Copy, Clone, bytemuck::Zeroable, bytemuck::Pod, Vert
@@ -129,3 +131,17 @@ pub fn pipeline_layout(tokens: TokenStream) -> TokenStream{
     generate_pipeline_layout(tokens)
 }
 
+
+#[proc_macro_derive(Deref, attributes(target))]
+pub fn derive_deref(tokens: TokenStream) -> TokenStream{
+    let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
+
+    generate_deref(ast).into()
+}
+
+#[proc_macro_derive(DerefMut, attributes(target))]
+pub fn derive_derefmut(tokens: TokenStream) -> TokenStream{
+    let ast: syn::DeriveInput = syn::parse(tokens).unwrap();
+
+    generate_derefmut(ast).into()
+}

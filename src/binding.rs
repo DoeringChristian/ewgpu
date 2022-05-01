@@ -170,7 +170,9 @@ impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N] {
     }
 }
 
+#[derive(DerefMut)]
 pub struct Bound<C: BindGroupContent>{
+    #[target]
     pub content: C,
     bind_group: BindGroup<C>,
 }
@@ -192,20 +194,6 @@ impl<C: BindGroupContent> CreateBindGroupLayout for Bound<C> {
         label: Option<&str>,
     ) -> BindGroupLayoutWithDesc {
         C::create_bind_group_layout(device, label)
-    }
-}
-
-impl<C: BindGroupContent> Deref for Bound<C> {
-    type Target = C;
-
-    fn deref(&self) -> &Self::Target {
-        &self.content
-    }
-}
-
-impl<C: BindGroupContent> DerefMut for Bound<C> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.content
     }
 }
 
@@ -233,8 +221,10 @@ impl From<Bound<super::Texture>> for imgui_wgpu::Texture {
     }
 }
 
+#[derive(DerefMut)]
 pub struct BindGroup<C: BindGroupContent>{
     _ty: PhantomData<C>,
+    #[target]
     bind_group: wgpu::BindGroup,
     bind_group_layout: BindGroupLayoutWithDesc,
 }
@@ -251,20 +241,6 @@ impl<C: BindGroupContent> CreateBindGroupLayout for BindGroup<C> {
         label: Option<&str>,
     ) -> BindGroupLayoutWithDesc {
         C::create_bind_group_layout(device, label)
-    }
-}
-
-impl<C: BindGroupContent> Deref for BindGroup<C> {
-    type Target = wgpu::BindGroup;
-
-    fn deref(&self) -> &Self::Target {
-        &self.bind_group
-    }
-}
-
-impl<C: BindGroupContent> DerefMut for BindGroup<C> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.bind_group
     }
 }
 

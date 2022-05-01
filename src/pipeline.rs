@@ -609,11 +609,6 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
         self
     }
 
-    #[inline]
-    pub fn push_drawable_layouts<D: Drawable>(self) -> Self{
-        self.push_vert_layouts(D::create_vert_buffer_layouts())
-    }
-
     ///
     /// Pushes a RenderTarget to the fragment state.
     ///
