@@ -662,7 +662,15 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
     pub fn build(self, device: &wgpu::Device) -> RenderPipeline{
 
-        let layout = self.layout.expect("no layout provided");
+        let push_const_ranges = match self.layout{
+            Some(layout) => layout.push_const_ranges.clone(),
+            None => Vec::new(),
+        };
+
+        let layout = match self.layout{
+            Some(layout) => Some(&layout.layout),
+            None => None,
+        };
 
         let fragment = wgpu::FragmentState{
             module: self.fragment.shader,
@@ -672,7 +680,7 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
             label: self.label,
-            layout: Some(&layout.layout),
+            layout,
             vertex: wgpu::VertexState{
                 module: self.vertex.shader,
                 entry_point: self.vertex.entry_point,
@@ -687,7 +695,7 @@ impl<'rpb> RenderPipelineBuilder<'rpb>{
 
         RenderPipeline{
             pipeline: render_pipeline,
-            push_const_ranges: layout.push_const_ranges.clone(),
+            push_const_ranges,
         }
     }
 }
