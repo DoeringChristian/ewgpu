@@ -1,4 +1,4 @@
-use wgpu_utils::*;
+use ewgpu::*;
 use imgui;
 use winit::{window::WindowBuilder, event_loop::EventLoop};
 use wireframe::*;

@@ -1,6 +1,6 @@
 
 use super::camera::*;
-use wgpu_utils::*;
+use ewgpu::*;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
@@ -44,8 +44,8 @@ pub struct GPUWireframe{
     //line_indices: BindGroup<Buffer<u32>>,
     //line_vertices: BindGroup<Buffer<WireframeVert>>,
 
-    line: BindGroup<(Buffer<u32>, Buffer<WireframeVert>)>,
-    mesh: BindGroup<(Buffer<u32>, Buffer<WireframeMeshVert>)>,
+    line: Bound<(Buffer<u32>, Buffer<WireframeVert>)>,
+    mesh: Bound<(Buffer<u32>, Buffer<WireframeMeshVert>)>,
 
     //mesh_indices: BindGroup<Buffer<u32>>,
     //mesh_vertices: BindGroup<Buffer<WireframeMeshVert>>,
@@ -54,31 +54,21 @@ pub struct GPUWireframe{
 impl GPUWireframe{
     pub fn new(device: &wgpu::Device, vertices: &[WireframeVert], indices: &[u32], width: f32) -> Self{
 
-        let line = BindGroup::new((
+        let line = (
             BufferBuilder::new()
-            .storage()
-            .write()
-            .append_slice(indices)
-            .build(device),
+            .storage().write()
+            .build(device, indices),
             BufferBuilder::new()
-            .storage()
-            .write()
-            .append_slice(vertices)
-            .build(device)),
-            device,
-        );
+            .storage().write()
+            .build(device, vertices)).into_bound(device);
 
-        let mesh = BindGroup::new((
+        let mesh = (
             BufferBuilder::new()
-            .index()
-            .storage()
+            .index().storage()
             .build_empty(device, line.0.len()/2 * 6),
             BufferBuilder::new()
-            .storage()
-            .vertex()
-            .build_empty(device, line.0.len()/2 * 4)),
-            device
-        );
+            .storage().vertex()
+            .build_empty(device, line.0.len()/2 * 4)).into_bound(device);
 
         //let width = UniformBindGroup::new(device, width);
 
@@ -94,7 +84,7 @@ pub struct WireframeRenderer{
     line_cppl: ComputePipeline,
     mesh_rppl: RenderPipeline,
 
-    width: UniformBindGroup<WidthUniform>,
+    width: Bound<Uniform<WidthUniform>>,
 }
 
 impl WireframeRenderer{
@@ -133,7 +123,7 @@ impl WireframeRenderer{
             .push_target_replace(format)
             .build(device);
 
-        let width = UniformBindGroup::new(device, WidthUniform::default());
+        let width = Uniform::new(WidthUniform::default(), device).into_bound(device);
 
         Self{
             line_cppl,
@@ -144,7 +134,7 @@ impl WireframeRenderer{
 
     pub fn update(&mut self, wireframe: &GPUWireframe, camera: &Camera, screen_size: [f32; 2], queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder){
         {
-            self.width.borrow_ref(queue).width = [screen_size[0], screen_size[1], 0., wireframe.width];
+            self.width.borrow_mut(queue).width = [screen_size[0], screen_size[1], 0., wireframe.width];
         }
         {
             let mut cpass = ComputePass::new(encoder, None);
@@ -166,8 +156,8 @@ impl WireframeRenderer{
                 .begin(encoder, Some("Wireframe RenderPass"));
 
             let mut rpass_ppl = rpass.set_pipeline(&self.mesh_rppl);
-            rpass_ppl.set_vertex_buffer(0, wireframe.mesh.1.buffer.slice(..));
-            rpass_ppl.set_index_buffer(wireframe.mesh.0.buffer.slice(..), wgpu::IndexFormat::Uint32);
+            rpass_ppl.set_vertex_buffer(0, wireframe.mesh.1.slice(..));
+            rpass_ppl.set_index_buffer(wireframe.mesh.0.slice(..));
             rpass_ppl.draw_indexed(0..wireframe.mesh.0.len() as u32, 0, 0..1);
         }
     }
@@ -176,7 +166,7 @@ impl WireframeRenderer{
 
 #[cfg(test)]
 mod test{
-    use wgpu_utils::*;
+    use ewgpu::*;
     use crate::wireframe::*;
     #[test]
     fn test(){

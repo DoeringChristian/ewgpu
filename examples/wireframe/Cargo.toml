@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wgpu_utils = {path = "../../"}
+ewgpu = {path = "../../"}
 winit = "0.26"
 wgpu = "*"
 env_logger = "0.9"

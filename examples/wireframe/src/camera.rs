@@ -1,5 +1,5 @@
 
-use wgpu_utils::*;
+use ewgpu::*;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
