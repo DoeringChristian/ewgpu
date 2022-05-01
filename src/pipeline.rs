@@ -85,7 +85,9 @@ impl<'vs> VertexState<'vs>{
 /// 
 /// A wrapper for wgpu::RenderPipeline with PushConstantRanges.
 ///
+#[derive(DerefMut)]
 pub struct RenderPipeline{
+    #[target]
     pub pipeline: wgpu::RenderPipeline,
     pub push_const_ranges: Vec<wgpu::PushConstantRange>
 }
@@ -281,6 +283,7 @@ pub struct DispatchIndirect{
 ///
 /// Wrapper for wgpu::ComputePass
 ///
+#[derive(DerefMut)]
 pub struct ComputePass<'cp>{
     pub cpass: wgpu::ComputePass<'cp>,
 }
@@ -344,7 +347,9 @@ impl<'cp, 'cpr> ComputePassPipeline<'cp, 'cpr>{
 ///
 /// A wrapper for wgpu::ComputePipeline with PushConstantRanges
 ///
+#[derive(DerefMut)]
 pub struct ComputePipeline{
+    #[target]
     pub pipeline: wgpu::ComputePipeline,
     pub push_const_ranges: Vec<wgpu::PushConstantRange>,
 }
@@ -404,6 +409,7 @@ impl<'cpb> ComputePipelineBuilder<'cpb>{
 ///
 /// A wrapper for wgpu::RenderPass
 ///
+#[derive(DerefMut)]
 pub struct RenderPass<'rp>{
     pub render_pass: wgpu::RenderPass<'rp>,
 }

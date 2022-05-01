@@ -5,6 +5,7 @@ use std::str;
 use crate::*;
 use anyhow::*;
 use std::borrow::Cow;
+use ewgpu_macros::DerefMut;
 
 ///
 /// Wraper for wgpu::ShaderModule using shaderc to load shader modules.
@@ -12,8 +13,9 @@ use std::borrow::Cow;
 /// TODO: Automatic reload if files update.
 /// Inspiration from Wumpf's [blub](https://github.com/Wumpf/blub/blob/master/src/wgpu_utils/shader.rs).
 ///
-#[derive(Debug)]
+#[derive(Debug, DerefMut)]
 pub struct ShaderModule{
+    #[target]
     pub module: wgpu::ShaderModule,
     pub src_files: Vec<PathBuf>,
 }
@@ -111,15 +113,7 @@ impl ShaderModule{
     }
 }
 
-impl Deref for ShaderModule{
-    type Target = wgpu::ShaderModule;
-
-    fn deref(&self) -> &Self::Target {
-        &self.module
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, DerefMut)]
 pub struct FragmentShader{
     module: ShaderModule,
 }
@@ -138,15 +132,7 @@ impl FragmentShader{
     }
 }
 
-impl Deref for FragmentShader{
-    type Target = ShaderModule;
-
-    fn deref(&self) -> &Self::Target {
-        &self.module
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, DerefMut)]
 pub struct VertexShader{
     module: ShaderModule,
 }
@@ -164,15 +150,7 @@ impl VertexShader{
     }
 }
 
-impl Deref for VertexShader{
-    type Target = ShaderModule;
-
-    fn deref(&self) -> &Self::Target {
-        &self.module
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, DerefMut)]
 pub struct ComputeShader{
     module: ShaderModule,
 }
@@ -190,10 +168,3 @@ impl ComputeShader{
     }
 }
 
-impl Deref for ComputeShader{
-    type Target = ShaderModule;
-
-    fn deref(&self) -> &Self::Target {
-        &self.module
-    }
-}

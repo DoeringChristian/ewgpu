@@ -1,6 +1,6 @@
 #[allow(unused)]
 use anyhow::*;
-use std::{ops::{Deref, DerefMut}, marker::PhantomData};
+use std::marker::PhantomData;
 
 pub trait CreateBindGroupLayout {
     fn create_bind_group_layout(
