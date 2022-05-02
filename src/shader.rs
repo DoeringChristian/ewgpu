@@ -17,6 +17,7 @@ pub struct ShaderModule{
     #[target]
     pub module: wgpu::ShaderModule,
     pub src_files: Vec<PathBuf>,
+    pub entry_point: String,
 }
 
 impl ShaderModule{
@@ -46,6 +47,7 @@ impl ShaderModule{
         Ok(ShaderModule{
             module,
             src_files: Vec::new(),
+            entry_point: String::from(entry_point),
         })
     }
 
@@ -108,7 +110,12 @@ impl ShaderModule{
         Ok(ShaderModule{
             module,
             src_files: src_files.into_inner(),
+            entry_point: String::from(entry_point),
         })
+    }
+
+    pub fn entry_point(&self) -> &str{
+        &self.entry_point
     }
 }
 

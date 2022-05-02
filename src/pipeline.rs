@@ -128,6 +128,14 @@ impl<'pld> PipelineLayoutDescriptor<'pld> {
     }
 }
 
+pub trait PipelineLayout{
+    const LAYOUT: PipelineLayoutDescriptor<'static>;
+    fn bind_group_layout(device: &wgpu::Device, index: usize) -> wgpu::BindGroupLayout{
+        Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
+    }
+}
+
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct DispatchIndirect {
@@ -140,24 +148,19 @@ pub trait RenderPass{
     fn color_target_states(&self) -> Vec<wgpu::ColorTargetState>;
 }
 
+#[derive(Default)]
 pub struct ComputeData<'cd>{
     bind_groups: &'cd[(&'cd wgpu::BindGroup, &'cd [u32])],
     push_constants: &'cd[(u32, &'cd [u8])],
 }
 
-pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline> + DerefMut{
-    const LAYOUT: PipelineLayoutDescriptor<'static>;
-    fn bind_group_layout(device: &wgpu::Device, index: usize) -> wgpu::BindGroupLayout{
-        Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
-    }
-    fn compute_pipeline(&self) -> &wgpu::ComputePipeline;
-    fn compute_pipeline_mut(&mut self) -> &mut wgpu::ComputePipeline;
-    fn set_data<'d>(
+pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline>{
+    fn set_data<'d, 'cp>(
         &'d self, 
-        cpass: &'d wgpu::ComputePass<'d>, 
+        cpass: &'cp mut wgpu::ComputePass<'d>, 
         data: ComputeData<'d>,
     ){
-        cpass.set_pipeline(self.compute_pipeline());
+        cpass.set_pipeline(self);
         for (i, bind_group) in data.bind_groups.iter().enumerate(){
             cpass.set_bind_group(i as u32, bind_group.0, bind_group.1);
         }
@@ -165,18 +168,18 @@ pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline> + DerefMut{
             cpass.set_push_constants(push_constants.0, push_constants.1);
         }
     }
-    fn dispatch<'d>(
+    fn dispatch<'d, 'cp>(
         &'d self, 
-        cpass: &'d wgpu::ComputePass<'d>, 
+        cpass: &'cp mut wgpu::ComputePass<'d>, 
         data: ComputeData<'d>,
         num: [u32; 3],
     ){
         self.set_data(cpass, data);
         cpass.dispatch(num[0], num[1], num[2]);
     }
-    fn dispatch_indirect<'d>(
+    fn dispatch_indirect<'d, 'cp>(
         &'d self, 
-        cpass: &'d wgpu::ComputePass<'d>, 
+        cpass: &'cp mut wgpu::ComputePass<'d>, 
         data: ComputeData<'d>,
         indirect_buffer: &'d Buffer<DispatchIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -184,6 +187,10 @@ pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline> + DerefMut{
         self.set_data(cpass, data);
         cpass.dispatch_indirect(indirect_buffer, indirect_offset);
     }
+}
+
+impl<C: Deref<Target = wgpu::ComputePipeline> + PipelineLayout> ComputePipeline for C{
+
 }
 
 pub struct Viewport{
@@ -199,7 +206,7 @@ pub struct ScissorRect{
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct DrawIndirect {
+pub struct DrawIndirect {
     vertex_count: u32, // The number of vertices to draw.
     instance_count: u32, // The number of instances to draw.
     first_vertex: u32, // The Index of the first vertex to draw.
@@ -207,10 +214,11 @@ struct DrawIndirect {
     // has to be 0, unless [`Features::INDIRECT_FIRST_INSTANCE`] is enabled.
 }
 
+#[derive(Default)]
 pub struct RenderData<'rd>{
     bind_groups: &'rd [(&'rd wgpu::BindGroup, &'rd [u32])],
     push_constants: &'rd[(wgpu::ShaderStages, u32, &'rd[u8])],
-    index_buffer: (wgpu::BufferSlice<'rd>, wgpu::IndexFormat),
+    index_buffer: Option<(wgpu::BufferSlice<'rd>, wgpu::IndexFormat)>,
     vertex_buffers: &'rd[wgpu::BufferSlice<'rd>],
     viewport: Option<Viewport>,
     scissor_rect: Option<ScissorRect>,
@@ -218,14 +226,10 @@ pub struct RenderData<'rd>{
     blend_constant: Option<wgpu::Color>,
 }
 
-pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
-    const LAYOUT: PipelineLayoutDescriptor<'static>;
-    fn bind_group_layout(device: &wgpu::Device, index: usize) -> wgpu::BindGroupLayout{
-        Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
-    }
-    fn set_data<'d>(
+pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline>{
+    fn set_data<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
     ){
         rpass.set_pipeline(self);
@@ -238,7 +242,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
             rpass.set_push_constants(push_constants.0, push_constants.1, push_constants.2);
         }
 
-        rpass.set_index_buffer(data.index_buffer.0, data.index_buffer.1);
+        if let Some(index_buffer) = data.index_buffer{
+            rpass.set_index_buffer(index_buffer.0, index_buffer.1);
+        }
 
         for (i, vertex_buffer) in data.vertex_buffers.iter().enumerate(){
             rpass.set_vertex_buffer(i as u32, *vertex_buffer);
@@ -272,9 +278,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
         }
     }
 
-    fn draw<'d>(
+    fn draw<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         vertices: Range<u32>,
         instances: Range<u32>,
@@ -282,9 +288,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
         self.set_data(rpass, data);
         rpass.draw(vertices, instances);
     }
-    fn draw_indexed<'d>(
+    fn draw_indexed<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         indices: Range<u32>,
         base_vertex: i32,
@@ -294,9 +300,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
         rpass.draw_indexed(indices, base_vertex, instances);
     }
     // TODO: Determine weather indirect offset is in bytes.
-    fn draw_indirect<'d>(
+    fn draw_indirect<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -304,9 +310,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
         self.set_data(rpass, data);
         rpass.draw_indirect(indirect_buffer, indirect_offset);
     }
-    fn draw_indexed_indirect<'d>(
+    fn draw_indexed_indirect<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -314,9 +320,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
         self.set_data(rpass, data);
         rpass.draw_indexed_indirect(indirect_buffer, indirect_offset);
     }
-    fn multi_draw_indirect<'d>(
+    fn multi_draw_indirect<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -325,9 +331,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
         self.set_data(rpass, data);
         rpass.multi_draw_indirect(indirect_buffer, indirect_offset, count.min(indirect_buffer.len() as u32));
     }
-    fn multi_draw_indirect_count<'d>(
+    fn multi_draw_indirect_count<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -344,9 +350,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
             max_count.min(count_buffer.len() as u32),
         );
     }
-    fn multi_draw_indexed_indirect<'d>(
+    fn multi_draw_indexed_indirect<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -359,9 +365,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
             count,
         );
     }
-    fn multi_draw_indexed_indirect_count<'d>(
+    fn multi_draw_indexed_indirect_count<'d, 'rp>(
         &'d self,
-        rpass: &'d wgpu::RenderPass<'d>,
+        rpass: &'rp mut wgpu::RenderPass<'d>,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -380,6 +386,10 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
     }
 }
 
+impl<R: Deref<Target = wgpu::RenderPipeline> + PipelineLayout> RenderPipeline for R{
+
+}
+
 #[cfg(test)]
 mod test {
     use crate::*;
@@ -396,7 +406,7 @@ mod test {
             todo!()
         }
     }
-    impl RenderPipeline for TestRenderPipeline {
+    impl PipelineLayout for TestRenderPipeline {
         const LAYOUT: PipelineLayoutDescriptor<'static> = PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[BindGroupLayoutDescriptor {

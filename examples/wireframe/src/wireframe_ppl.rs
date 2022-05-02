@@ -25,24 +25,6 @@ impl WireframeMeshPipeline{
             cppl,
         }
     }
-    /*
-    pub fn run(
-        &self, 
-        device: &wgpu::Device, 
-        encoder: &mut wgpu::CommandEncoder, 
-        cpass: &wgpu::ComputePass,
-        render_data: (
-            &Bound<(Buffer<u32>, Buffer<WireframeVert>)>,
-            &Bound<(Buffer<u32>, Buffer<WireframeMeshVert>)>,
-            &Camera,
-        )
-    ){
-        cpass.set_pipeline(&self.cppl);
-        cpass.set_bind_group(0, render_data.0.bind_group(), &[]);
-        cpass.set_bind_group(1, render_data.1.bind_group(), &[]);
-        cpass.set_push_constants(0, bytemuck::bytes_of(render_data.2));
-    }
-    */
 }
 
 impl ComputePipeline for WireframeMeshPipeline{

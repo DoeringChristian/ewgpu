@@ -159,9 +159,9 @@ pub struct BoundUniform<C: bytemuck::Pod>{
 }
 
 impl <C: bytemuck::Pod> BoundUniform<C>{
-    pub fn new(device: &wgpu::Device, src: C, layout_desc: &BindGroupLayoutDescriptor) -> Self{
+    pub fn new(device: &wgpu::Device, src: C, layout: &wgpu::BindGroupLayout) -> Self{
         Self{
-            bind_group: Uniform::new(src, device).into_bound(device, layout_desc)
+            bind_group: Uniform::new(src, device).into_bound(device, layout)
         }
     }
 }

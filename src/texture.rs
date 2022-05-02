@@ -430,8 +430,8 @@ impl<'tb> TextureBuilder<'tb>{
         }
     }
 
-    pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, layout_desc: &BindGroupLayoutDescriptor) -> Bound<Texture>{
-        self.build(device, queue).into_bound(device, layout_desc)
+    pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, layout: &wgpu::BindGroupLayout) -> Bound<Texture>{
+        self.build(device, queue).into_bound(device, layout)
     }
 
 }

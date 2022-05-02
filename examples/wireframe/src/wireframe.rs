@@ -1,6 +1,7 @@
 
 use super::camera::*;
 use ewgpu::*;
+use super::wireframe_ppl::*;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
@@ -60,7 +61,7 @@ impl GPUWireframe{
             .build(device, indices),
             BufferBuilder::new()
             .storage().write()
-            .build(device, vertices)).into_bound(device);
+            .build(device, vertices)).into_bound_with::<WireframeMeshPipeline>(device, 0);
 
         let mesh = (
             BufferBuilder::new()
@@ -68,7 +69,7 @@ impl GPUWireframe{
             .build_empty(device, line.0.len()/2 * 6),
             BufferBuilder::new()
             .storage().vertex()
-            .build_empty(device, line.0.len()/2 * 4)).into_bound(device);
+            .build_empty(device, line.0.len()/2 * 4)).into_bound_with::<WireframeMeshPipeline>(device, 1);
 
         //let width = UniformBindGroup::new(device, width);
 
@@ -81,7 +82,7 @@ impl GPUWireframe{
 }
 
 pub struct WireframeRenderer{
-    line_cppl: ComputePipeline,
+    line_cppl: WireframeMeshPipeline,
     mesh_rppl: RenderPipeline,
 
     width: Bound<Uniform<WidthUniform>>,
@@ -90,6 +91,7 @@ pub struct WireframeRenderer{
 impl WireframeRenderer{
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self{
 
+        /*
         let line_layout = pipeline_layout!(device,
             bind_groups: {
                 line: BindGroup::<(Buffer<u32>, Buffer<WireframeVert>)> => wgpu::ShaderStages::all(),
@@ -100,34 +102,9 @@ impl WireframeRenderer{
                 Camera => wgpu::ShaderStages::COMPUTE,
             }
         );
+        */
 
-        let layout = wgpu::PipelineLayoutDescriptor{
-            label: None,
-            bind_group_layouts: &[
-                &device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
-                    label: None,
-                    entries: &[
-                        wgpu::BindGroupLayoutEntry{
-                            binding: 0,
-                            visibility: wgpu::ShaderStages::all(),
-                            ty: wgpu::BindingType::Buffer{
-                                ty: wgpu::BufferBindingType::Storage{read_only: false},
-                                has_dynamic_offset: false,
-                                min_binding_size: None,
-                            },
-                            count: None,
-                        }
-                    ]
-                }),
-            ],
-            push_constant_ranges: &[],
-        };
-
-        let line_shader = ComputeShader::from_src(device, include_str!("shaders/line_ppl.glsl"), None).unwrap();
-
-        let line_cppl = ComputePipelineBuilder::new(&line_shader)
-            .set_layout(&line_layout)
-            .build(device);
+        let line_cppl = WireframeMeshPipeline::new(device);
 
         let mesh_layout = pipeline_layout!(device,
             bind_groups:{
@@ -145,7 +122,7 @@ impl WireframeRenderer{
             .push_target_replace(format)
             .build(device);
 
-        let width = Uniform::new(WidthUniform::default(), device).into_bound(device);
+        let width = Uniform::new(WidthUniform::default(), device).into_bound_with::<WireframeMeshPipeline>(device, 2);
 
         Self{
             line_cppl,
@@ -159,15 +136,22 @@ impl WireframeRenderer{
             self.width.borrow_mut(queue).width = [screen_size[0], screen_size[1], 0., wireframe.width];
         }
         {
-            let mut cpass = ComputePass::new(encoder, None);
+            let data = ComputeData{
+                bind_groups: &[
+                    (wireframe.line.bind_group(), &[]),
+                    (wireframe.mesh.bind_group(), &[]),
+                    (self.width.bind_group(), &[]),
+                ],
+                push_constants: &[
+                    (0, bytemuck::bytes_of(camera)),
+                ]
+            };
+            
+            let cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor{
+                label: None,
+            });
 
-            let mut cpass_ppl = cpass.set_pipeline(&self.line_cppl);
-
-            cpass_ppl.set_push_const(0, camera);
-            cpass_ppl.set_bind_group(0, &wireframe.line, &[]);
-            cpass_ppl.set_bind_group(1, &wireframe.mesh, &[]);
-            cpass_ppl.set_bind_group(2, &self.width, &[]);
-            cpass_ppl.dispatch((wireframe.line.0.len() / 2) as u32, 1, 1);
+            self.line_cppl.dispatch(&cpass, data, [(wireframe.line.0.len() / 2) as u32, 1, 1]);
         }
     }
 
