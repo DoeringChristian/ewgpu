@@ -455,6 +455,20 @@ impl Texture{
             texture: self,
         }
     }
+    pub fn view(&self, mut desc: wgpu::TextureViewDescriptor) -> TextureView{
+        desc.format = Some(self.format);
+        let view = self.texture.create_view(&desc);
+        TextureView{
+            view,
+        }
+    }
+    pub fn with_view(self, desc: wgpu::TextureViewDescriptor) -> ViewTexture{
+        let view = self.view(desc);
+        ViewTexture{
+            view,
+            texture: self,
+        }
+    }
     pub fn slice<S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice{
         let range_x = bound_x.clamp(0..self.size.width);
         let range_y = bound_y.clamp(0..self.size.height);
