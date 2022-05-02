@@ -4,6 +4,7 @@ use crate::wireframe::{WireframeVert, WireframeMeshVert};
 
 use super::camera::Camera;
 
+#[derive(DerefMut)]
 pub struct WireframeMeshPipeline{
     cppl: wgpu::ComputePipeline,
 }
@@ -45,9 +46,6 @@ impl WireframeMeshPipeline{
 }
 
 impl ComputePipeline for WireframeMeshPipeline{
-    fn compute_pipeline(&self) -> &wgpu::ComputePipeline{
-        &self.cppl
-    }
     const LAYOUT: PipelineLayoutDescriptor<'static> = PipelineLayoutDescriptor{
         label: None,
         bind_group_layouts: &[

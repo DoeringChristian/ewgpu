@@ -1,5 +1,5 @@
 use crate::*;
-use std::ops::RangeBounds;
+use std::ops::{RangeBounds, Deref, DerefMut};
 use std::str;
 
 use core::num::NonZeroU32;
@@ -145,12 +145,13 @@ pub struct ComputeData<'cd>{
     push_constants: &'cd[(u32, &'cd [u8])],
 }
 
-pub trait ComputePipeline{
+pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline> + DerefMut{
     const LAYOUT: PipelineLayoutDescriptor<'static>;
     fn bind_group_layout(device: &wgpu::Device, index: usize) -> wgpu::BindGroupLayout{
         Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
     }
     fn compute_pipeline(&self) -> &wgpu::ComputePipeline;
+    fn compute_pipeline_mut(&mut self) -> &mut wgpu::ComputePipeline;
     fn set_data<'d>(
         &'d self, 
         cpass: &'d wgpu::ComputePass<'d>, 
@@ -183,7 +184,6 @@ pub trait ComputePipeline{
         self.set_data(cpass, data);
         cpass.dispatch_indirect(indirect_buffer, indirect_offset);
     }
-
 }
 
 pub struct Viewport{
@@ -218,18 +218,17 @@ pub struct RenderData<'rd>{
     blend_constant: Option<wgpu::Color>,
 }
 
-pub trait RenderPipeline {
+pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> + DerefMut{
     const LAYOUT: PipelineLayoutDescriptor<'static>;
     fn bind_group_layout(device: &wgpu::Device, index: usize) -> wgpu::BindGroupLayout{
         Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
     }
-    fn render_pipeline(&self) -> &wgpu::RenderPipeline;
     fn set_data<'d>(
         &'d self,
         rpass: &'d wgpu::RenderPass<'d>,
         data: RenderData<'d>,
     ){
-        rpass.set_pipeline(self.render_pipeline());
+        rpass.set_pipeline(self);
 
         for (i, bind_group) in data.bind_groups.iter().enumerate(){
             rpass.set_bind_group(i as u32, &bind_group.0, bind_group.1);
@@ -384,6 +383,7 @@ pub trait RenderPipeline {
 #[cfg(test)]
 mod test {
     use crate::*;
+    #[derive(DerefMut)]
     struct TestRenderPipeline {
         rppl: wgpu::RenderPipeline,
     }
@@ -397,9 +397,6 @@ mod test {
         }
     }
     impl RenderPipeline for TestRenderPipeline {
-        fn render_pipeline(&self) -> &wgpu::RenderPipeline {
-            &self.rppl
-        }
         const LAYOUT: PipelineLayoutDescriptor<'static> = PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[BindGroupLayoutDescriptor {
@@ -425,8 +422,5 @@ mod test {
             }],
             push_constant_ranges: &[],
         };
-        fn run(&self, encoder: &mut wgpu::CommandEncoder) {
-            
-        }
     }
 }
