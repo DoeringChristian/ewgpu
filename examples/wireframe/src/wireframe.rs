@@ -83,7 +83,7 @@ impl GPUWireframe{
 
 pub struct WireframeRenderer{
     line_cppl: WireframeMeshPipeline,
-    mesh_rppl: RenderPipeline,
+    mesh_rppl: WireframeRenderPipeline,
 
     width: Bound<Uniform<WidthUniform>>,
 }
@@ -106,21 +106,8 @@ impl WireframeRenderer{
 
         let line_cppl = WireframeMeshPipeline::new(device);
 
-        let mesh_layout = pipeline_layout!(device,
-            bind_groups:{
-            },
-            push_constants:{
-            }
-        );
+        let mesh_rppl = WireframeRenderPipeline::new(device, format);
 
-        let vshader = VertexShader::from_src(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
-        let fshader = FragmentShader::from_src(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
-
-        let mesh_rppl = RenderPipelineBuilder::new(&vshader, &fshader)
-            .set_layout(&mesh_layout)
-            .push_vert_layout(WireframeMeshVert::buffer_layout())
-            .push_target_replace(format)
-            .build(device);
 
         let width = Uniform::new(WidthUniform::default(), device).into_bound_with::<WireframeMeshPipeline>(device, 2);
 
@@ -147,24 +134,34 @@ impl WireframeRenderer{
                 ]
             };
             
-            let cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor{
+            let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor{
                 label: None,
             });
 
-            self.line_cppl.dispatch(&cpass, data, [(wireframe.line.0.len() / 2) as u32, 1, 1]);
+            self.line_cppl.dispatch(&mut cpass, data, [(wireframe.line.0.len() / 2) as u32, 1, 1]);
         }
     }
 
     pub fn render(&self, wireframe: &GPUWireframe, encoder: &mut wgpu::CommandEncoder, dst: &wgpu::TextureView){
         {
-            let mut rpass = RenderPassBuilder::new()
-                .push_color_attachment(dst.color_attachment_load())
-                .begin(encoder, Some("Wireframe RenderPass"));
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
+                label: None,
+                color_attachments: &[
+                    dst.color_attachment_load(),
+                ],
+                depth_stencil_attachment: None,
+            });
 
-            let mut rpass_ppl = rpass.set_pipeline(&self.mesh_rppl);
-            rpass_ppl.set_vertex_buffer(0, wireframe.mesh.1.slice(..));
-            rpass_ppl.set_index_buffer(wireframe.mesh.0.slice(..));
-            rpass_ppl.draw_indexed(0..wireframe.mesh.0.len() as u32, 0, 0..1);
+            let data = RenderData{
+                vertex_buffers: vec![
+                    wireframe.mesh.1.slice(..).into(),
+                ],
+                index_buffer: Some(
+                    wireframe.mesh.0.slice(..).into(),
+                ),
+                ..Default::default()
+            };
+            self.mesh_rppl.draw_indexed(&mut rpass, data, 0..wireframe.mesh.0.len() as u32, 0, 0..1);
         }
     }
 

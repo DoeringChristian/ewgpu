@@ -150,8 +150,8 @@ pub trait RenderPass{
 
 #[derive(Default)]
 pub struct ComputeData<'cd>{
-    bind_groups: &'cd[(&'cd wgpu::BindGroup, &'cd [u32])],
-    push_constants: &'cd[(u32, &'cd [u8])],
+    pub bind_groups: &'cd[(&'cd wgpu::BindGroup, &'cd [u32])],
+    pub push_constants: &'cd[(u32, &'cd [u8])],
 }
 
 pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline>{
@@ -194,36 +194,36 @@ impl<C: Deref<Target = wgpu::ComputePipeline> + PipelineLayout> ComputePipeline 
 }
 
 pub struct Viewport{
-    x_range: Range<f32>,
-    y_range: Range<f32>,
-    depth_range: Range<f32>,
+    pub x_range: Range<f32>,
+    pub y_range: Range<f32>,
+    pub depth_range: Range<f32>,
 }
 
 pub struct ScissorRect{
-    x_range: Range<u32>,
-    y_range: Range<u32>,
+    pub x_range: Range<u32>,
+    pub y_range: Range<u32>,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct DrawIndirect {
-    vertex_count: u32, // The number of vertices to draw.
-    instance_count: u32, // The number of instances to draw.
-    first_vertex: u32, // The Index of the first vertex to draw.
-    first_instance: u32, // The instance ID of the first instance to draw.
+    pub vertex_count: u32, // The number of vertices to draw.
+    pub instance_count: u32, // The number of instances to draw.
+    pub first_vertex: u32, // The Index of the first vertex to draw.
+    pub first_instance: u32, // The instance ID of the first instance to draw.
     // has to be 0, unless [`Features::INDIRECT_FIRST_INSTANCE`] is enabled.
 }
 
 #[derive(Default)]
 pub struct RenderData<'rd>{
-    bind_groups: &'rd [(&'rd wgpu::BindGroup, &'rd [u32])],
-    push_constants: &'rd[(wgpu::ShaderStages, u32, &'rd[u8])],
-    index_buffer: Option<(wgpu::BufferSlice<'rd>, wgpu::IndexFormat)>,
-    vertex_buffers: &'rd[wgpu::BufferSlice<'rd>],
-    viewport: Option<Viewport>,
-    scissor_rect: Option<ScissorRect>,
-    stencil_reference: Option<u32>,
-    blend_constant: Option<wgpu::Color>,
+    pub bind_groups: Vec<(&'rd wgpu::BindGroup, &'rd [u32])>,
+    pub push_constants: Vec<(wgpu::ShaderStages, u32, &'rd[u8])>,
+    pub index_buffer: Option<(wgpu::BufferSlice<'rd>, wgpu::IndexFormat)>,
+    pub vertex_buffers: Vec<wgpu::BufferSlice<'rd>>,
+    pub viewport: Option<Viewport>,
+    pub scissor_rect: Option<ScissorRect>,
+    pub stencil_reference: Option<u32>,
+    pub blend_constant: Option<wgpu::Color>,
 }
 
 pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline>{
@@ -238,7 +238,7 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline>{
             rpass.set_bind_group(i as u32, &bind_group.0, bind_group.1);
         }
 
-        for (i, push_constants) in data.push_constants.iter().enumerate(){
+        for (_, push_constants) in data.push_constants.iter().enumerate(){
             rpass.set_push_constants(push_constants.0, push_constants.1, push_constants.2);
         }
 

@@ -316,7 +316,7 @@ mod glsl {
 }
 
 pub mod wgsl {
-    pub fn buffer(read_only: bool) -> wgpu::BindingType {
+    pub const fn buffer(read_only: bool) -> wgpu::BindingType {
         wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Storage { read_only },
             has_dynamic_offset: false,
@@ -324,7 +324,7 @@ pub mod wgsl {
         }
     }
 
-    pub fn uniform() -> wgpu::BindingType {
+    pub const fn uniform() -> wgpu::BindingType {
         wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Uniform,
             has_dynamic_offset: false,
@@ -332,11 +332,11 @@ pub mod wgsl {
         }
     }
 
-    pub fn sampler() -> wgpu::BindingType {
+    pub const fn sampler() -> wgpu::BindingType {
         wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
     }
 
-    pub fn texture_2d() -> wgpu::BindingType {
+    pub const fn texture_2d() -> wgpu::BindingType {
         wgpu::BindingType::Texture {
             sample_type: wgpu::TextureSampleType::Float { filterable: true },
             view_dimension: wgpu::TextureViewDimension::D2,
