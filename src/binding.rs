@@ -214,17 +214,19 @@ impl<C: BindGroupContent> GetBindGroup for Bound<C> {
     }
 }
 
+/*
 #[cfg(feature = "imgui")]
 impl From<Bound<super::Texture>> for imgui_wgpu::Texture {
-    fn from(bg_texture: Bound<super::Texture>) -> Self {
+    fn from(bg_texture: Bound<(super::TextureView, super::Texture)>) -> Self {
         imgui_wgpu::Texture::from_raw_parts(
-            bg_texture.content.texture,
-            bg_texture.content.view,
-            bg_texture.bind_group.bind_group,
-            bg_texture.content.size,
+            bg_texture.content.1.texture,
+            bg_texture.content.0.view,
+            bg_texture.bind_group.1.bind_group,
+            bg_texture.content.1.size,
         )
     }
 }
+*/
 
 #[derive(DerefMut)]
 pub struct BindGroup<C: BindGroupContent>{

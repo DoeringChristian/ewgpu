@@ -86,7 +86,7 @@ impl IntoExtent3D for wgpu::Extent3d{
 ///
 pub struct Texture{
     pub texture: wgpu::Texture,
-    pub view: wgpu::TextureView,
+    //pub view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
     pub format: wgpu::TextureFormat,
     pub size: wgpu::Extent3d,
@@ -371,11 +371,13 @@ impl<'tb> TextureBuilder<'tb>{
                 usage: self.usage
             }
         );
+        /*
         let texture_view_desc = wgpu::TextureViewDescriptor{
             format: Some(self.format),
             ..Default::default()
         };
         let view = texture.create_view(&texture_view_desc);
+        */
         let sampler = device.create_sampler(
             &self.sampler_descriptor
         );
@@ -400,7 +402,7 @@ impl<'tb> TextureBuilder<'tb>{
 
         Texture{
             texture,
-            view,
+            //view,
             sampler,
             format: self.format,
             size: self.size,
@@ -430,7 +432,7 @@ impl<'tb> TextureBuilder<'tb>{
 
         Texture{
             texture,
-            view,
+            //view,
             sampler,
             format: self.format,
             size: self.size,
@@ -468,16 +470,17 @@ impl Texture{
         }
     }
 }
-
 // TODO: decide on weather to use struct initialisation or function initialisation.
 impl BindGroupContent for Texture{
     fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
         vec!{
+            /*
             BindGroupLayoutEntry{
                 visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
                 ty: binding::wgsl::texture_2d(),
                 count: None,
             },
+            */
             BindGroupLayoutEntry{
                 visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
                 ty: binding::wgsl::sampler(),
@@ -488,25 +491,39 @@ impl BindGroupContent for Texture{
 
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
-            wgpu::BindingResource::TextureView(&self.view),
+            //wgpu::BindingResource::TextureView(&self.view),
             wgpu::BindingResource::Sampler(&self.sampler),
         }
     }
 }
 
-pub type BindGroupTexture = Bound<Texture>;
+#[derive(DerefMut)]
+pub struct TextureView{
+    #[target]
+    pub view: wgpu::TextureView,
+    dimension: wgpu::TextureViewDimension,
+}
 
-impl ColorAttachment for Texture{
-    fn color_attachment_clear(&self) -> wgpu::RenderPassColorAttachment {
-        self.view.color_attachment_clear()
+impl BindGroupContent for TextureView{
+    // TODO: pass down sampler.
+    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<BindGroupLayoutEntry> {
+        vec![
+            BindGroupLayoutEntry{
+                visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            }
+        ]
     }
 
-    fn color_attachment_clear_with(&self, color: wgpu::Color) -> wgpu::RenderPassColorAttachment {
-        self.view.color_attachment_clear_with(color)
-    }
-
-    fn color_attachment_load(&self) -> wgpu::RenderPassColorAttachment {
-        self.view.color_attachment_load()
+    fn resources(&self) -> Vec<wgpu::BindingResource> {
+        vec![
+            wgpu::BindingResource::TextureView(&self.view),
+        ]
     }
 }
 

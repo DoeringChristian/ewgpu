@@ -101,6 +101,28 @@ impl WireframeRenderer{
             }
         );
 
+        let layout = wgpu::PipelineLayoutDescriptor{
+            label: None,
+            bind_group_layouts: &[
+                &device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+                    label: None,
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry{
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::all(),
+                            ty: wgpu::BindingType::Buffer{
+                                ty: wgpu::BufferBindingType::Storage{read_only: false},
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        }
+                    ]
+                }),
+            ],
+            push_constant_ranges: &[],
+        };
+
         let line_shader = ComputeShader::from_src(device, include_str!("shaders/line_ppl.glsl"), None).unwrap();
 
         let line_cppl = ComputePipelineBuilder::new(&line_shader)
@@ -113,7 +135,7 @@ impl WireframeRenderer{
             push_constants:{
             }
         );
-        
+
         let vshader = VertexShader::from_src(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
         let fshader = FragmentShader::from_src(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
 
