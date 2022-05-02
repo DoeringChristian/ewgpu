@@ -1,3 +1,5 @@
+use crate::BindGroupLayoutDescriptor;
+
 use super::binding::Bound;
 use super::binding::CreateBindGroupLayout;
 use super::buffer::*;
@@ -111,12 +113,6 @@ impl<C: bytemuck::Pod> UniformVec<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for UniformVec<C>{
-    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
-        vec!{
-            binding::BindGroupLayoutEntry::new(visibility.unwrap_or(wgpu::ShaderStages::all()), binding::wgsl::uniform()),
-        }
-    }
-
     fn resources(& self) -> Vec<wgpu::BindingResource> {
         vec!{
             self.buffer.as_entire_binding(),
@@ -147,12 +143,6 @@ impl<C: bytemuck::Pod> Uniform<C>{
 }
 
 impl<C: bytemuck::Pod> BindGroupContent for Uniform<C>{
-    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
-        vec!{
-            binding::BindGroupLayoutEntry::new(visibility.unwrap_or(wgpu::ShaderStages::all()), binding::wgsl::uniform())
-        }
-    }
-
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
             self.uniform_vec.buffer.as_entire_binding(),
@@ -169,9 +159,9 @@ pub struct BoundUniform<C: bytemuck::Pod>{
 }
 
 impl <C: bytemuck::Pod> BoundUniform<C>{
-    pub fn new(device: &wgpu::Device, src: C) -> Self{
+    pub fn new(device: &wgpu::Device, src: C, layout_desc: &BindGroupLayoutDescriptor) -> Self{
         Self{
-            bind_group: Uniform::new(src, device).into_bound(device)
+            bind_group: Uniform::new(src, device).into_bound(device, layout_desc)
         }
     }
 }
@@ -179,11 +169,5 @@ impl <C: bytemuck::Pod> BoundUniform<C>{
 impl<C: bytemuck::Pod> binding::GetBindGroup for BoundUniform<C>{
     fn bind_group(&self) -> &wgpu::BindGroup {
         self.bind_group.bind_group()
-    }
-}
-
-impl<C: bytemuck::Pod> CreateBindGroupLayout for BoundUniform<C>{
-    fn create_bind_group_layout(device: &wgpu::Device, label: Option<&str>) -> crate::BindGroupLayoutWithDesc {
-        Bound::<Uniform<C>>::create_bind_group_layout(device, label)
     }
 }

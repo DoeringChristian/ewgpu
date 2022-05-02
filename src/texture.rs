@@ -90,6 +90,7 @@ pub struct Texture{
     pub sampler: wgpu::Sampler,
     pub format: wgpu::TextureFormat,
     pub size: wgpu::Extent3d,
+    pub dimension: wgpu::TextureDimension,
 }
 
 pub struct TextureSlice<'ts>{
@@ -371,13 +372,6 @@ impl<'tb> TextureBuilder<'tb>{
                 usage: self.usage
             }
         );
-        /*
-        let texture_view_desc = wgpu::TextureViewDescriptor{
-            format: Some(self.format),
-            ..Default::default()
-        };
-        let view = texture.create_view(&texture_view_desc);
-        */
         let sampler = device.create_sampler(
             &self.sampler_descriptor
         );
@@ -406,6 +400,7 @@ impl<'tb> TextureBuilder<'tb>{
             sampler,
             format: self.format,
             size: self.size,
+            dimension: wgpu::TextureDimension::D2,
         }
     }
 
@@ -421,11 +416,6 @@ impl<'tb> TextureBuilder<'tb>{
                 usage: self.usage
             }
         );
-        let texture_view_desc = wgpu::TextureViewDescriptor{
-            format: Some(self.format),
-            ..Default::default()
-        };
-        let view = texture.create_view(&texture_view_desc);
         let sampler = device.create_sampler(
             &self.sampler_descriptor
         );
@@ -436,16 +426,35 @@ impl<'tb> TextureBuilder<'tb>{
             sampler,
             format: self.format,
             size: self.size,
+            dimension: wgpu::TextureDimension::D2,
         }
     }
 
-    pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Bound<Texture>{
-        self.build(device, queue).into_bound(device)
+    pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, layout_desc: &BindGroupLayoutDescriptor) -> Bound<Texture>{
+        self.build(device, queue).into_bound(device, layout_desc)
     }
 
 }
 
 impl Texture{
+    pub fn view_default(&self) -> TextureView{
+        let view = self.texture.create_view(&wgpu::TextureViewDescriptor{
+            label: None,
+            format: Some(self.format),
+            ..Default::default()
+        });
+        TextureView{
+            view,
+        }
+    }
+    pub fn with_view_default(self, device: &wgpu::Device) -> ViewTexture{
+        let view = self.view_default();
+
+        ViewTexture{
+            view,
+            texture: self,
+        }
+    }
     pub fn slice<S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice{
         let range_x = bound_x.clamp(0..self.size.width);
         let range_y = bound_y.clamp(0..self.size.height);
@@ -470,28 +479,9 @@ impl Texture{
         }
     }
 }
-// TODO: decide on weather to use struct initialisation or function initialisation.
 impl BindGroupContent for Texture{
-    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
-        vec!{
-            /*
-            BindGroupLayoutEntry{
-                visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
-                ty: binding::wgsl::texture_2d(),
-                count: None,
-            },
-            */
-            BindGroupLayoutEntry{
-                visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
-                ty: binding::wgsl::sampler(),
-                count: None,
-            }
-        }
-    }
-
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
-            //wgpu::BindingResource::TextureView(&self.view),
             wgpu::BindingResource::Sampler(&self.sampler),
         }
     }
@@ -501,30 +491,22 @@ impl BindGroupContent for Texture{
 pub struct TextureView{
     #[target]
     pub view: wgpu::TextureView,
-    dimension: wgpu::TextureViewDimension,
 }
 
 impl BindGroupContent for TextureView{
     // TODO: pass down sampler.
-    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<BindGroupLayoutEntry> {
-        vec![
-            BindGroupLayoutEntry{
-                visibility: visibility.unwrap_or(wgpu::ShaderStages::all()),
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    multisampled: false,
-                },
-                count: None,
-            }
-        ]
-    }
-
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec![
             wgpu::BindingResource::TextureView(&self.view),
         ]
     }
+}
+
+#[derive(DerefMut)]
+pub struct ViewTexture{
+    #[target]
+    pub texture: Texture,
+    pub view: TextureView,
 }
 
 #[cfg(feature = "imgui")]

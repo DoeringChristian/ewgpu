@@ -265,7 +265,7 @@ impl GPUContext{
         let o_tex = TextureBuilder::new()
             .clear(size)
             .format(wgpu::TextureFormat::Rgba8Unorm)
-            .build(&self.device, &self.queue);
+            .build(&self.device, &self.queue).with_view_default(&self.device);
 
         self.encode(|gpu, encoder|{
             f(gpu, &o_tex.view, encoder);

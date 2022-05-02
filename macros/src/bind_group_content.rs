@@ -18,12 +18,6 @@ pub fn generate_bind_group_content(ast: syn::DeriveInput) -> proc_macro2::TokenS
 
         let output = quote!{
             impl #impl_generics BindGroupContent for #ident #ty_generics #where_clause{
-                fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<BindGroupLayoutEntry>{
-                    let mut ret = Vec::new();
-                    #(#entries)*
-                    ret
-                }
-
                 fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>>{
                     let mut ret = Vec::new();
                     #(#resources)*

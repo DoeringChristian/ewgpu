@@ -583,12 +583,6 @@ impl<C: bytemuck::Pod> Buffer<C>{
 }
 
 impl<C: bytemuck::Pod> binding::BindGroupContent for Buffer<C>{
-    fn entries(visibility: Option<wgpu::ShaderStages>) -> Vec<binding::BindGroupLayoutEntry>{
-        vec!{
-            binding::BindGroupLayoutEntry::new(visibility.unwrap_or(wgpu::ShaderStages::all()), binding::wgsl::buffer(false))
-        }
-    }
-
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
             self.as_entire_binding(),
