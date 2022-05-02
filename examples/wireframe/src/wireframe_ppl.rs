@@ -24,6 +24,7 @@ impl WireframeMeshPipeline{
             cppl,
         }
     }
+    /*
     pub fn run(
         &self, 
         device: &wgpu::Device, 
@@ -39,11 +40,14 @@ impl WireframeMeshPipeline{
         cpass.set_bind_group(0, render_data.0.bind_group(), &[]);
         cpass.set_bind_group(1, render_data.1.bind_group(), &[]);
         cpass.set_push_constants(0, bytemuck::bytes_of(render_data.2));
-        cpass.dispatch((re))
     }
+    */
 }
 
 impl ComputePipeline for WireframeMeshPipeline{
+    fn compute_pipeline(&self) -> &wgpu::ComputePipeline{
+        &self.cppl
+    }
     const LAYOUT: PipelineLayoutDescriptor<'static> = PipelineLayoutDescriptor{
         label: None,
         bind_group_layouts: &[

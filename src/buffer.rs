@@ -23,6 +23,17 @@ impl<'bs, C: bytemuck::Pod> From<BufferSlice<'bs, C>> for wgpu::BufferSlice<'bs>
     }
 }
 
+impl<'bs> From<BufferSlice<'bs, u16>> for (wgpu::BufferSlice<'bs>, wgpu::IndexFormat){
+    fn from(src: BufferSlice<'bs, u16>) -> Self {
+        (src.into(), wgpu::IndexFormat::Uint16)
+    }
+}
+impl<'bs> From<BufferSlice<'bs, u32>> for (wgpu::BufferSlice<'bs>, wgpu::IndexFormat){
+    fn from(src: BufferSlice<'bs, u32>) -> Self {
+        (src.into(), wgpu::IndexFormat::Uint32)
+    }
+}
+
 impl<'bs, C: bytemuck::Pod> BufferSlice<'bs, C>{
     ///
     /// Convert the range of elements (BufferSlice::range) into a range of bytes.
