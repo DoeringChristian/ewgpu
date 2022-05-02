@@ -6,6 +6,7 @@ use camera::*;
 
 mod wireframe;
 mod camera;
+mod wireframe_ppl;
 
 extern crate nalgebra_glm as glm;
 

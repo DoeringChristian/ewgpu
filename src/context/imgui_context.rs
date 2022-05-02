@@ -187,11 +187,13 @@ impl<'uic> UpdatedImguiContext<'uic>{
 
         f(imgui_render_context, winit_context, encoder);
 
-        let mut rpass = RenderPassBuilder::new()
-            .push_color_attachment(dst.color_attachment_load())
-            .begin(encoder, None);
+        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
+            label: None,
+            color_attachments: &[dst.color_attachment_load()],
+            depth_stencil_attachment: None,
+        });
 
-        imgui.renderer.render(ui.render(), &winit_context.queue, &winit_context.device, &mut rpass.render_pass)
+        imgui.renderer.render(ui.render(), &winit_context.queue, &winit_context.device, &mut rpass)
             .expect("Rendering Failed");
 
         drop(rpass);

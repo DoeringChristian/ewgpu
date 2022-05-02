@@ -58,21 +58,20 @@ pub trait BindGroupContent: Sized {
     /// visibility.
     ///
     fn resources(&self) -> Vec<wgpu::BindingResource>;
-    fn into_bound(self, device: &wgpu::Device, layout_desc: &BindGroupLayoutDescriptor) -> Bound<Self> {
+    fn into_bound(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Bound<Self> {
         Bound{
-            bind_group: self.create_bind_group(device, layout_desc),
+            bind_group: self.create_bind_group(device, layout),
             content: self,
         }
     }
-    fn create_bind_group(&self, device: &wgpu::Device, layout_desc: &BindGroupLayoutDescriptor) -> BindGroup<Self>{
-        let layout = layout_desc.bind_group_layout(device);
+    fn create_bind_group(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> BindGroup<Self>{
         let resources = self.resources();
 
         let entries: Vec<wgpu::BindGroupEntry> = resources
             .into_iter()
             .enumerate()
             .map(|(i, r)| wgpu::BindGroupEntry {
-                binding: layout_desc.entries[i].binding,
+                binding: i as u32,
                 resource: r,
             })
             .collect();

@@ -92,13 +92,6 @@ pub struct BindGroupLayoutDescriptor<'bgld> {
     pub entries: &'bgld [wgpu::BindGroupLayoutEntry],
 }
 
-#[derive(DerefMut)]
-pub struct BindGroupLayout<'bgl> {
-    pub desc: BindGroupLayoutDescriptor<'bgl>,
-    #[target]
-    pub wgpu: wgpu::BindGroupLayout,
-}
-
 impl<'bgld> BindGroupLayoutDescriptor<'bgld> {
     pub fn bind_group_layout(&self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -113,12 +106,6 @@ pub struct PipelineLayoutDescriptor<'pld> {
     pub label: wgpu::Label<'pld>,
     pub bind_group_layouts: &'pld [BindGroupLayoutDescriptor<'pld>],
     pub push_constant_ranges: &'pld [wgpu::PushConstantRange],
-}
-#[derive(DerefMut)]
-pub struct PipelineLayout<'pl> {
-    pub desc: PipelineLayoutDescriptor<'pl>,
-    #[target]
-    pub wgpu: wgpu::PipelineLayout,
 }
 
 impl<'pld> PipelineLayoutDescriptor<'pld> {
@@ -140,24 +127,6 @@ impl<'pld> PipelineLayoutDescriptor<'pld> {
     }
 }
 
-const TEST_PPLD: PipelineLayoutDescriptor = PipelineLayoutDescriptor {
-    label: None,
-    bind_group_layouts: &[BindGroupLayoutDescriptor {
-        label: None,
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::all(),
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Storage { read_only: false },
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            },
-            count: None,
-        }],
-    }],
-    push_constant_ranges: &[],
-};
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct DispatchIndirect {
@@ -166,6 +135,67 @@ pub struct DispatchIndirect {
     z: u32,
 }
 
+pub trait RenderPass{
+    fn color_target_states(&self) -> Vec<wgpu::ColorTargetState>;
+}
+
+pub trait ComputePipeline{
+    const LAYOUT: PipelineLayoutDescriptor<'static>;
+    fn bind_group_layout(device: &wgpu::Device, index: usize) -> wgpu::BindGroupLayout{
+        Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
+    }
+}
+
 pub trait RenderPipeline {
-    const Layout: PipelineLayoutDescriptor<'static>;
+    const LAYOUT: PipelineLayoutDescriptor<'static>;
+    fn bind_group_layout(device: &wgpu::Device, index: usize) -> wgpu::BindGroupLayout{
+        Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
+    }
+    fn run(&self, encoder: &mut wgpu::CommandEncoder);
+
+}
+
+#[cfg(test)]
+mod test {
+    use crate::*;
+    struct TestRenderPipeline {}
+    impl TestRenderPipeline {
+        pub fn new(device: &wgpu::Device) -> Self {
+            let b1 = BufferBuilder::new()
+                .storage()
+                .build(device, &[1])
+                .into_bound(device, &Self::bind_group_layout(device, 0));
+            todo!()
+        }
+    }
+    impl RenderPipeline for TestRenderPipeline {
+        const LAYOUT: PipelineLayoutDescriptor<'static> = PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::all(),
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: false },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::all(),
+                        ty: binding::wgsl::uniform(),
+                        count: None,
+                    },
+                ],
+            }],
+            push_constant_ranges: &[],
+        };
+        fn run(&self, encoder: &mut wgpu::CommandEncoder) {
+            
+        }
+    }
 }
