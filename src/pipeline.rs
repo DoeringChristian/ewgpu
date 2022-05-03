@@ -1,4 +1,7 @@
+use fxhash::FxHashMap;
+
 use crate::*;
+use std::any::{TypeId, Any};
 use std::ops::{RangeBounds, Deref, DerefMut};
 use std::str;
 
@@ -134,7 +137,6 @@ pub trait PipelineLayout{
         Self::LAYOUT.bind_group_layouts[index].bind_group_layout(device)
     }
 }
-
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -387,8 +389,9 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline>{
 }
 
 impl<R: Deref<Target = wgpu::RenderPipeline> + PipelineLayout> RenderPipeline for R{
-
 }
+
+static mut PIPELINES: Option<ResourceManager> = None;
 
 #[cfg(test)]
 mod test {

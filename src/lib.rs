@@ -162,6 +162,7 @@ pub mod push_constants;
 pub mod shader;
 pub mod context;
 pub mod utils;
+pub mod resources;
 
 
 pub use self::binding::*;
@@ -176,4 +177,5 @@ pub use self::push_constants::*;
 pub use self::shader::*;
 pub use crate::ewgpu_macros::*;
 pub use context::*;
+pub use self::resources::*;
 
