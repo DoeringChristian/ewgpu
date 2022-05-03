@@ -10,9 +10,15 @@ pub struct ResourceManager{
 
 // TODO: Find a way to limit to pipelines.
 impl ResourceManager{
-    pub fn insert<C: 'static>(&mut self, res: C){
+    pub fn insert<C: 'static>(&mut self, res: C) -> Option<C>{
         let ty_id = TypeId::of::<C>();
-        self.resources.insert(ty_id, Box::new(res));
+        if self.resources.contains_key(&ty_id){
+            Some(res)
+        }
+        else{
+            self.resources.insert(ty_id, Box::new(res));
+            None
+        }
     }
     pub fn get<C: 'static>(&self) -> Option<&C>{
         let ty_id = TypeId::of::<C>();
