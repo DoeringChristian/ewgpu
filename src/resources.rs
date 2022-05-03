@@ -86,7 +86,7 @@ pub trait StaticResourceManager{
 impl StaticResourceManager for Option<ResourceManager>{
     fn insert<C: 'static>(&mut self, res: C) {
         match self{
-            Some(res_manager) => res_manager.insert(res),
+            Some(res_manager) => {res_manager.insert(res);},
             None => {
                 let mut res_manager = ResourceManager::default();
                 res_manager.insert(res);
