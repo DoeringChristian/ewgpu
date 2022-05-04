@@ -75,7 +75,7 @@ impl WireframeMeshPipeline {
 
         let cppl = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: None,
-            layout: Some(&Self::layout(device).unwrap()),
+            layout: Self::layout(device).as_ref(),
             module: &shader,
             entry_point: "main",
         });

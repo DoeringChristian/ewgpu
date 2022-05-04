@@ -1,7 +1,7 @@
+use super::pipeline::*;
 #[allow(unused)]
 use anyhow::*;
 use std::marker::PhantomData;
-use super::pipeline::*;
 
 pub trait CreateBindGroupLayout {
     fn create_bind_group_layout(
@@ -48,12 +48,12 @@ impl BindGroupLayoutEntry {
     }
 }
 
-pub trait BindGroupContentLayout: BindGroupContent{
+pub trait BindGroupContentLayout: BindGroupContent {
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout;
-    fn into_bound(self, device: &wgpu::Device) -> Bound<Self>{
+    fn into_bound(self, device: &wgpu::Device) -> Bound<Self> {
         self.into_bound_with(device, &Self::bind_group_layout(device))
     }
-    fn to_bind_group(&self, device: &wgpu::Device) -> BindGroup<Self>{
+    fn to_bind_group(&self, device: &wgpu::Device) -> BindGroup<Self> {
         self.into_bind_group(device, &Self::bind_group_layout(device))
     }
 }
@@ -69,12 +69,16 @@ pub trait BindGroupContent: Sized {
     ///
     fn resources(&self) -> Vec<wgpu::BindingResource>;
     fn into_bound_with(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Bound<Self> {
-        Bound{
+        Bound {
             bind_group: self.into_bind_group(device, layout),
             content: self,
         }
     }
-    fn into_bind_group(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> BindGroup<Self>{
+    fn into_bind_group(
+        &self,
+        device: &wgpu::Device,
+        layout: &wgpu::BindGroupLayout,
+    ) -> BindGroup<Self> {
         let resources = self.resources();
 
         let entries: Vec<wgpu::BindGroupEntry> = resources
@@ -91,7 +95,7 @@ pub trait BindGroupContent: Sized {
             entries: &entries,
             layout: &layout,
         });
-        BindGroup{
+        BindGroup {
             bind_group,
             _ty: PhantomData,
         }
@@ -99,7 +103,7 @@ pub trait BindGroupContent: Sized {
 }
 
 #[derive(DerefMut)]
-pub struct Bound<C: BindGroupContent>{
+pub struct Bound<C: BindGroupContent> {
     #[target]
     pub content: C,
     bind_group: BindGroup<C>,
@@ -126,13 +130,12 @@ impl From<Bound<super::Texture>> for imgui_wgpu::Texture {
 */
 
 #[derive(DerefMut)]
-pub struct BindGroup<C: BindGroupContent>{
+pub struct BindGroup<C: BindGroupContent> {
     _ty: PhantomData<C>,
     #[target]
     bind_group: wgpu::BindGroup,
     //layout_desc: BindGroupLayoutDescriptor,
 }
-
 
 impl<C: BindGroupContent> GetBindGroup for BindGroup<C> {
     fn bind_group(&self) -> &wgpu::BindGroup {
@@ -284,6 +287,19 @@ pub mod wgsl {
         }
     }
 
+    pub const fn buffer_entry(read_only: bool) -> wgpu::BindGroupLayoutEntry {
+        wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::all(),
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Storage { read_only },
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }
+    }
+
     pub const fn uniform() -> wgpu::BindingType {
         wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Uniform,
@@ -292,8 +308,30 @@ pub mod wgsl {
         }
     }
 
+    pub const fn uniform_entry() -> wgpu::BindGroupLayoutEntry {
+        wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::all(),
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }
+    }
+
     pub const fn sampler() -> wgpu::BindingType {
         wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering)
+    }
+
+    pub const fn sampler_entry() -> wgpu::BindGroupLayoutEntry {
+        wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::all(),
+            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+            count: None,
+        }
     }
 
     pub const fn texture_2d() -> wgpu::BindingType {
@@ -301,6 +339,19 @@ pub mod wgsl {
             sample_type: wgpu::TextureSampleType::Float { filterable: true },
             view_dimension: wgpu::TextureViewDimension::D2,
             multisampled: false,
+        }
+    }
+
+    pub const fn texture_2d_entry() -> wgpu::BindGroupLayoutEntry {
+        wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::all(),
+            ty: wgpu::BindingType::Texture {
+                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                view_dimension: wgpu::TextureViewDimension::D2,
+                multisampled: false,
+            },
+            count: None,
         }
     }
 }

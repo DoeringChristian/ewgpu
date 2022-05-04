@@ -12,7 +12,13 @@ use core::ops::Range;
 const DEFAULT_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 pub const DEFAULT_ENTRY_POINT: &str = "main";
 
+///
+/// A trait that needs to be implemented for a Pipeline (Compute and Render).
+///
 pub trait PipelineLayout {
+    ///
+    /// Returns the PipelineLayout for this pipeline.
+    ///
     #[allow(unused_variables)]
     fn layout(device: &wgpu::Device) -> Option<wgpu::PipelineLayout> {
         None

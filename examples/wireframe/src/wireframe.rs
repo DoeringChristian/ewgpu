@@ -28,6 +28,26 @@ pub struct WidthUniform{
     pub width: [f32; 4],
 }
 
+#[derive(BindGroupContent)]
+pub struct WidthBindGroupContent{
+    uniform: Uniform<WidthUniform>,
+}
+
+impl BindGroupContentLayout for WidthBindGroupContent{
+    fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+            label: Some("WidthBindGroupContent"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry{
+                    binding: 0,
+                    ..wgsl::uniform_entry()
+                }
+            ]
+        })
+    }
+}
+
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
 #[derive(Vert)]
@@ -51,15 +71,11 @@ impl BindGroupContentLayout for LineBindGroupContent{
             entries: &[
                 wgpu::BindGroupLayoutEntry{
                     binding: 0,
-                    visibility: wgpu::ShaderStages::all(),
-                    ty: wgsl::buffer(false),
-                    count: None,
+                    ..wgsl::buffer_entry(false)
                 },
                 wgpu::BindGroupLayoutEntry{
                     binding: 1,
-                    visibility: wgpu::ShaderStages::all(),
-                    ty: wgsl::buffer(false),
-                    count: None,
+                    ..wgsl::buffer_entry(false)
                 }
             ]
         })
@@ -79,15 +95,11 @@ impl BindGroupContentLayout for MeshBindGroupContent{
             entries: &[
                 wgpu::BindGroupLayoutEntry{
                     binding: 0,
-                    visibility: wgpu::ShaderStages::all(),
-                    ty: wgsl::buffer(false),
-                    count: None,
+                    ..wgsl::buffer_entry(false)
                 },
                 wgpu::BindGroupLayoutEntry{
                     binding: 1,
-                    visibility: wgpu::ShaderStages::all(),
-                    ty: wgsl::buffer(false),
-                    count: None,
+                    ..wgsl::buffer_entry(false)
                 }
             ]
         })
@@ -164,7 +176,6 @@ impl WireframeRenderer{
         let line_cppl = WireframeMeshPipeline::new(device);
 
         let mesh_rppl = WireframeRenderPipeline::new(device, format);
-
 
         let width = Uniform::new(WidthUniform::default(), device).into_bound_with(device, &line_cppl.get_bind_group_layout(2));
 
