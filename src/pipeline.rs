@@ -151,7 +151,7 @@ pub trait RenderPass {
 
 #[derive(Default)]
 pub struct ComputeData<'cd> {
-    pub resources: Vec<(Vec<wgpu::BindingResource<'cd>>, &'cd [u32])>,
+    pub bind_groups: Vec<(&'cd wgpu::BindGroup, &'cd [u32])>,
     pub push_constants: &'cd [(u32, &'cd [u8])],
 }
 
@@ -159,28 +159,12 @@ pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline> {
     fn set_data<'d, 'cp>(
         &'d self,
         cpass: &'cp mut wgpu::ComputePass<'d>,
-        device: &wgpu::Device,
         data: ComputeData<'d>,
     ) {
         cpass.set_pipeline(self);
-        for (i, resources) in data.resources.into_iter().enumerate() {
-            let entries: Vec<wgpu::BindGroupEntry> = resources
-                .0
-                .into_iter()
-                .enumerate()
-                .map(|(i, r)| wgpu::BindGroupEntry {
-                    binding: i as u32,
-                    resource: r,
-                })
-                .collect();
+        for (i, bind_group) in data.bind_groups.into_iter().enumerate() {
 
-            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                entries: &entries,
-                layout: &self.get_bind_group_layout(i as u32),
-            });
-
-            cpass.set_bind_group(i as u32, &bind_group, resources.1);
+            cpass.set_bind_group(i as u32, bind_group.0, bind_group.1);
         }
         for (i, push_constants) in data.push_constants.iter().enumerate() {
             cpass.set_push_constants(push_constants.0, push_constants.1);
@@ -189,22 +173,20 @@ pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline> {
     fn dispatch<'d, 'cp>(
         &'d self,
         cpass: &'cp mut wgpu::ComputePass<'d>,
-        device: &wgpu::Device,
         data: ComputeData<'d>,
         num: [u32; 3],
     ) {
-        self.set_data(cpass, device, data);
+        self.set_data(cpass, data);
         cpass.dispatch(num[0], num[1], num[2]);
     }
     fn dispatch_indirect<'d, 'cp>(
         &'d self,
         cpass: &'cp mut wgpu::ComputePass<'d>,
-        device: &wgpu::Device,
         data: ComputeData<'d>,
         indirect_buffer: &'d Buffer<DispatchIndirect>,
         indirect_offset: wgpu::BufferAddress,
     ) {
-        self.set_data(cpass, device, data);
+        self.set_data(cpass, data);
         cpass.dispatch_indirect(indirect_buffer, indirect_offset);
     }
 }
@@ -234,7 +216,7 @@ pub struct DrawIndirect {
 
 #[derive(Default)]
 pub struct RenderData<'rd> {
-    pub resources: Vec<(Vec<wgpu::BindingResource<'rd>>, &'rd [u32])>,
+    pub bind_groups: Vec<(&'rd wgpu::BindGroup, &'rd [u32])>,
     pub push_constants: Vec<(wgpu::ShaderStages, u32, &'rd [u8])>,
     pub index_buffer: Option<(wgpu::BufferSlice<'rd>, wgpu::IndexFormat)>,
     pub vertex_buffers: Vec<wgpu::BufferSlice<'rd>>,
@@ -248,28 +230,12 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> {
     fn set_data<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
     ) {
         rpass.set_pipeline(self);
 
-        for (i, resources) in data.resources.iter().enumerate() {
-            let entries: Vec<wgpu::BindGroupEntry> = resources
-                .0
-                .into_iter()
-                .enumerate()
-                .map(|(i, r)| wgpu::BindGroupEntry {
-                    binding: i as u32,
-                    resource: r,
-                })
-                .collect();
-
-            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                entries: &entries,
-                layout: &self.get_bind_group_layout(i as u32),
-            });
-            rpass.set_bind_group(i as u32, &bind_group, resources.1);
+        for (i, bind_group) in data.bind_groups.iter().enumerate() {
+            rpass.set_bind_group(i as u32, bind_group.0, bind_group.1);
         }
 
         for (_, push_constants) in data.push_constants.iter().enumerate() {
@@ -316,59 +282,54 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> {
     fn draw<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         vertices: Range<u32>,
         instances: Range<u32>,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass,  data);
         rpass.draw(vertices, instances);
     }
     fn draw_indexed<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         indices: Range<u32>,
         base_vertex: i32,
         instances: Range<u32>,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass, data);
         rpass.draw_indexed(indices, base_vertex, instances);
     }
     // TODO: Determine weather indirect offset is in bytes.
     fn draw_indirect<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass, data);
         rpass.draw_indirect(indirect_buffer, indirect_offset);
     }
     fn draw_indexed_indirect<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass, data);
         rpass.draw_indexed_indirect(indirect_buffer, indirect_offset);
     }
     fn multi_draw_indirect<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
         count: u32,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass, data);
         rpass.multi_draw_indirect(
             indirect_buffer,
             indirect_offset,
@@ -378,7 +339,6 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> {
     fn multi_draw_indirect_count<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -386,7 +346,7 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> {
         count_offset: wgpu::BufferAddress,
         max_count: u32,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass, data);
         rpass.multi_draw_indirect_count(
             indirect_buffer,
             indirect_offset,
@@ -398,19 +358,17 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> {
     fn multi_draw_indexed_indirect<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
         count: u32,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass, data);
         rpass.multi_draw_indexed_indirect(indirect_buffer, indirect_offset, count);
     }
     fn multi_draw_indexed_indirect_count<'d, 'rp>(
         &'d self,
         rpass: &'rp mut wgpu::RenderPass<'d>,
-        device: &wgpu::Device,
         data: RenderData<'d>,
         indirect_buffer: &'d Buffer<DrawIndirect>,
         indirect_offset: wgpu::BufferAddress,
@@ -418,7 +376,7 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> {
         count_offset: wgpu::BufferAddress,
         max_count: u32,
     ) {
-        self.set_data(rpass, device, data);
+        self.set_data(rpass, data);
         rpass.multi_draw_indexed_indirect_count(
             indirect_buffer,
             indirect_offset,
