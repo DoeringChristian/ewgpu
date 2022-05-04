@@ -48,8 +48,62 @@ impl BindGroupLayoutEntry {
     }
 }
 
-pub trait BindGroupContentLayout: BindGroupContent {
+///
+/// A trait that should be implemented by any struct that can be bound to a pipeline.
+///
+/// example: 
+///
+/// ```rust 
+///
+/// #[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+/// pub struct LineVert{
+///     pub pos: [f32; 4],
+///     pub color: [f32; 4],
+///     pub width: [f32; 4],
+/// }
+///
+/// #[derive(BindGroupContent)]
+/// pub struct Line{
+///     pub indices: Buffer<u32>,
+///     pub vertices: Buffer<LineVert>,
+/// }
+///
+/// impl BindGroupLayout for Line{
+///     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout{
+///         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+///             label: Some("Line"),
+///             entries: &[
+///                 wgpu::BindGroupLayoutEntry{
+///                     binding: 0,
+///                     ..wgsl::buffer_entry(false)
+///                 },
+///                 wgpu::BindGroupLayoutEntry{
+///                     binding: 0,
+///                     ..wgsl::buffer_entry(false)
+///                 }
+///             ]
+///         })
+///     }
+/// }
+/// ```
+///
+pub trait BindGroupLayout: BindGroupContent {
+    // TODO: macro for simpler generation of BindGroupLayouts.
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout;
+}
+
+///
+/// Trait implemented by Resources that can be bound to a pipeline.
+/// For example: Texture, Buffer, Uniform.
+///
+pub trait BindingResource{
+    fn resource(&self) -> wgpu::BindingResource;
+}
+
+///
+/// Shorthand functions to convert bind_group contents into bind_groups or bind them.
+///
+pub trait IntoBindGroup: BindGroupLayout + BindGroupContent{
     fn into_bound(self, device: &wgpu::Device) -> Bound<Self> {
         self.into_bound_with(device, &Self::bind_group_layout(device))
     }
@@ -57,9 +111,7 @@ pub trait BindGroupContentLayout: BindGroupContent {
         self.into_bind_group(device, &Self::bind_group_layout(device))
     }
 }
-
-pub trait BindingResource{
-    fn resource(&self) -> wgpu::BindingResource;
+impl<C: BindGroupLayout + BindGroupContent> IntoBindGroup for C{
 }
 
 ///

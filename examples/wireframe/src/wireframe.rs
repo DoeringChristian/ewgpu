@@ -33,7 +33,7 @@ pub struct WidthBindGroupContent{
     uniform: Uniform<WidthUniform>,
 }
 
-impl BindGroupContentLayout for WidthBindGroupContent{
+impl BindGroupLayout for WidthBindGroupContent{
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             label: Some("WidthBindGroupContent"),
@@ -64,7 +64,7 @@ pub struct LineBindGroupContent{
     pub verts: Buffer<WireframeVert>,
 }
 
-impl BindGroupContentLayout for LineBindGroupContent{
+impl BindGroupLayout for LineBindGroupContent{
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             label: Some("LineBindGroupContent"),
@@ -88,7 +88,7 @@ pub struct MeshBindGroupContent{
     pub verts: Buffer<WireframeMeshVert>,
 }
 
-impl BindGroupContentLayout for MeshBindGroupContent{
+impl BindGroupLayout for MeshBindGroupContent{
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             label: Some("LineBindGroupContent"),
@@ -159,19 +159,6 @@ pub struct WireframeRenderer{
 
 impl WireframeRenderer{
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self{
-
-        /*
-        let line_layout = pipeline_layout!(device,
-            bind_groups: {
-                line: BindGroup::<(Buffer<u32>, Buffer<WireframeVert>)> => wgpu::ShaderStages::all(),
-                mesh: BindGroup::<(Buffer<u32>, Buffer<WireframeMeshVert>)> => wgpu::ShaderStages::all(),
-                width: BoundUniform::<WidthUniform> => wgpu::ShaderStages::all(),
-            },
-            push_constants: {
-                Camera => wgpu::ShaderStages::COMPUTE,
-            }
-        );
-        */
 
         let line_cppl = WireframeMeshPipeline::new(device);
 
