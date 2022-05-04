@@ -1,6 +1,6 @@
 use ewgpu::*;
 
-use crate::wireframe::{WireframeMeshVert, WireframeVert};
+use crate::wireframe::{MeshVert, WireframeVert};
 
 use super::camera::Camera;
 
@@ -26,7 +26,7 @@ impl WireframeRenderPipeline {
             vertex: wgpu::VertexState {
                 module: &vshader,
                 entry_point: "main",
-                buffers: &[WireframeMeshVert::buffer_layout()],
+                buffers: &[MeshVert::buffer_layout()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &fshader,
