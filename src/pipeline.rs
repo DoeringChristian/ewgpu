@@ -149,9 +149,14 @@ pub trait RenderPass {
     fn color_target_states(&self) -> Vec<wgpu::ColorTargetState>;
 }
 
+pub struct BindGroupData<'bgd>{
+    pub bind_group: &'bgd wgpu::BindGroup,
+    pub offsets: &'bgd [u32],
+}
+
 #[derive(Default)]
 pub struct ComputeData<'cd> {
-    pub bind_groups: Vec<(&'cd wgpu::BindGroup, &'cd [u32])>,
+    pub bind_groups: Vec<BindGroupData<'cd>>,
     pub push_constants: &'cd [(u32, &'cd [u8])],
 }
 
@@ -164,7 +169,7 @@ pub trait ComputePipeline: Deref<Target = wgpu::ComputePipeline> {
         cpass.set_pipeline(self);
         for (i, bind_group) in data.bind_groups.into_iter().enumerate() {
 
-            cpass.set_bind_group(i as u32, bind_group.0, bind_group.1);
+            cpass.set_bind_group(i as u32, bind_group.bind_group, bind_group.offsets);
         }
         for (i, push_constants) in data.push_constants.iter().enumerate() {
             cpass.set_push_constants(push_constants.0, push_constants.1);
@@ -216,7 +221,7 @@ pub struct DrawIndirect {
 
 #[derive(Default)]
 pub struct RenderData<'rd> {
-    pub bind_groups: Vec<(&'rd wgpu::BindGroup, &'rd [u32])>,
+    pub bind_groups: Vec<BindGroupData<'rd>>,
     pub push_constants: Vec<(wgpu::ShaderStages, u32, &'rd [u8])>,
     pub index_buffer: Option<(wgpu::BufferSlice<'rd>, wgpu::IndexFormat)>,
     pub vertex_buffers: Vec<wgpu::BufferSlice<'rd>>,
@@ -235,7 +240,7 @@ pub trait RenderPipeline: Deref<Target = wgpu::RenderPipeline> {
         rpass.set_pipeline(self);
 
         for (i, bind_group) in data.bind_groups.iter().enumerate() {
-            rpass.set_bind_group(i as u32, bind_group.0, bind_group.1);
+            rpass.set_bind_group(i as u32, bind_group.bind_group, bind_group.offsets);
         }
 
         for (_, push_constants) in data.push_constants.iter().enumerate() {
@@ -403,7 +408,7 @@ mod test {
             let b1 = BufferBuilder::new()
                 .storage()
                 .build(device, &[1])
-                .into_bound(device, &Self::bind_group_layout(device, 0));
+                .into_bound_with(device, &Self::bind_group_layout(device, 0));
             todo!()
         }
     }

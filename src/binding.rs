@@ -48,6 +48,16 @@ impl BindGroupLayoutEntry {
     }
 }
 
+pub trait BindGroupContentLayout: BindGroupContent{
+    fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout;
+    fn into_bound(self, device: &wgpu::Device) -> Bound<Self>{
+        self.into_bound_with(device, &Self::bind_group_layout(device))
+    }
+    fn to_bind_group(&self, device: &wgpu::Device) -> BindGroup<Self>{
+        self.into_bind_group(device, &Self::bind_group_layout(device))
+    }
+}
+
 ///
 /// A trait implemented for structs that can be the content of a BindGroup.
 ///
@@ -58,13 +68,13 @@ pub trait BindGroupContent: Sized {
     /// visibility.
     ///
     fn resources(&self) -> Vec<wgpu::BindingResource>;
-    fn into_bound(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Bound<Self> {
+    fn into_bound_with(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Bound<Self> {
         Bound{
-            bind_group: self.create_bind_group(device, layout),
+            bind_group: self.into_bind_group(device, layout),
             content: self,
         }
     }
-    fn create_bind_group(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> BindGroup<Self>{
+    fn into_bind_group(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> BindGroup<Self>{
         let resources = self.resources();
 
         let entries: Vec<wgpu::BindGroupEntry> = resources
@@ -85,50 +95,6 @@ pub trait BindGroupContent: Sized {
             bind_group,
             _ty: PhantomData,
         }
-    }
-}
-
-// TODO: Derive macro for BindGroupContent.
-
-macro_rules! bind_group_content_for_tuple{
-    ($($name:ident)+) => {
-        #[allow(non_snake_case)]
-        impl<$($name: BindGroupContent),+> BindGroupContent for ($($name, )+){
-            fn resources<'br>(&'br self) -> Vec<wgpu::BindingResource<'br>>{
-                let ($($name, )+) = self;
-                let mut ret = Vec::new();
-                {
-                    $(
-                        ret.append(&mut $name.resources());
-                    )+
-                }
-                ret
-            }
-        }
-    }
-}
-
-// TODO: add derive macro for structs
-bind_group_content_for_tuple! { A }
-bind_group_content_for_tuple! { A B }
-bind_group_content_for_tuple! { A B C }
-bind_group_content_for_tuple! { A B C D }
-bind_group_content_for_tuple! { A B C D E }
-bind_group_content_for_tuple! { A B C D E F }
-bind_group_content_for_tuple! { A B C D E F G }
-bind_group_content_for_tuple! { A B C D E F G H }
-bind_group_content_for_tuple! { A B C D E F G H I }
-bind_group_content_for_tuple! { A B C D E F G H I J }
-bind_group_content_for_tuple! { A B C D E F G H I J K }
-bind_group_content_for_tuple! { A B C D E F G H I J K L }
-
-impl<C: BindGroupContent, const N: usize> BindGroupContent for [C; N] {
-    fn resources(&self) -> Vec<wgpu::BindingResource> {
-        let mut ret = Vec::with_capacity(N);
-        for content in self {
-            ret.append(&mut content.resources());
-        }
-        ret
     }
 }
 

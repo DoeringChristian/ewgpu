@@ -32,7 +32,7 @@ fn push_const_compute(){
             let out_buf = BufferBuilder::<u32>::new()
                 .storage().read()
                 .build_empty(&gpu.device, 1)
-                .into_bound(wgpu::ShaderStages::all(), &gpu.device);
+                .into_bound_with(wgpu::ShaderStages::all(), &gpu.device);
 
     /*
        let layout = PipelineLayoutBuilder::new()

@@ -38,6 +38,62 @@ pub struct WireframeMeshVert{
     color: [f32; 4],
 }
 
+#[derive(BindGroupContent)]
+pub struct LineBindGroupContent{
+    pub indices: Buffer<u32>,
+    pub verts: Buffer<WireframeVert>,
+}
+
+impl BindGroupContentLayout for LineBindGroupContent{
+    fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+            label: Some("LineBindGroupContent"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry{
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::all(),
+                    ty: wgsl::buffer(false),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry{
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::all(),
+                    ty: wgsl::buffer(false),
+                    count: None,
+                }
+            ]
+        })
+    }
+}
+
+#[derive(BindGroupContent)]
+pub struct WireframeBindGroupContent{
+    pub indices: Buffer<u32>,
+    pub verts: Buffer<WireframeMeshVert>,
+}
+
+impl BindGroupContentLayout for WireframeBindGroupContent{
+    fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+            label: Some("LineBindGroupContent"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry{
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::all(),
+                    ty: wgsl::buffer(false),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry{
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::all(),
+                    ty: wgsl::buffer(false),
+                    count: None,
+                }
+            ]
+        })
+    }
+}
+
 pub struct GPUWireframe{
     // Unused
     width: f32,
@@ -45,8 +101,8 @@ pub struct GPUWireframe{
     //line_indices: BindGroup<Buffer<u32>>,
     //line_vertices: BindGroup<Buffer<WireframeVert>>,
 
-    line: Bound<(Buffer<u32>, Buffer<WireframeVert>)>,
-    mesh: Bound<(Buffer<u32>, Buffer<WireframeMeshVert>)>,
+    line: Bound<LineBindGroupContent>,
+    mesh: Bound<WireframeBindGroupContent>,
 
     //mesh_indices: BindGroup<Buffer<u32>>,
     //mesh_vertices: BindGroup<Buffer<WireframeMeshVert>>,
@@ -55,21 +111,22 @@ pub struct GPUWireframe{
 impl GPUWireframe{
     pub fn new(device: &wgpu::Device, vertices: &[WireframeVert], indices: &[u32], width: f32) -> Self{
 
-        let line = (
-            BufferBuilder::new()
-            .storage().write()
-            .build(device, indices),
-            BufferBuilder::new()
-            .storage().write()
-            .build(device, vertices)).into_bound_with::<WireframeMeshPipeline>(device, 0);
+        let line = LineBindGroupContent{
+            indices: BufferBuilder::new()
+                .storage().write().build(device, indices),
+            verts: BufferBuilder::new()
+                .storage().write()
+                .build(device, vertices),
+        }.into_bound(device);
 
-        let mesh = (
-            BufferBuilder::new()
-            .index().storage()
-            .build_empty(device, line.0.len()/2 * 6),
-            BufferBuilder::new()
-            .storage().vertex()
-            .build_empty(device, line.0.len()/2 * 4)).into_bound_with::<WireframeMeshPipeline>(device, 1);
+        let mesh = WireframeBindGroupContent{
+            indices: BufferBuilder::new()
+                .index().storage()
+                .build_empty(device, line.indices.len() / 2 * 6),
+            verts: BufferBuilder::new()
+                .storage().vertex()
+                .build_empty(device, line.indices.len() / 2 * 4)
+        }.into_bound(device);
 
         //let width = UniformBindGroup::new(device, width);
 
@@ -109,7 +166,7 @@ impl WireframeRenderer{
         let mesh_rppl = WireframeRenderPipeline::new(device, format);
 
 
-        let width = Uniform::new(WidthUniform::default(), device).into_bound_with::<WireframeMeshPipeline>(device, 2);
+        let width = Uniform::new(WidthUniform::default(), device).into_bound_with(device, &line_cppl.get_bind_group_layout(2));
 
         Self{
             line_cppl,
@@ -124,10 +181,10 @@ impl WireframeRenderer{
         }
         {
             let data = ComputeData{
-                bind_groups: &[
-                    (wireframe.line.bind_group(), &[]),
-                    (wireframe.mesh.bind_group(), &[]),
-                    (self.width.bind_group(), &[]),
+                bind_groups: vec![
+                    BindGroupData{bind_group: wireframe.line.bind_group(), offsets: &[]},
+                    BindGroupData{bind_group: wireframe.mesh.bind_group(), offsets: &[]},
+                    BindGroupData{bind_group: self.width.bind_group(), offsets: &[]},
                 ],
                 push_constants: &[
                     (0, bytemuck::bytes_of(camera)),
@@ -138,7 +195,7 @@ impl WireframeRenderer{
                 label: None,
             });
 
-            self.line_cppl.dispatch(&mut cpass, data, [(wireframe.line.0.len() / 2) as u32, 1, 1]);
+            self.line_cppl.dispatch(&mut cpass, data, [(wireframe.line.indices.len() / 2) as u32, 1, 1]);
         }
     }
 
@@ -154,14 +211,14 @@ impl WireframeRenderer{
 
             let data = RenderData{
                 vertex_buffers: vec![
-                    wireframe.mesh.1.slice(..).into(),
+                    wireframe.mesh.verts.slice(..).into(),
                 ],
                 index_buffer: Some(
-                    wireframe.mesh.0.slice(..).into(),
+                    wireframe.mesh.indices.slice(..).into(),
                 ),
                 ..Default::default()
             };
-            self.mesh_rppl.draw_indexed(&mut rpass, data, 0..wireframe.mesh.0.len() as u32, 0, 0..1);
+            self.mesh_rppl.draw_indexed(&mut rpass, data, 0..wireframe.mesh.indices.len() as u32, 0, 0..1);
         }
     }
 

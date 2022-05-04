@@ -431,7 +431,7 @@ impl<'tb> TextureBuilder<'tb>{
     }
 
     pub fn bound(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, layout: &wgpu::BindGroupLayout) -> Bound<Texture>{
-        self.build(device, queue).into_bound(device, layout)
+        self.build(device, queue).into_bound_with(device, layout)
     }
 
 }
@@ -508,7 +508,6 @@ pub struct TextureView{
 }
 
 impl BindGroupContent for TextureView{
-    // TODO: pass down sampler.
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec![
             wgpu::BindingResource::TextureView(&self.view),
