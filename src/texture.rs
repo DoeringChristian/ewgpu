@@ -447,26 +447,11 @@ impl Texture{
             view,
         }
     }
-    pub fn with_view_default(self, device: &wgpu::Device) -> ViewTexture{
-        let view = self.view_default();
-
-        ViewTexture{
-            view,
-            texture: self,
-        }
-    }
     pub fn view(&self, mut desc: wgpu::TextureViewDescriptor) -> TextureView{
         desc.format = Some(self.format);
         let view = self.texture.create_view(&desc);
         TextureView{
             view,
-        }
-    }
-    pub fn with_view(self, desc: wgpu::TextureViewDescriptor) -> ViewTexture{
-        let view = self.view(desc);
-        ViewTexture{
-            view,
-            texture: self,
         }
     }
     pub fn slice<S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice{
@@ -493,6 +478,11 @@ impl Texture{
         }
     }
 }
+impl BindingResource for Texture{
+    fn resource(&self) -> wgpu::BindingResource {
+        wgpu::BindingResource::Sampler(&self.sampler)
+    }
+}
 impl BindGroupContent for Texture{
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{
@@ -515,12 +505,6 @@ impl BindGroupContent for TextureView{
     }
 }
 
-#[derive(DerefMut)]
-pub struct ViewTexture{
-    #[target]
-    pub texture: Texture,
-    pub view: TextureView,
-}
 
 #[cfg(feature = "imgui")]
 impl ColorAttachment for imgui_wgpu::Texture{

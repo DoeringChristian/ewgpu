@@ -4,6 +4,7 @@ use super::buffer::*;
 use std::ops::{Deref, DerefMut};
 use super::binding;
 use super::binding::BindGroupContent;
+use super::binding::BindingResource;
 
 ///
 /// A struct mutably referencing a Uniform to edit its content and update it when UniformRef is
@@ -140,6 +141,11 @@ impl<C: bytemuck::Pod> Uniform<C>{
     }
 }
 
+impl<C: bytemuck::Pod> BindingResource for Uniform<C>{
+    fn resource(&self) -> wgpu::BindingResource {
+        self.uniform_vec.buffer.as_entire_binding()
+    }
+}
 impl<C: bytemuck::Pod> BindGroupContent for Uniform<C>{
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{

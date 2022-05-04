@@ -58,15 +58,14 @@ pub trait BindGroupContentLayout: BindGroupContent {
     }
 }
 
+pub trait BindingResource{
+    fn resource(&self) -> wgpu::BindingResource;
+}
+
 ///
 /// A trait implemented for structs that can be the content of a BindGroup.
 ///
 pub trait BindGroupContent: Sized {
-    ///
-    /// Returns a vector of entries for this BindGroupContent. Used to create layout.
-    /// The visibility option is a visibility override if all elements in a struct should have some
-    /// visibility.
-    ///
     fn resources(&self) -> Vec<wgpu::BindingResource>;
     fn into_bound_with(self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Bound<Self> {
         Bound {

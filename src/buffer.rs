@@ -593,6 +593,12 @@ impl<C: bytemuck::Pod> Buffer<C>{
     }
 }
 
+impl<C: bytemuck::Pod> binding::BindingResource for Buffer<C>{
+    fn resource(&self) -> wgpu::BindingResource {
+        self.as_entire_binding()
+    }
+}
+
 impl<C: bytemuck::Pod> binding::BindGroupContent for Buffer<C>{
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec!{

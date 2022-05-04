@@ -265,10 +265,12 @@ impl GPUContext{
         let o_tex = TextureBuilder::new()
             .clear(size)
             .format(wgpu::TextureFormat::Rgba8Unorm)
-            .build(&self.device, &self.queue).with_view_default(&self.device);
+            .build(&self.device, &self.queue);
+
+        let o_tex_view = o_tex.view_default();
 
         self.encode(|gpu, encoder|{
-            f(gpu, &o_tex.view, encoder);
+            f(gpu, &o_tex_view, encoder);
         });
         o_tex.slice(.., .., ..).to_image(&self.device)
     }
