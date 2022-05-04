@@ -67,12 +67,12 @@ impl BindGroupContentLayout for LineBindGroupContent{
 }
 
 #[derive(BindGroupContent)]
-pub struct WireframeBindGroupContent{
+pub struct MeshBindGroupContent{
     pub indices: Buffer<u32>,
     pub verts: Buffer<WireframeMeshVert>,
 }
 
-impl BindGroupContentLayout for WireframeBindGroupContent{
+impl BindGroupContentLayout for MeshBindGroupContent{
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             label: Some("LineBindGroupContent"),
@@ -102,7 +102,7 @@ pub struct GPUWireframe{
     //line_vertices: BindGroup<Buffer<WireframeVert>>,
 
     line: Bound<LineBindGroupContent>,
-    mesh: Bound<WireframeBindGroupContent>,
+    mesh: Bound<MeshBindGroupContent>,
 
     //mesh_indices: BindGroup<Buffer<u32>>,
     //mesh_vertices: BindGroup<Buffer<WireframeMeshVert>>,
@@ -119,7 +119,7 @@ impl GPUWireframe{
                 .build(device, vertices),
         }.into_bound(device);
 
-        let mesh = WireframeBindGroupContent{
+        let mesh = MeshBindGroupContent{
             indices: BufferBuilder::new()
                 .index().storage()
                 .build_empty(device, line.indices.len() / 2 * 6),

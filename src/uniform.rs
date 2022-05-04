@@ -1,5 +1,3 @@
-use crate::BindGroupLayoutDescriptor;
-
 use super::binding::Bound;
 use super::binding::CreateBindGroupLayout;
 use super::buffer::*;

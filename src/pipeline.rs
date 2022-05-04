@@ -12,126 +12,8 @@ use core::ops::Range;
 const DEFAULT_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 pub const DEFAULT_ENTRY_POINT: &str = "main";
 
-///
-/// A struct representing a FragmentState.
-///
-pub struct FragmentState<'fs> {
-    pub targets: Vec<wgpu::ColorTargetState>,
-    pub entry_point: &'fs str,
-    pub shader: &'fs wgpu::ShaderModule,
-}
-
-impl<'fs> FragmentState<'fs> {
-    pub fn new(shader: &'fs wgpu::ShaderModule) -> Self {
-        Self {
-            targets: Vec::new(),
-            shader,
-            entry_point: DEFAULT_ENTRY_POINT,
-        }
-    }
-
-    pub fn set_entry_point(mut self, entry_point: &'fs str) -> Self {
-        self.entry_point = entry_point;
-        self
-    }
-
-    pub fn push_target(mut self, color_target_state: wgpu::ColorTargetState) -> Self {
-        self.targets.push(color_target_state);
-        self
-    }
-
-    pub fn push_target_replace(mut self, format: wgpu::TextureFormat) -> Self {
-        self.targets.push(wgpu::ColorTargetState {
-            format,
-            blend: Some(wgpu::BlendState {
-                color: wgpu::BlendComponent::REPLACE,
-                alpha: wgpu::BlendComponent::REPLACE,
-            }),
-            write_mask: wgpu::ColorWrites::all(),
-        });
-        self
-    }
-}
-
-///
-/// Layout of the VertexState of a Pipeline.
-/// It describes the buffer layouts as well as the names used when setting by name in the
-/// RenderPassPipeline process.
-///
-pub struct VertexState<'vs> {
-    pub vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vs>>,
-    pub entry_point: &'vs str,
-    pub shader: &'vs wgpu::ShaderModule,
-}
-
-impl<'vs> VertexState<'vs> {
-    pub fn new(shader: &'vs wgpu::ShaderModule) -> Self {
-        Self {
-            vertex_buffer_layouts: Vec::new(),
-            entry_point: DEFAULT_ENTRY_POINT,
-            shader,
-        }
-    }
-    pub fn set_entry_point(mut self, entry_point: &'vs str) -> Self {
-        self.entry_point = entry_point;
-        self
-    }
-    pub fn push_vert_layout(mut self, vertex_buffer_layout: wgpu::VertexBufferLayout<'vs>) -> Self {
-        self.vertex_buffer_layouts.push(vertex_buffer_layout);
-        self
-    }
-    pub fn push_vert_layouts(
-        mut self,
-        mut vertex_buffer_layouts: Vec<wgpu::VertexBufferLayout<'vs>>,
-    ) -> Self {
-        self.vertex_buffer_layouts
-            .append(&mut vertex_buffer_layouts);
-        self
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct BindGroupLayoutDescriptor<'bgld> {
-    pub label: wgpu::Label<'bgld>,
-    pub entries: &'bgld [wgpu::BindGroupLayoutEntry],
-}
-
-impl<'bgld> BindGroupLayoutDescriptor<'bgld> {
-    pub fn bind_group_layout(&self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: self.label,
-            entries: self.entries,
-        })
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct PipelineLayoutDescriptor<'pld> {
-    pub label: wgpu::Label<'pld>,
-    pub bind_group_layouts: &'pld [BindGroupLayoutDescriptor<'pld>],
-    pub push_constant_ranges: &'pld [wgpu::PushConstantRange],
-}
-
-impl<'pld> PipelineLayoutDescriptor<'pld> {
-    pub fn pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
-        let bind_group_layouts: Vec<wgpu::BindGroupLayout> = self
-            .bind_group_layouts
-            .iter()
-            .map(|bgl| bgl.bind_group_layout(device))
-            .collect();
-
-        let bind_group_layout_refs: Vec<&wgpu::BindGroupLayout> =
-            bind_group_layouts.iter().map(|bgl| bgl).collect();
-
-        device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: self.label,
-            bind_group_layouts: &bind_group_layout_refs,
-            push_constant_ranges: self.push_constant_ranges,
-        })
-    }
-}
-
 pub trait PipelineLayout {
+    #[allow(unused_variables)]
     fn layout(device: &wgpu::Device) -> Option<wgpu::PipelineLayout> {
         None
     }
@@ -149,23 +31,23 @@ pub trait RenderPass {
     fn color_target_states(&self) -> Vec<wgpu::ColorTargetState>;
 }
 
-pub struct BindGroupData<'bgd>{
+pub struct BindGroupWithOffset<'bgd>{
     pub bind_group: &'bgd wgpu::BindGroup,
     pub offsets: &'bgd [u32],
 }
 
-impl<'bgd, B: 'static + BindGroupContent> From<&'bgd BindGroup<B>> for BindGroupData<'bgd>{
+impl<'bgd, B: 'static + BindGroupContent> From<&'bgd BindGroup<B>> for BindGroupWithOffset<'bgd>{
     fn from(src: &'bgd BindGroup<B>) -> Self {
-        BindGroupData{
+        BindGroupWithOffset{
             bind_group: src.bind_group(),
             offsets: &[],
         }
     }
 }
 
-impl<'bgd, B: 'static + BindGroupContent> From<&'bgd Bound<B>> for BindGroupData<'bgd>{
+impl<'bgd, B: 'static + BindGroupContent> From<&'bgd Bound<B>> for BindGroupWithOffset<'bgd>{
     fn from(src: &'bgd Bound<B>) -> Self {
-        BindGroupData{
+        BindGroupWithOffset{
             bind_group: src.bind_group(),
             offsets: &[],
         }
@@ -175,7 +57,7 @@ impl<'bgd, B: 'static + BindGroupContent> From<&'bgd Bound<B>> for BindGroupData
 
 #[derive(Default)]
 pub struct ComputeData<'cd> {
-    pub bind_groups: Vec<BindGroupData<'cd>>,
+    pub bind_groups: Vec<BindGroupWithOffset<'cd>>,
     pub push_constants: &'cd [(u32, &'cd [u8])],
 }
 
@@ -240,7 +122,7 @@ pub struct DrawIndirect {
 
 #[derive(Default)]
 pub struct RenderData<'rd> {
-    pub bind_groups: Vec<BindGroupData<'rd>>,
+    pub bind_groups: Vec<BindGroupWithOffset<'rd>>,
     pub push_constants: Vec<(wgpu::ShaderStages, u32, &'rd [u8])>,
     pub index_buffer: Option<(wgpu::BufferSlice<'rd>, wgpu::IndexFormat)>,
     pub vertex_buffers: Vec<wgpu::BufferSlice<'rd>>,
