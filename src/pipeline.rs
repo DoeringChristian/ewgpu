@@ -154,6 +154,25 @@ pub struct BindGroupData<'bgd>{
     pub offsets: &'bgd [u32],
 }
 
+impl<'bgd, B: 'static + BindGroupContent> From<&'bgd BindGroup<B>> for BindGroupData<'bgd>{
+    fn from(src: &'bgd BindGroup<B>) -> Self {
+        BindGroupData{
+            bind_group: src.bind_group(),
+            offsets: &[],
+        }
+    }
+}
+
+impl<'bgd, B: 'static + BindGroupContent> From<&'bgd Bound<B>> for BindGroupData<'bgd>{
+    fn from(src: &'bgd Bound<B>) -> Self {
+        BindGroupData{
+            bind_group: src.bind_group(),
+            offsets: &[],
+        }
+    }
+}
+
+
 #[derive(Default)]
 pub struct ComputeData<'cd> {
     pub bind_groups: Vec<BindGroupData<'cd>>,

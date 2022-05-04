@@ -182,9 +182,9 @@ impl WireframeRenderer{
         {
             let data = ComputeData{
                 bind_groups: vec![
-                    BindGroupData{bind_group: wireframe.line.bind_group(), offsets: &[]},
-                    BindGroupData{bind_group: wireframe.mesh.bind_group(), offsets: &[]},
-                    BindGroupData{bind_group: self.width.bind_group(), offsets: &[]},
+                    (&wireframe.line).into(),
+                    (&wireframe.mesh).into(),
+                    (&self.width).into(),
                 ],
                 push_constants: &[
                     (0, bytemuck::bytes_of(camera)),
