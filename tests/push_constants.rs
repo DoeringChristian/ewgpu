@@ -11,7 +11,7 @@ fn push_const_compute(){
             ..Default::default()
         })
         .build();
-    let cshader = ComputeShader::from_src(&gpu.device, "
+    let cshader = ComputeShader::from_src_glsl(&gpu.device, "
             #version 460
             #if COMPUTE_SHADER
 

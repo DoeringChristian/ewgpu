@@ -124,7 +124,7 @@ impl WireframeRenderer{
         }
         {
             let data = ComputeData{
-                bind_groups: &[
+                resources: &[
                     (wireframe.line.bind_group(), &[]),
                     (wireframe.mesh.bind_group(), &[]),
                     (self.width.bind_group(), &[]),

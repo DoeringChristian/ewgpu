@@ -21,7 +21,21 @@ pub struct ShaderModule{
 }
 
 impl ShaderModule{
-    pub fn from_src(device: &wgpu::Device, src: &str, kind: shaderc::ShaderKind, entry_point: &str, label: Option<&str>) -> Result<Self>{
+    pub fn from_src_wgls(device: &wgpu::Device, src: &str, entry_point: &str, label: wgpu::Label) -> Result<Self>{
+        let module = device.create_shader_module(&wgpu::ShaderModuleDescriptor{
+            label,
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(src)),
+        });
+        let src_files = Vec::new();
+        let entry_point = src.into();
+
+        Ok(ShaderModule{
+            module,
+            src_files,
+            entry_point,
+        })
+    }
+    pub fn from_src_glsl(device: &wgpu::Device, src: &str, kind: shaderc::ShaderKind, entry_point: &str, label: Option<&str>) -> Result<Self>{
         let mut compiler = shaderc::Compiler::new().ok_or(anyhow!("error creating compiler"))?;
         let mut options = shaderc::CompileOptions::new().ok_or(anyhow!("error creating shaderc options"))?;
 
@@ -51,7 +65,7 @@ impl ShaderModule{
         })
     }
 
-    pub fn load(device: &wgpu::Device, path: &Path, kind: shaderc::ShaderKind, entry_point: &str, label: Option<&str>) -> Result<Self>{
+    pub fn load_glsl(device: &wgpu::Device, path: &Path, kind: shaderc::ShaderKind, entry_point: &str, label: Option<&str>) -> Result<Self>{
 
         let src_files = RefCell::new(vec![PathBuf::from(path).canonicalize().unwrap()]);
 
@@ -125,15 +139,21 @@ pub struct FragmentShader{
 }
 
 impl FragmentShader{
-    pub fn from_src(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
+    pub fn from_src_glsl(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
         Ok(Self{
-            module: ShaderModule::from_src(device, src, shaderc::ShaderKind::Fragment, DEFAULT_ENTRY_POINT, label)?,
+            module: ShaderModule::from_src_glsl(device, src, shaderc::ShaderKind::Fragment, DEFAULT_ENTRY_POINT, label)?,
         })
     }
 
-    pub fn load(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self>{
+    pub fn from_src_wgls(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
+        Ok(FragmentShader{
+            module: ShaderModule::from_src_wgls(device, src, DEFAULT_ENTRY_POINT, label)?,
+        })
+    }
+
+    pub fn load_glsl(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self>{
         Ok(Self{
-            module: ShaderModule::load(device, path, shaderc::ShaderKind::Fragment, DEFAULT_ENTRY_POINT, label)?,
+            module: ShaderModule::load_glsl(device, path, shaderc::ShaderKind::Fragment, DEFAULT_ENTRY_POINT, label)?,
         })
     }
 }
@@ -144,14 +164,19 @@ pub struct VertexShader{
 }
 
 impl VertexShader{
-    pub fn from_src(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
+    pub fn from_src_glsl(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
         Ok(Self{
-            module: ShaderModule::from_src(device, src, shaderc::ShaderKind::Vertex, DEFAULT_ENTRY_POINT, label)?,
+            module: ShaderModule::from_src_glsl(device, src, shaderc::ShaderKind::Vertex, DEFAULT_ENTRY_POINT, label)?,
+        })
+    }
+    pub fn from_src_wgls(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
+        Ok(VertexShader{
+            module: ShaderModule::from_src_wgls(device, src, DEFAULT_ENTRY_POINT, label)?,
         })
     }
     pub fn load(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self>{
         Ok(Self{
-            module: ShaderModule::load(device, path, shaderc::ShaderKind::Vertex, DEFAULT_ENTRY_POINT, label)?,
+            module: ShaderModule::load_glsl(device, path, shaderc::ShaderKind::Vertex, DEFAULT_ENTRY_POINT, label)?,
         })
     }
 }
@@ -162,14 +187,19 @@ pub struct ComputeShader{
 }
 
 impl ComputeShader{
-    pub fn from_src(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
+    pub fn from_src_glsl(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
         Ok(Self{
-            module: ShaderModule::from_src(device, src, shaderc::ShaderKind::Compute, DEFAULT_ENTRY_POINT, label)?,
+            module: ShaderModule::from_src_glsl(device, src, shaderc::ShaderKind::Compute, DEFAULT_ENTRY_POINT, label)?,
         })
     }
-    pub fn load(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self>{
+    pub fn from_src_wgls(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self>{
+        Ok(ComputeShader{
+            module: ShaderModule::from_src_wgls(device, src, DEFAULT_ENTRY_POINT, label)?,
+        })
+    }
+    pub fn load_glsl(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self>{
         Ok(Self{
-            module: ShaderModule::load(device, path, shaderc::ShaderKind::Compute, DEFAULT_ENTRY_POINT, label)?,
+            module: ShaderModule::load_glsl(device, path, shaderc::ShaderKind::Compute, DEFAULT_ENTRY_POINT, label)?,
         })
     }
 }

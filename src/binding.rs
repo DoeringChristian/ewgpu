@@ -64,12 +64,6 @@ pub trait BindGroupContent: Sized {
             content: self,
         }
     }
-    fn into_bound_with<P: PipelineLayout>(self, device: &wgpu::Device, bind_group_index: usize) -> Bound<Self>{
-        self.into_bound(device, &P::bind_group_layout(device, bind_group_index))
-    }
-    fn create_bind_group_with<P: PipelineLayout>(self, device: &wgpu::Device, bind_group_index: usize) -> BindGroup<Self>{
-        self.create_bind_group(device, &P::bind_group_layout(device, bind_group_index))
-    }
     fn create_bind_group(&self, device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> BindGroup<Self>{
         let resources = self.resources();
 

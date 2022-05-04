@@ -10,21 +10,21 @@ pub struct WireframeRenderPipeline{
 }
 
 impl PipelineLayout for WireframeRenderPipeline{
-    const LAYOUT: PipelineLayoutDescriptor<'static> = PipelineLayoutDescriptor{
+    const LAYOUT: Option<PipelineLayoutDescriptor<'static>> = Some(PipelineLayoutDescriptor{
         label: None,
         bind_group_layouts: &[],
         push_constant_ranges: &[],
-    };
+    });
 }
 
 impl WireframeRenderPipeline{
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self{
-        let vshader = VertexShader::from_src(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
-        let fshader = FragmentShader::from_src(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
+        let vshader = VertexShader::from_src_glsl(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
+        let fshader = FragmentShader::from_src_glsl(device, include_str!("shaders/wf_mesh_rppl.glsl"), None).unwrap();
 
         let rppl = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
             label: None,
-            layout: Some(&Self::LAYOUT.pipeline_layout(device)),
+            layout: Some(&Self::LAYOUT.unwrap().pipeline_layout(device)),
             vertex: wgpu::VertexState{
                 module: &vshader,
                 entry_point: "main",
@@ -78,7 +78,7 @@ pub struct WireframeMeshPipeline{
 impl WireframeMeshPipeline{
     pub fn new(device: &wgpu::Device) -> Self{
 
-        let shader = ComputeShader::from_src(device, include_str!("shaders/line_ppl.glsl"), None).unwrap();
+        let shader = ComputeShader::from_src_glsl(device, include_str!("shaders/line_ppl.glsl"), None).unwrap();
 
         let cppl = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor{
             label: None,
@@ -94,7 +94,7 @@ impl WireframeMeshPipeline{
 }
 
 impl PipelineLayout for WireframeMeshPipeline{
-    const LAYOUT: PipelineLayoutDescriptor<'static> = PipelineLayoutDescriptor{
+    const LAYOUT = Some(PipelineLayoutDescriptor{
         label: None,
         bind_group_layouts: &[
             BindGroupLayoutDescriptor{
@@ -150,5 +150,5 @@ impl PipelineLayout for WireframeMeshPipeline{
                 range: 0..(std::mem::size_of::<Camera>() as u32),
             }
         ],
-    };
+    });
 }

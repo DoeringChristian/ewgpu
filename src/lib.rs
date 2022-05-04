@@ -163,6 +163,7 @@ pub mod shader;
 pub mod context;
 pub mod utils;
 pub mod resources;
+pub mod pipelines;
 
 
 pub use self::binding::*;
