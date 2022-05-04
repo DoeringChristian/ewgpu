@@ -29,11 +29,14 @@ pub struct WidthUniform{
 }
 
 #[derive(BindGroupContent)]
-pub struct WidthBindGroupContent{
+pub struct Width{
     uniform: Uniform<WidthUniform>,
 }
 
-impl BindGroupLayout for WidthBindGroupContent{
+#[derive(BindGroupContent)]
+pub struct WidthBGC(Uniform<WidthUniform>);
+
+impl BindGroupLayout for Width{
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             label: Some("WidthBindGroupContent"),
@@ -51,7 +54,7 @@ impl BindGroupLayout for WidthBindGroupContent{
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
 #[derive(Vert)]
-pub struct WireframeMeshVert{
+pub struct MeshVert{
     #[location = 0]
     pos: [f32; 4],
     #[location = 1]
@@ -59,12 +62,12 @@ pub struct WireframeMeshVert{
 }
 
 #[derive(BindGroupContent)]
-pub struct LineBindGroupContent{
+pub struct Line{
     pub indices: Buffer<u32>,
     pub verts: Buffer<WireframeVert>,
 }
 
-impl BindGroupLayout for LineBindGroupContent{
+impl BindGroupLayout for Line{
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
             label: Some("LineBindGroupContent"),
@@ -85,7 +88,7 @@ impl BindGroupLayout for LineBindGroupContent{
 #[derive(BindGroupContent)]
 pub struct MeshBindGroupContent{
     pub indices: Buffer<u32>,
-    pub verts: Buffer<WireframeMeshVert>,
+    pub verts: Buffer<MeshVert>,
 }
 
 impl BindGroupLayout for MeshBindGroupContent{
@@ -113,7 +116,7 @@ pub struct GPUWireframe{
     //line_indices: BindGroup<Buffer<u32>>,
     //line_vertices: BindGroup<Buffer<WireframeVert>>,
 
-    line: Bound<LineBindGroupContent>,
+    line: Bound<Line>,
     mesh: Bound<MeshBindGroupContent>,
 
     //mesh_indices: BindGroup<Buffer<u32>>,
@@ -123,7 +126,7 @@ pub struct GPUWireframe{
 impl GPUWireframe{
     pub fn new(device: &wgpu::Device, vertices: &[WireframeVert], indices: &[u32], width: f32) -> Self{
 
-        let line = LineBindGroupContent{
+        let line = Line{
             indices: BufferBuilder::new()
                 .storage().write().build(device, indices),
             verts: BufferBuilder::new()

@@ -185,7 +185,15 @@ pub struct BindGroup<C: BindGroupContent> {
     _ty: PhantomData<C>,
     #[target]
     bind_group: wgpu::BindGroup,
-    //layout_desc: BindGroupLayoutDescriptor,
+}
+
+impl<C: BindGroupContent> BindGroup<C>{
+    pub fn from_wgpu(bind_group: wgpu::BindGroup) -> Self{
+        Self{
+            _ty: PhantomData,
+            bind_group,
+        }
+    }
 }
 
 impl<C: BindGroupContent> GetBindGroup for BindGroup<C> {
