@@ -6,13 +6,13 @@ pub fn generate_deref(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
 
     match data{
         syn::Data::Struct(syn::DataStruct{fields, ..}) => {
-            let target = fields.iter().find(|f|{
+            let (i, target) = fields.iter().enumerate().find(|(i, f)|{
                 f.attrs.iter().find(|a|{
                     a.path.is_ident("target")
                 }).is_some()
             }).unwrap_or_else(||{
                 if fields.iter().count() == 1{
-                    fields.iter().next().unwrap()
+                    (0, fields.iter().next().unwrap())
                 }
                 else{
                     panic!("If there are more than one field add a #[target] attribute.")
@@ -22,7 +22,11 @@ pub fn generate_deref(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
             let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
             let target_ty = &target.ty;
-            let target_ident = &target.ident;
+            let i = syn::Index::from(i);
+            let target_ident = match &target.ident{
+                Some(ident) => quote!{#ident},
+                None => quote!{#i},
+            };
 
             quote!{
                 impl #impl_generics std::ops::Deref for #ident #ty_generics #where_clause{
@@ -44,13 +48,13 @@ pub fn generate_derefmut(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
 
     match data{
         syn::Data::Struct(syn::DataStruct{fields, ..}) => {
-            let target = fields.iter().find(|f|{
+            let (i, target) = fields.iter().enumerate().find(|(i, f)|{
                 f.attrs.iter().find(|a|{
                     a.path.is_ident("target")
                 }).is_some()
             }).unwrap_or_else(||{
                 if fields.iter().count() == 1{
-                    fields.iter().next().unwrap()
+                    (0, fields.iter().next().unwrap())
                 }
                 else{
                     panic!("If there are more than one field add a #[target] attribute.")
@@ -60,7 +64,11 @@ pub fn generate_derefmut(ast: syn::DeriveInput) -> proc_macro2::TokenStream{
             let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
             let target_ty = &target.ty;
-            let target_ident = &target.ident;
+            let i = syn::Index::from(i);
+            let target_ident = match &target.ident{
+                Some(ident) => quote!{#ident},
+                None => quote!{#i},
+            };
 
             quote!{
                 impl #impl_generics std::ops::Deref for #ident #ty_generics #where_clause{

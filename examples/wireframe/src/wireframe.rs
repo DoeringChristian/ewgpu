@@ -28,13 +28,8 @@ pub struct WidthUniform{
     pub width: [f32; 4],
 }
 
-#[derive(BindGroupContent)]
-pub struct Width{
-    uniform: Uniform<WidthUniform>,
-}
-
-#[derive(BindGroupContent)]
-pub struct WidthBGC(Uniform<WidthUniform>);
+#[derive(BindGroupContent, DerefMut)]
+pub struct Width(Uniform<WidthUniform>);
 
 impl BindGroupLayout for Width{
     fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
