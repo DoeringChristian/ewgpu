@@ -71,30 +71,21 @@ impl Shader{
     pub fn vertex_module(&self) -> Result<&ShaderModule>{
         match self{
             Shader::Glsl{vertex_module, ..} => {
-                match vertex_module{
-                    Some(vertex_module) => Ok(vertex_module),
-                    None => Err(anyhow!("No vertex_module in shader")),
-                }
+                vertex_module.as_ref().ok_or(anyhow!("No vertex_module in shader"))
             }
         }
     }
     pub fn fragment_module(&self) -> Result<&ShaderModule>{
         match self{
             Shader::Glsl{fragment_module, ..} => {
-                match fragment_module{
-                    Some(fragment_module) => Ok(fragment_module),
-                    None => Err(anyhow!("No fragment_module in shader")),
-                }
+                fragment_module.as_ref().ok_or(anyhow!("No fragment_module in shader"))
             }
         }
     }
     pub fn compute_module(&self) -> Result<&ShaderModule>{
         match self{
             Shader::Glsl{compute_module, ..} => {
-                match compute_module{
-                    Some(compute_module) => Ok(compute_module),
-                    None => Err(anyhow!("No compute_module in shader")),
-                }
+                compute_module.as_ref().ok_or(anyhow!("No compute_module in shader"))
             }
         }
     }
