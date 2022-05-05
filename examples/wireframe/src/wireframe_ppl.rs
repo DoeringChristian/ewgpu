@@ -24,13 +24,10 @@ impl WireframeRenderPipeline {
             label: None,
             layout: None,
             vertex: wgpu::VertexState {
-                module: &vshader,
-                entry_point: "main",
                 buffers: &[MeshVert::buffer_layout()],
+                ..vshader.vertex_state()
             },
             fragment: Some(wgpu::FragmentState {
-                module: &fshader,
-                entry_point: "main",
                 targets: &[wgpu::ColorTargetState {
                     format,
                     blend: Some(wgpu::BlendState {
@@ -39,6 +36,7 @@ impl WireframeRenderPipeline {
                     }),
                     write_mask: wgpu::ColorWrites::all(),
                 }],
+                ..fshader.fragment_state()
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,

@@ -3,19 +3,13 @@ use super::pipeline::*;
 use anyhow::*;
 use std::marker::PhantomData;
 
-pub trait CreateBindGroupLayout {
-    fn create_bind_group_layout(
-        device: &wgpu::Device,
-        label: Option<&str>,
-    ) -> BindGroupLayoutWithDesc;
-}
-
 pub trait GetBindGroupLayout {
     fn bind_group_layout(&self) -> &BindGroupLayoutWithDesc;
 }
 
 ///
 /// A trait implemented for structs that have a BindGroup.
+/// TODO: evaluate usefullness.
 ///
 pub trait GetBindGroup {
     fn bind_group(&self) -> &wgpu::BindGroup;
@@ -160,6 +154,16 @@ pub struct Bound<C: BindGroupContent> {
     bind_group: BindGroup<C>,
 }
 
+impl<C: BindGroupContent> Bound<C>{
+    pub fn with_offsets<'a>(&'a self, offsets: &'a [u32]) -> BindGroupWithOffsets{
+        BindGroupWithOffsets{
+            bind_group: self.bind_group(),
+            offsets,
+        }
+    }
+}
+
+
 impl<C: BindGroupContent> GetBindGroup for Bound<C> {
     fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
@@ -192,6 +196,12 @@ impl<C: BindGroupContent> BindGroup<C>{
         Self{
             _ty: PhantomData,
             bind_group,
+        }
+    }
+    pub fn with_offsets<'a>(&'a self, offsets: &'a [u32]) -> BindGroupWithOffsets{
+        BindGroupWithOffsets{
+            bind_group: self,
+            offsets,
         }
     }
 }

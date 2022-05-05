@@ -164,6 +164,7 @@ pub mod context;
 pub mod utils;
 pub mod resources;
 pub mod pipelines;
+pub mod builders;
 
 
 pub use self::binding::*;
@@ -179,4 +180,5 @@ pub use self::shader::*;
 pub use crate::ewgpu_macros::*;
 pub use context::*;
 pub use self::resources::*;
+pub use self::builders::*;
 

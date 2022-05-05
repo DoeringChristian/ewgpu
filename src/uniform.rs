@@ -1,5 +1,4 @@
 use super::binding::Bound;
-use super::binding::CreateBindGroupLayout;
 use super::buffer::*;
 use std::ops::{Deref, DerefMut};
 use super::binding;

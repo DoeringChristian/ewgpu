@@ -37,24 +37,39 @@ pub trait RenderPass {
     fn color_target_states(&self) -> Vec<wgpu::ColorTargetState>;
 }
 
-pub struct BindGroupWithOffset<'bgd>{
+///
+/// A struct defining an bind group and its dynamic offsets.
+/// This is used in the RenderData and ComputeData to specify BindGroups.
+///
+#[derive(DerefMut)]
+pub struct BindGroupWithOffsets<'bgd>{
+    #[target]
     pub bind_group: &'bgd wgpu::BindGroup,
     pub offsets: &'bgd [u32],
 }
 
-impl<'bgd, B: 'static + BindGroupContent> From<&'bgd BindGroup<B>> for BindGroupWithOffset<'bgd>{
+impl<'bgd, B: 'static + BindGroupContent> From<&'bgd BindGroup<B>> for BindGroupWithOffsets<'bgd>{
     fn from(src: &'bgd BindGroup<B>) -> Self {
-        BindGroupWithOffset{
+        BindGroupWithOffsets{
             bind_group: src.bind_group(),
             offsets: &[],
         }
     }
 }
 
-impl<'bgd, B: 'static + BindGroupContent> From<&'bgd Bound<B>> for BindGroupWithOffset<'bgd>{
+impl<'bgd, B: 'static + BindGroupContent> From<&'bgd Bound<B>> for BindGroupWithOffsets<'bgd>{
     fn from(src: &'bgd Bound<B>) -> Self {
-        BindGroupWithOffset{
+        BindGroupWithOffsets{
             bind_group: src.bind_group(),
+            offsets: &[],
+        }
+    }
+}
+
+impl<'bgd> From<&'bgd wgpu::BindGroup> for BindGroupWithOffsets<'bgd>{
+    fn from(src: &'bgd wgpu::BindGroup) -> Self {
+        BindGroupWithOffsets{
+            bind_group: src,
             offsets: &[],
         }
     }
@@ -63,7 +78,7 @@ impl<'bgd, B: 'static + BindGroupContent> From<&'bgd Bound<B>> for BindGroupWith
 
 #[derive(Default)]
 pub struct ComputeData<'cd> {
-    pub bind_groups: Vec<BindGroupWithOffset<'cd>>,
+    pub bind_groups: Vec<BindGroupWithOffsets<'cd>>,
     pub push_constants: &'cd [(u32, &'cd [u8])],
 }
 
@@ -128,7 +143,7 @@ pub struct DrawIndirect {
 
 #[derive(Default)]
 pub struct RenderData<'rd> {
-    pub bind_groups: Vec<BindGroupWithOffset<'rd>>,
+    pub bind_groups: Vec<BindGroupWithOffsets<'rd>>,
     pub push_constants: Vec<(wgpu::ShaderStages, u32, &'rd [u8])>,
     pub index_buffer: Option<(wgpu::BufferSlice<'rd>, wgpu::IndexFormat)>,
     pub vertex_buffers: Vec<wgpu::BufferSlice<'rd>>,

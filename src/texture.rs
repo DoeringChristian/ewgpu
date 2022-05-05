@@ -497,6 +497,12 @@ pub struct TextureView{
     pub view: wgpu::TextureView,
 }
 
+impl BindingResource for TextureView{
+    fn resource(&self) -> wgpu::BindingResource {
+        wgpu::BindingResource::TextureView(&self.view)
+    }
+}
+
 impl BindGroupContent for TextureView{
     fn resources(&self) -> Vec<wgpu::BindingResource> {
         vec![
