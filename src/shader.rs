@@ -5,6 +5,125 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::str;
+use std::sync::Arc;
+
+const DEFAULT_VERTEX_ENTRY_POINT: &str = "main";
+const DEFAULT_FRAGMENT_ENTRY_POINT: &str = "main";
+const DEFAULT_COMPUTE_ENTRY_POINT: &str = "cs_main";
+
+pub enum Shader{
+    Glsl{
+        vertex_module: Option<ShaderModule>,
+        fragment_module: Option<ShaderModule>,
+        compute_module: Option<ShaderModule>,
+    }
+}
+
+impl Shader{
+    pub fn load(
+        device: &wgpu::Device,
+        path: &Path,
+        stages: wgpu::ShaderStages,
+        label: wgpu::Label,
+    ) -> Result<Self>{
+        Self::load_with_entry_points(device, path, stages, None, None, None, label)
+    }
+    pub fn load_with_entry_points(
+        device: &wgpu::Device, 
+        path: &Path, 
+        stages: wgpu::ShaderStages, 
+        vertex_entry_point: Option<&str>,
+        fragment_entry_point: Option<&str>,
+        compute_entry_point: Option<&str>,
+        label: wgpu::Label,
+    ) -> Result<Self>{
+        let extension = path.extension().ok_or(anyhow!("File has no extension"))?;
+        let vertex_entry_point = vertex_entry_point.unwrap_or(DEFAULT_VERTEX_ENTRY_POINT);
+        let fragment_entry_point = fragment_entry_point.unwrap_or(DEFAULT_FRAGMENT_ENTRY_POINT);
+        let compute_entry_point = compute_entry_point.unwrap_or(DEFAULT_COMPUTE_ENTRY_POINT);
+
+        if extension == "glsl"{
+            let mut vertex_module: Option<ShaderModule> = None;
+            let mut fragment_module: Option<ShaderModule> = None;
+            let mut compute_module: Option<ShaderModule> = None;
+            if stages.contains(wgpu::ShaderStages::VERTEX){
+                vertex_module = Some(ShaderModule::load_glsl(device, path, wgpu::ShaderStages::VERTEX, vertex_entry_point, label)?);
+            }
+            if stages.contains(wgpu::ShaderStages::FRAGMENT){
+                fragment_module = Some(ShaderModule::load_glsl(device, path, wgpu::ShaderStages::FRAGMENT, fragment_entry_point, label)?);
+            }
+            if stages.contains(wgpu::ShaderStages::COMPUTE){
+                compute_module = Some(ShaderModule::load_glsl(device, path, wgpu::ShaderStages::COMPUTE, compute_entry_point, label)?);
+            }
+            Ok(Shader::Glsl{
+                vertex_module,
+                fragment_module,
+                compute_module,
+            })
+        }
+        else if extension == "wgsl"{
+            todo!()
+        }
+        else{
+            Err(anyhow!("Extension not upported"))
+        }
+    }
+    pub fn vertex_module(&self) -> Result<&ShaderModule>{
+        match self{
+            Shader::Glsl{vertex_module, ..} => {
+                match vertex_module{
+                    Some(vertex_module) => Ok(vertex_module),
+                    None => Err(anyhow!("No vertex_module in shader")),
+                }
+            }
+        }
+    }
+    pub fn fragment_module(&self) -> Result<&ShaderModule>{
+        match self{
+            Shader::Glsl{fragment_module, ..} => {
+                match fragment_module{
+                    Some(fragment_module) => Ok(fragment_module),
+                    None => Err(anyhow!("No fragment_module in shader")),
+                }
+            }
+        }
+    }
+    pub fn compute_module(&self) -> Result<&ShaderModule>{
+        match self{
+            Shader::Glsl{compute_module, ..} => {
+                match compute_module{
+                    Some(compute_module) => Ok(compute_module),
+                    None => Err(anyhow!("No compute_module in shader")),
+                }
+            }
+        }
+    }
+    pub fn vertex_state(&self) -> wgpu::VertexState{
+        let vertex_module = self.vertex_module().unwrap();
+        wgpu::VertexState{
+            module: &vertex_module.module,
+            entry_point: &vertex_module.entry_point(),
+            buffers: &[],
+        }
+    }
+    pub fn fragment_state(&self) -> wgpu::FragmentState{
+        let fragment_module = self.fragment_module().unwrap();
+        wgpu::FragmentState{
+            module: &fragment_module.module,
+            entry_point: &fragment_module.entry_point(),
+            targets: &[],
+        }
+    }
+    pub fn compute_pipeline_desc(&self) -> wgpu::ComputePipelineDescriptor{
+        let compute_module = self.compute_module().unwrap();
+        wgpu::ComputePipelineDescriptor{
+            label: None,
+            layout: None,
+            module: &compute_module.module,
+            entry_point: &compute_module.entry_point(),
+        }
+    }
+}
 
 ///
 /// Wraper for wgpu::ShaderModule using shaderc to load shader modules.
@@ -105,6 +224,16 @@ impl ShaderModule {
             src_files: Vec::new(),
             entry_point: String::from(entry_point),
         })
+    }
+
+    pub fn load_wgsl(
+        device: &wgpu::Device,
+        path: &Path,
+        stage: wgpu::ShaderStages,
+        entry_point: &str,
+        label: wgpu::Label,
+    ) -> Result<Self>{
+        todo!()
     }
 
     pub fn load_glsl(

@@ -13,19 +13,24 @@ impl PipelineLayout for WireframeRenderPipeline {}
 
 impl WireframeRenderPipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
+        /*
         let vshader =
             VertexShader::from_src_glsl(device, include_str!("shaders/wf_mesh_rppl.glsl"), None)
                 .unwrap();
         let fshader =
             FragmentShader::from_src_glsl(device, include_str!("shaders/wf_mesh_rppl.glsl"), None)
                 .unwrap();
+        */
+
+        let shader = Shader::load(device, std::path::Path::new("src/shaders/wf_mesh_rppl.glsl"), wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX, None).unwrap();
 
         let rppl = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: None,
             vertex: wgpu::VertexState {
                 buffers: &[MeshVert::buffer_layout()],
-                ..vshader.vertex_state()
+                ..shader.vertex_state()
+                //..vshader.vertex_state()
             },
             fragment: Some(wgpu::FragmentState {
                 targets: &[wgpu::ColorTargetState {
@@ -36,7 +41,8 @@ impl WireframeRenderPipeline {
                     }),
                     write_mask: wgpu::ColorWrites::all(),
                 }],
-                ..fshader.fragment_state()
+                ..shader.fragment_state()
+                //..fshader.fragment_state()
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
