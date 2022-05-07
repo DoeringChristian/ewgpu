@@ -76,6 +76,21 @@ impl<'bgd> From<&'bgd wgpu::BindGroup> for BindGroupWithOffsets<'bgd>{
 }
 
 
+#[derive(DerefMut)]
+pub struct DefaultComputePipeline(wgpu::ComputePipeline);
+
+impl DefaultComputePipeline{
+    pub fn load(device: &wgpu::Device, path: &str) -> Self{
+        let shader = Shader::load(device, &std::path::Path::new(path), wgpu::ShaderStages::COMPUTE, None).unwrap();
+        let cppl = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor{
+            label: None,
+            layout: None,
+            ..shader.compute_pipeline_desc()
+        });
+        Self(cppl)
+    }
+}
+
 #[derive(Default)]
 pub struct ComputeData<'cd> {
     pub bind_groups: Vec<BindGroupWithOffsets<'cd>>,

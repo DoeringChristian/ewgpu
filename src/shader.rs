@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 const DEFAULT_VERTEX_ENTRY_POINT: &str = "main";
 const DEFAULT_FRAGMENT_ENTRY_POINT: &str = "main";
-const DEFAULT_COMPUTE_ENTRY_POINT: &str = "cs_main";
+const DEFAULT_COMPUTE_ENTRY_POINT: &str = "main";
 
 pub enum Shader{
     Glsl{

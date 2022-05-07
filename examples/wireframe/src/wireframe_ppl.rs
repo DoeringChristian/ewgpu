@@ -71,6 +71,12 @@ pub struct WireframeMeshPipeline {
     cppl: wgpu::ComputePipeline,
 }
 
+impl From<wgpu::ComputePipeline> for WireframeMeshPipeline{
+    fn from(src: wgpu::ComputePipeline) -> Self {
+        Self{cppl: src}
+    }
+}
+
 impl WireframeMeshPipeline {
     pub fn new(device: &wgpu::Device) -> Self {
         let shader =
