@@ -3,19 +3,28 @@ use anyhow::*;
 use ewgpu_macros::DerefMut;
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::str;
-use std::sync::Arc;
 
-const DEFAULT_VERTEX_ENTRY_POINT: &str = "main";
-const DEFAULT_FRAGMENT_ENTRY_POINT: &str = "main";
-const DEFAULT_COMPUTE_ENTRY_POINT: &str = "main";
+const WGSL_DEFAULT_VERTEX_ENTRY_POINT: &str = "vs_main";
+const WGSL_DEFAULT_FRAGMENT_ENTRY_POINT: &str = "fs_main";
+const WGSL_DEFAULT_COMPUTE_ENTRY_POINT: &str = "cs_main";
+
+const GLSL_DEFAULT_ENTRY_POINT: &str = "main";
 
 pub enum Shader{
     Glsl{
         vertex_module: Option<ShaderModule>,
         fragment_module: Option<ShaderModule>,
         compute_module: Option<ShaderModule>,
+    },
+    Wgsl{
+        module: ShaderModule,
+        stages: wgpu::ShaderStages,
+        vertex_entry_point: Option<String>,
+        fragment_entry_point: Option<String>,
+        compute_entry_point: Option<String>,
     }
 }
 
@@ -38,11 +47,11 @@ impl Shader{
         label: wgpu::Label,
     ) -> Result<Self>{
         let extension = path.extension().ok_or(anyhow!("File has no extension"))?;
-        let vertex_entry_point = vertex_entry_point.unwrap_or(DEFAULT_VERTEX_ENTRY_POINT);
-        let fragment_entry_point = fragment_entry_point.unwrap_or(DEFAULT_FRAGMENT_ENTRY_POINT);
-        let compute_entry_point = compute_entry_point.unwrap_or(DEFAULT_COMPUTE_ENTRY_POINT);
 
         if extension == "glsl"{
+            let vertex_entry_point = vertex_entry_point.unwrap_or(GLSL_DEFAULT_ENTRY_POINT);
+            let fragment_entry_point = fragment_entry_point.unwrap_or(GLSL_DEFAULT_ENTRY_POINT);
+            let compute_entry_point = compute_entry_point.unwrap_or(GLSL_DEFAULT_ENTRY_POINT);
             let mut vertex_module: Option<ShaderModule> = None;
             let mut fragment_module: Option<ShaderModule> = None;
             let mut compute_module: Option<ShaderModule> = None;
@@ -62,7 +71,23 @@ impl Shader{
             })
         }
         else if extension == "wgsl"{
-            todo!()
+            let src = read_to_string(path)?;
+            let module = device.create_shader_module(&wgpu::ShaderModuleDescriptor{
+                label,
+                source: wgpu::ShaderSource::Wgsl(Cow::from(src)),
+            });
+            let module = ShaderModule{
+                module,
+                src_files: Vec::new(),
+                entry_point: String::new(),
+            };
+            Ok(Self::Wgsl{
+                module,
+                stages,
+                fragment_entry_point: fragment_entry_point.map(|s| String::from(s)),
+                vertex_entry_point: vertex_entry_point.map(|s| String::from(s)),
+                compute_entry_point: compute_entry_point.map(|s| String::from(s)),
+            })
         }
         else{
             Err(anyhow!("Extension not upported"))
@@ -72,6 +97,14 @@ impl Shader{
         match self{
             Shader::Glsl{vertex_module, ..} => {
                 vertex_module.as_ref().ok_or(anyhow!("No vertex_module in shader"))
+            },
+            Shader::Wgsl{module, stages, ..} => {
+                if stages.contains(wgpu::ShaderStages::VERTEX){
+                    Ok(module)
+                }
+                else{
+                    Err(anyhow!("No vertex_module in shader"))
+                }
             }
         }
     }
@@ -79,6 +112,14 @@ impl Shader{
         match self{
             Shader::Glsl{fragment_module, ..} => {
                 fragment_module.as_ref().ok_or(anyhow!("No fragment_module in shader"))
+            },
+            Shader::Wgsl{module, stages, ..} => {
+                if stages.contains(wgpu::ShaderStages::FRAGMENT){
+                    Ok(module)
+                }
+                else{
+                    Err(anyhow!("No fragment_module in shader"))
+                }
             }
         }
     }
@@ -86,6 +127,14 @@ impl Shader{
         match self{
             Shader::Glsl{compute_module, ..} => {
                 compute_module.as_ref().ok_or(anyhow!("No compute_module in shader"))
+            },
+            Shader::Wgsl{module, stages, ..} => {
+                if stages.contains(wgpu::ShaderStages::COMPUTE){
+                    Ok(module)
+                }
+                else{
+                    Err(anyhow!("No compute_module in shader"))
+                }
             }
         }
     }
@@ -243,9 +292,9 @@ impl ShaderModule {
                 std::result::Result::Ok(src) => src,
                 Err(err) => {
                     return Err(anyhow!(
-                        "Failed to read shader file \"{:?}\": {}",
-                        &src_files.borrow()[0],
-                        err
+                            "Failed to read shader file \"{:?}\": {}",
+                            &src_files.borrow()[0],
+                            err
                     ));
                 }
             };
@@ -308,8 +357,8 @@ impl ShaderModule {
                         })
                     }
                     Err(err) => std::result::Result::Err(format!(
-                        "Failed to resolve include to {} in {} (was looking for {:?}): {}",
-                        name, source_file, path, err
+                            "Failed to resolve include to {} in {} (was looking for {:?}): {}",
+                            name, source_file, path, err
                     )),
                 }
             });
@@ -318,9 +367,9 @@ impl ShaderModule {
                 &src,
                 kind,
                 src_files.borrow()[0]
-                    .to_str()
-                    .ok_or("Path could not be converted to string")
-                    .unwrap(),
+                .to_str()
+                .ok_or("Path could not be converted to string")
+                .unwrap(),
                 entry_point,
                 Some(&options),
             )?;
@@ -352,12 +401,12 @@ impl FragmentShader {
     pub fn from_src_glsl(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self> {
         Ok(Self {
             module: ShaderModule::from_src_glsl(
-                device,
-                src,
-                wgpu::ShaderStages::FRAGMENT,
-                DEFAULT_ENTRY_POINT,
-                label,
-            )?,
+                        device,
+                        src,
+                        wgpu::ShaderStages::FRAGMENT,
+                        DEFAULT_ENTRY_POINT,
+                        label,
+                    )?,
         })
     }
 
@@ -370,12 +419,12 @@ impl FragmentShader {
     pub fn load_glsl(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self> {
         Ok(Self {
             module: ShaderModule::load_glsl(
-                device,
-                path,
-                wgpu::ShaderStages::FRAGMENT,
-                DEFAULT_ENTRY_POINT,
-                label,
-            )?,
+                        device,
+                        path,
+                        wgpu::ShaderStages::FRAGMENT,
+                        DEFAULT_ENTRY_POINT,
+                        label,
+                    )?,
         })
     }
 
@@ -397,12 +446,12 @@ impl VertexShader {
     pub fn from_src_glsl(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self> {
         Ok(Self {
             module: ShaderModule::from_src_glsl(
-                device,
-                src,
-                wgpu::ShaderStages::VERTEX,
-                DEFAULT_ENTRY_POINT,
-                label,
-            )?,
+                        device,
+                        src,
+                        wgpu::ShaderStages::VERTEX,
+                        DEFAULT_ENTRY_POINT,
+                        label,
+                    )?,
         })
     }
     pub fn from_src_wgls(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self> {
@@ -413,12 +462,12 @@ impl VertexShader {
     pub fn load(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self> {
         Ok(Self {
             module: ShaderModule::load_glsl(
-                device,
-                path,
-                wgpu::ShaderStages::VERTEX,
-                DEFAULT_ENTRY_POINT,
-                label,
-            )?,
+                        device,
+                        path,
+                        wgpu::ShaderStages::VERTEX,
+                        DEFAULT_ENTRY_POINT,
+                        label,
+                    )?,
         })
     }
 
@@ -440,12 +489,12 @@ impl ComputeShader {
     pub fn from_src_glsl(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self> {
         Ok(Self {
             module: ShaderModule::from_src_glsl(
-                device,
-                src,
-                wgpu::ShaderStages::COMPUTE,
-                DEFAULT_ENTRY_POINT,
-                label,
-            )?,
+                        device,
+                        src,
+                        wgpu::ShaderStages::COMPUTE,
+                        DEFAULT_ENTRY_POINT,
+                        label,
+                    )?,
         })
     }
     pub fn from_src_wgls(device: &wgpu::Device, src: &str, label: Option<&str>) -> Result<Self> {
@@ -456,12 +505,12 @@ impl ComputeShader {
     pub fn load_glsl(device: &wgpu::Device, path: &Path, label: Option<&str>) -> Result<Self> {
         Ok(Self {
             module: ShaderModule::load_glsl(
-                device,
-                path,
-                wgpu::ShaderStages::COMPUTE,
-                DEFAULT_ENTRY_POINT,
-                label,
-            )?,
+                        device,
+                        path,
+                        wgpu::ShaderStages::COMPUTE,
+                        DEFAULT_ENTRY_POINT,
+                        label,
+                    )?,
         })
     }
 }
