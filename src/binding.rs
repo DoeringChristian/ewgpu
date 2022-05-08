@@ -214,12 +214,23 @@ impl<C: BindGroupContent> GetBindGroup for BindGroup<C> {
 
 #[allow(dead_code)]
 mod glsl {
+    pub fn default_entry(ty: wgpu::BindingType) -> wgpu::BindGroupLayoutEntry{
+        wgpu::BindGroupLayoutEntry{
+            binding: 0,
+            visibility: wgpu::ShaderStages::all(),
+            ty,
+            count: None,
+        }
+    }
     pub fn buffer(read_only: bool) -> wgpu::BindingType {
         wgpu::BindingType::Buffer {
             ty: wgpu::BufferBindingType::Storage { read_only },
             has_dynamic_offset: false,
             min_binding_size: None,
         }
+    }
+    pub fn buffer_entry(read_only: bool) -> wgpu::BindGroupLayoutEntry{
+        default_entry(buffer(read_only))
     }
 
     pub fn uniform() -> wgpu::BindingType {
@@ -229,6 +240,9 @@ mod glsl {
             min_binding_size: None,
         }
     }
+    pub fn uniform_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(uniform())
+    }
 
     pub fn sampler(filtering: bool) -> wgpu::BindingType {
         if filtering {
@@ -236,6 +250,9 @@ mod glsl {
         } else {
             wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering)
         }
+    }
+    pub fn sampler_entry(filtering: bool) -> wgpu::BindGroupLayoutEntry{
+        default_entry(sampler(filtering))
     }
 
     #[allow(non_snake_case)]
@@ -246,6 +263,10 @@ mod glsl {
             multisampled: false,
         }
     }
+    #[allow(non_snake_case)]
+    pub fn texture2D_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(texture2D())
+    }
 
     #[allow(non_snake_case)]
     pub fn texture2DArray() -> wgpu::BindingType {
@@ -254,6 +275,10 @@ mod glsl {
             view_dimension: wgpu::TextureViewDimension::D2Array,
             multisampled: false,
         }
+    }
+    #[allow(non_snake_case)]
+    pub fn texture2DArray_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(texture2DArray())
     }
 
     #[allow(non_snake_case)]
@@ -264,6 +289,10 @@ mod glsl {
             multisampled: false,
         }
     }
+    #[allow(non_snake_case)]
+    pub fn itexture2D_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(itexture2D())
+    }
 
     #[allow(non_snake_case)]
     pub fn utexture2D() -> wgpu::BindingType {
@@ -272,6 +301,10 @@ mod glsl {
             view_dimension: wgpu::TextureViewDimension::D2,
             multisampled: false,
         }
+    }
+    #[allow(non_snake_case)]
+    pub fn utexture2D_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(utexture2D())
     }
 
     #[allow(non_snake_case)]
@@ -282,6 +315,10 @@ mod glsl {
             multisampled: false,
         }
     }
+    #[allow(non_snake_case)]
+    pub fn texture3D_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(texture3D())
+    }
 
     #[allow(non_snake_case)]
     pub fn itexture3D() -> wgpu::BindingType {
@@ -290,6 +327,10 @@ mod glsl {
             view_dimension: wgpu::TextureViewDimension::D3,
             multisampled: false,
         }
+    }
+    #[allow(non_snake_case)]
+    pub fn itexture3D_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(itexture3D())
     }
 
     #[allow(non_snake_case)]
@@ -300,6 +341,10 @@ mod glsl {
             multisampled: false,
         }
     }
+    #[allow(non_snake_case)]
+    pub fn utexture3D_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(utexture3D())
+    }
 
     #[allow(non_snake_case)]
     pub fn textureCube() -> wgpu::BindingType {
@@ -308,6 +353,10 @@ mod glsl {
             view_dimension: wgpu::TextureViewDimension::Cube,
             multisampled: false,
         }
+    }
+    #[allow(non_snake_case)]
+    pub fn textureCube_entry() -> wgpu::BindGroupLayoutEntry{
+        default_entry(textureCube())
     }
 
     #[allow(non_snake_case)]
@@ -321,6 +370,13 @@ mod glsl {
             format,
         }
     }
+    #[allow(non_snake_case)]
+    pub fn image2D_entry(
+        format: wgpu::TextureFormat,
+        access: wgpu::StorageTextureAccess,
+    ) -> wgpu::BindGroupLayoutEntry{
+        default_entry(image2D(format, access))
+    }
 
     #[allow(non_snake_case)]
     pub fn image2DArray(
@@ -333,6 +389,13 @@ mod glsl {
             format,
         }
     }
+    #[allow(non_snake_case)]
+    pub fn image2DArray_entry(
+        format: wgpu::TextureFormat,
+        access: wgpu::StorageTextureAccess,
+    ) -> wgpu::BindGroupLayoutEntry{
+        default_entry(image2DArray(format, access))
+    }
 
     #[allow(non_snake_case)]
     pub fn image3D(
@@ -344,6 +407,13 @@ mod glsl {
             view_dimension: wgpu::TextureViewDimension::D3,
             format,
         }
+    }
+    #[allow(non_snake_case)]
+    pub fn image3D_entry(
+        format: wgpu::TextureFormat,
+        access: wgpu::StorageTextureAccess,
+    ) -> wgpu::BindGroupLayoutEntry{
+        default_entry(image3D(format, access))
     }
 }
 
