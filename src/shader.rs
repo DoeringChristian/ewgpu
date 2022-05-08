@@ -513,4 +513,13 @@ impl ComputeShader {
                     )?,
         })
     }
+
+    pub fn compute_pipeline_desc(&self) -> wgpu::ComputePipelineDescriptor{
+        wgpu::ComputePipelineDescriptor{
+            label: None,
+            layout: None,
+            module: &self.module,
+            entry_point: self.entry_point(),
+        }
+    }
 }

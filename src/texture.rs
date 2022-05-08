@@ -437,22 +437,18 @@ impl<'tb> TextureBuilder<'tb>{
 }
 
 impl Texture{
-    pub fn view_default(&self) -> TextureView{
+    pub fn view_default(&self) -> wgpu::TextureView{
         let view = self.texture.create_view(&wgpu::TextureViewDescriptor{
             label: None,
             format: Some(self.format),
             ..Default::default()
         });
-        TextureView{
-            view,
-        }
+        view
     }
-    pub fn view(&self, mut desc: wgpu::TextureViewDescriptor) -> TextureView{
+    pub fn view(&self, mut desc: wgpu::TextureViewDescriptor) -> wgpu::TextureView{
         desc.format = Some(self.format);
         let view = self.texture.create_view(&desc);
-        TextureView{
-            view,
-        }
+        view
     }
     pub fn slice<S: RangeBounds<u32>>(&self, bound_x: S, bound_y: S, bound_z: S) -> TextureSlice{
         let range_x = bound_x.clamp(0..self.size.width);
@@ -508,6 +504,12 @@ impl BindGroupContent for TextureView{
         vec![
             wgpu::BindingResource::TextureView(&self.view),
         ]
+    }
+}
+
+impl BindingResource for wgpu::TextureView{
+    fn resource(&self) -> wgpu::BindingResource {
+        wgpu::BindingResource::TextureView(&self)
     }
 }
 
